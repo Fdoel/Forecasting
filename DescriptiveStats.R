@@ -9,22 +9,26 @@ data <- read.csv("FREDQ.csv")
 data <- data[-c(1, 2),]
 
 inflation_df <- data %>%
-  select(c("sasdate", "CPIAUCSL")) %>%
+  select(c("sasdate", "CPIAUCSL", "UNRATESTx", "UNRATELTx", "GCEC1", "GDPC1")) %>%
   mutate(sasdate = as.Date(sasdate, "%m/%d/%Y")) %>%
   # Calculate inflation by taking the logs of the CPI divided by its lag
   mutate(inflation = log(CPIAUCSL/lag(CPIAUCSL))*100) %>%
-  filter(sasdate >= "1980-1-1")
+  filter(sasdate >= as.Date("1959-06-01"))
   
-# Get summary statistics on inflation including Kurtosis, Max, Min, Mean, Median, Skewness, and Standard Deviation
-info_df <- rbind(Kurtosis = kurtosis(inflation_df$inflation, type = 2),
-              Max = max(inflation_df$inflation),
-              Min = min(inflation_df$inflation),
-              Mean = mean(inflation_df$inflation),
-              Median = median(inflation_df$inflation),
-              Skewness = skewness(inflation_df$inflation),
-              Standard_Deviation = sd(inflation_df$inflation))
-
-colnames(info_df) <- "Inflation"
+# Get summary statistics on all columns except date including Kurtosis, Max, Min, Mean, Median, Skewness, and Standard Deviation
+info_df <- inflation_df[-1] %>%
+  summarise_all(list(
+    Mean = mean,
+    Median = median,
+    SD = sd,
+    Min = min,
+    Max = max,
+    Skewness = ~ skewness(., na.rm = TRUE),
+    Kurtosis = ~ kurtosis(., na.rm = TRUE)
+  )) %>%
+  pivot_longer(cols = everything(), names_to = c("Statistic", "Variable"), names_sep = "_") %>%
+  pivot_wider(names_from = "Variable", values_from = "value") %>%
+  as.data.frame()
 
 # Plot the inflation data with CPi on one y axis and inflation on the other
 inflation_df %>%
@@ -54,3 +58,8 @@ inflation_df %>%
 seastests::kw(inflation_df$inflation, freq = 4)
 seastests::seasdum(inflation_df$inflation, freq = 4)
 # Do not reject no seasonality at the 5% level
+
+
+
+
+
