@@ -59,8 +59,5 @@ seastests::kw(inflation_df$inflation, freq = 4)
 seastests::seasdum(inflation_df$inflation, freq = 4)
 # Do not reject no seasonality at the 5% level
 
-#zwaar is mooi
-# Hoi
-
 
 
