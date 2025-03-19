@@ -3,7 +3,7 @@ library(tidyverse)
 library(e1071)
 
 # Load the data
-data <- read.csv("FREDQ.csv")
+data <- read.csv("FRED.csv")
 
 # Omit the first two rows as we only require raw data
 data <- data[-c(1, 2),]
