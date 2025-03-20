@@ -1,6 +1,7 @@
 # Import necessary libraries
 library(tidyverse)
 library(e1071)
+library(ggplot2)
 
 # Load the data
 data <- read.csv("FRED.csv")
@@ -9,7 +10,7 @@ data <- read.csv("FRED.csv")
 data <- data[-c(1, 2),]
 
 inflation_df <- data %>%
-  select(c("sasdate", "CPIAUCSL", "UNRATESTx", "UNRATELTx", "GCEC1", "GDPC1")) %>%
+  select(c("sasdate", "CPIAUCSL", "UNRATE", "IPFINAL", "CUMFNS", "RPI", "RETAILx", "VIXCLSx")) %>%
   mutate(sasdate = as.Date(sasdate, "%m/%d/%Y")) %>%
   # Calculate inflation by taking the logs of the CPI divided by its lag
   mutate(inflation = log(CPIAUCSL/lag(CPIAUCSL))*100) %>%
@@ -17,6 +18,24 @@ inflation_df <- data %>%
   
 # Get summary statistics on all columns except date including Kurtosis, Max, Min, Mean, Median, Skewness, and Standard Deviation
 info_df <- inflation_df[-1] %>%
+  summarise_all(list(
+    Mean = mean,
+    Median = median,
+    SD = sd,
+    Min = min,
+    Max = max,
+    Skewness = ~ skewness(., na.rm = TRUE),
+    Kurtosis = ~ kurtosis(., na.rm = TRUE)
+  )) %>%
+  pivot_longer(cols = everything(), names_to = c("Statistic", "Variable"), names_sep = "_") %>%
+  pivot_wider(names_from = "Variable", values_from = "value") %>%
+  as.data.frame()
+
+VIX_summary <- inflation_df %>%
+  select(c("sasdate", "VIXCLSx")) %>%
+  filter(sasdate >= as.Date("1962-07-01")) #vix is only available from july 1962
+
+vix_summary_df <- VIX_summary[-1] %>%
   summarise_all(list(
     Mean = mean,
     Median = median,
@@ -55,8 +74,8 @@ inflation_df %>%
 
 # Test for seasonality in 
 # Test for seasonality
-seastests::kw(inflation_df$inflation, freq = 4)
-seastests::seasdum(inflation_df$inflation, freq = 4)
+seastests::kw(inflation_df$inflation, freq = 12)
+seastests::seasdum(inflation_df$inflation, freq = 12)
 # Do not reject no seasonality at the 5% level
 
 
