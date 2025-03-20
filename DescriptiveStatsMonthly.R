@@ -72,11 +72,13 @@ inflation_df %>%
     axis.ticks.length = unit(5, "pt"), 
   )
 
-# Test for seasonality in 
-# Test for seasonality
+# Test for seasonality in inflation
 seastests::kw(inflation_df$inflation, freq = 12)
 seastests::seasdum(inflation_df$inflation, freq = 12)
 # Do not reject no seasonality at the 5% level
 
-
+# Test for seasonality in inflation
+seastests::kw(inflation_df$CPIAUCSL, freq = 12)
+seastests::seasdum(inflation_df$CPIAUCSL, freq = 12)
+# Do not reject no seasonality at the 5% level
 
