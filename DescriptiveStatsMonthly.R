@@ -85,3 +85,5 @@ seastests::seasdum(inflation_df$CPIAUCSL, freq = 12)
 # Rename the df for use in other scripts
 inflation_df_monthly <- inflation_df
 save(inflation_df_monthly, file = "inflation_df_monthly.RData")
+
+#max is super goed bezig
