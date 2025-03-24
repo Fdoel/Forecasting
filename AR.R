@@ -1,0 +1,1 @@
+load(inflation_data.RData)
