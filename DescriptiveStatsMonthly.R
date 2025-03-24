@@ -82,3 +82,6 @@ seastests::kw(inflation_df$CPIAUCSL, freq = 12)
 seastests::seasdum(inflation_df$CPIAUCSL, freq = 12)
 # Do not reject no seasonality at the 5% level
 
+# Rename the df for use in other scripts
+rename(inflation_df, inflation_df_monthly)
+save(inflation_df_monthly, file = "inflation_df_monthly.RData")
