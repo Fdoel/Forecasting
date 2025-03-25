@@ -16,7 +16,7 @@ param_combinations <- list(
 r <- 1
 s <- 1
 
-# Hoe verwerk ik r and 2 initial zero???
+# Hoe verwerk ik r and s initial zero???
 
 df <- 3
 sigma <- 0.1
