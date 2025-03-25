@@ -2,6 +2,7 @@ set.seed(321) # Set seed for reproducibility
 
 # Load required library
 library(MASS)
+source("MARX_functions.R")
 
 # Simulation parameters
 n_sim <- 10000
@@ -50,6 +51,7 @@ estimate_parameters <- function(y,v) {
 # Monte Carlo simulation
 monte_carlo_simulation <- function(T, phi, psi, num_simulations = 10000) {
   estimates <- matrix(NA, nrow = num_simulations, ncol = 2)  # Opslag voor schattingen
+  models <- rep(NULL,num_simulations)
   
   for (sim in 1:num_simulations) {
     v_t <- ar_process(phi, T)
@@ -60,18 +62,22 @@ monte_carlo_simulation <- function(T, phi, psi, num_simulations = 10000) {
     y_t <- y_t[(101):(T - 100)]
     
     estimates[sim, ] <- estimate_parameters(y_t, v_t)
+    
+    
+    models[sim] <- mixed(y_t,NULL,1,1)
+
   }
-  print((estimates))
+  cbind(estimates, models)
 }
 
 # Er gaat iets mis, mean very very small
 sim_500_9_9 <- monte_carlo_simulation(500,0.9,0.9,10000)
 
 # Gemiddelde en standaarddeviatie van de schattingen
-mean_estimates <- colMeans(sim_500_9_9)
-sd_estimates <- apply(sim_500_9_9, 2, sd)
+#mean_estimates <- colMeans(sim_500_9_9[1:2])
+#sd_estimates <- apply(sim_500_9_9[1:2], 2, sd)
 
 # Resultaten printen
-print(paste("Gemiddelde van y:", mean_estimates[1], " Standaarddeviatie:", sd_estimates[1]))
-print(paste("Gemiddelde van v:", mean_estimates[2], " Standaarddeviatie:", sd_estimates[2]))
+#print(paste("Gemiddelde van y:", mean_estimates[1], " Standaarddeviatie:", sd_estimates[1]))
+#print(paste("Gemiddelde van v:", mean_estimates[2], " Standaarddeviatie:", sd_estimates[2]))
 
