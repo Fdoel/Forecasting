@@ -1,3 +1,92 @@
+#' @title The ARX estimation by OLS function
+#' @description This function allows you to estimate ARX models by ordinary least squares (OLS).
+#' @param y Data vector of time series observations.
+#' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' @param p Number of autoregressive terms to be included.
+#' @keywords estimation
+#' @keywords pseudo-causal
+#' @return \item{coefficients}{Vector of estimated coefficients.}
+#' @return \item{coef.auto}{Vector of estimated autoregressive parameters.}
+#' @return \item{coef.exo}{Vector of estimated exogenous parameters.}
+#' @return \item{mse}{Mean squared error.}
+#' @return \item{residuals}{Residuals.}
+#' @return \item{loglikelihood}{Value of the loglikelihood.}
+#' @return \item{fitted.values}{Fitted values.}
+#' @return \item{df}{Degrees of freedom.}
+#' @return \item{vcov}{Variance-covariance matrix of residuals.}
+#' @author Sean Telg
+#' @export
+#' @examples
+#' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
+#' arx.ls(data$y,data$x,2)
+
+arx.ls <- function(y,x,p){
+  
+  if (is.null(x)){
+    x <- "not"
+  }
+  
+  n <- length(y) - p
+  
+  Y <- y[(p+1):length(y)]
+  int <- rep(1,(length(y)-p))
+  Z <- regressor.matrix(y,x,p)
+  Z <- cbind(int,Z)
+  
+  df <- nrow(Z) - NCOL(Z)
+  
+  B <- solve(t(Z) %*% Z) %*% (t(Z) %*% Y)
+  
+  if (p > 0){
+    if (length(x) > 1){
+      rownames(B) <- c('int', paste('lag', 1:p), paste('exo', 1:NCOL(x)))
+    }
+    else{
+      rownames(B) <- c('int', paste('lag', 1:p))
+    }
+  }
+  else{
+    if (length(x) > 1){
+      rownames(B) <- c('int', paste('exo', 1:NCOL(x)))
+    }
+    else{
+      rownames(B) <- 'int'
+    }
+  }
+  
+  FV <- Z %*% B
+  U <- Y - FV
+  
+  sig <- (t(U) %*% U)
+  sig <- as.numeric(sig)
+  
+  Cov <- (1/n)*sig
+  Cov <- as.numeric(Cov)
+  
+  sigma2 <- sum((Y - Z %*% B)^2)/df
+  qz <- qr(Z)
+  vcov <- sigma2*chol2inv(qz$qr)
+  colnames(vcov) <- rownames(vcov) <- colnames(Z)
+  
+  Loglik <- -(n/2)*(1 + log(2*pi)+log(Cov))
+  
+  if (p == 0){
+    B_auto <- 0
+  }
+  else{
+    B_auto <- B[2:(p+1)]
+  }
+  
+  if (length(x) > 1){
+    B_x <- B[(p+2):length(B)]
+  }
+  else{
+    B_x <- 0
+  }
+  
+  return(list(coefficients = B, coef.auto = B_auto, coef.exo = B_x, mse = Cov, residuals = U, loglikelihood = Loglik, fitted.values = FV, df = df,vcov=vcov))
+}
+
 #' @title The regressor matrix function
 #' @description This function allows you to create a regressor matrix.
 #' @param y   Data vector of time series observations.
@@ -59,7 +148,7 @@ regressor.matrix <- function(y,x,p) {
   return(matrix = Z)
 }
 
-ll.max <- function(params,y,x,p_C,p_NC){
+ll.MART <- function(params,y,x,p_C,p_NC){
   
   if (is.null(x)){
     x <- "not"
@@ -227,12 +316,14 @@ ll.max <- function(params,y,x,p_C,p_NC){
     }
   }
   
-  n <- length(E)
+  n <- length(E1)
   
   loglik_eval <- -(n*lgamma((df1+1)/2) - n*log(sqrt(df1*pi*sig1^2)) - n*lgamma(df1/2) - ((df1+1)/2)*log(1+((E1 * vec(E1 >= 0)  + (1 - vec(E1 >= 0)) * E2)/sig1)^2/df1) %*% matlab::ones(n,1))
   
   return(neg.loglikelihood = loglik_eval)
 }
+
+# DEZE FUNCTIE MOET NOG AANGEPAST WORDEN
 MART <- function(y, x, p_C, p_NC) {
   
   #print(match.call())
@@ -450,5 +541,4 @@ MART <- function(y, x, p_C, p_NC) {
   se.dist <- rev(se.dist)
   
   return(list(coef.c = B_C, coef.nc = B_NC, coef.exo = B_x, coef.int = IC, scale = sig,df = df,residuals = E, se.dist = se.dist))
-}
 }
