@@ -1,3 +1,64 @@
+#' @title The regressor matrix function
+#' @description This function allows you to create a regressor matrix.
+#' @param y   Data vector of time series observations.
+#' @param x   Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' @param p   Number of autoregressive terms to be included.
+#' @keywords estimation
+#' @return    \item{Z}{Regressor matrix}
+#' @author Sean Telg
+#' @export
+#' @examples
+#' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
+#' regressor.matrix(data$y, data$x, 2)
+
+regressor.matrix <- function(y,x,p) {
+  
+  if (is.null(x)){
+    x <- "not"
+  }
+  
+  y <- fBasics::vec(y)
+  
+  n <- length(y)
+  
+  if (p==1){
+    k <-1
+  }
+  else{
+    k <- NCOL(y)
+  }
+  
+  
+  if (p > 0){
+    Z <- matlab::zeros(n,k*p)
+    
+    for (i in 1:p){
+      Z[(1+i):n,((i-1)*k+1):(i*k)] <- y[1:(n-i)]
+    }
+    
+    Z <- Z[(1+p):n,]
+    
+  }
+  else{
+    Z <- matrix(,nrow=n,ncol=0)
+  }
+  
+  if (x == "not" && length(x) == 1){
+    Z <- Z
+  }
+  
+  
+  if (NCOL(x) == 1 && x != "not"){
+    Z <- cbind(Z,x[(1+p):n])
+  }
+  else if (NCOL(x) > 1 && x != "not"){
+    Z <- cbind(Z,x[(1+p):n,])
+  }
+  
+  
+  return(matrix = Z)
+}
+
 ll.max <- function(params,y,x,p_C,p_NC){
   
   if (is.null(x)){
@@ -99,18 +160,24 @@ ll.max <- function(params,y,x,p_C,p_NC){
   }
   
   if (p_C > 0){
-    V <- ZC1 - (ZC2 %*% BC1)
+    V1 <- ZC1 - (ZC2 %*% BC1)
+    V2 <- ZC1 - (ZC2 %*% BC2)
   }
   else{
-    V <- ZC1
+    V1 <- ZC1
+    V2 <- ZC1
   }
   
-  U <- rev(V)
-  U <- fBasics::vec(U)
+  U1 <- rev(V1)
+  U2 <- rev(V2)
+  U1 <- fBasics::vec(U1)
+  U2 <- fBasics::vec(U2)
   
   ZNC1 <- U[(p_NC + 1):length(U)]
   ZNC1 <- fBasics::vec(ZNC1)
-  ZNC2 <- regressor.matrix(U,"not",p_NC)
+  ZNC21 <- regressor.matrix(U1,"not",p_NC)
+  ZNC22 <- regressor.matrix(U2,"not",p_NC)
+  
   
   if(colnum > 1){
     for (i in 1:colnum){
@@ -123,10 +190,10 @@ ll.max <- function(params,y,x,p_C,p_NC){
   
   if (length(x) > 1){
     if (colnum > 1){
-      x <- x[(p_NC +1):length(U),]
+      x <- x[(p_NC +1):length(U1),]
     }
     else{
-      x <- x[(p_NC + 1):length(U)]
+      x <- x[(p_NC + 1):length(U1)]
       x <- fBasics::vec(x)
     }
   }
@@ -135,29 +202,34 @@ ll.max <- function(params,y,x,p_C,p_NC){
   }
   
   if (p_NC == 1){
-    ZNC2 <- fBasics::vec(ZNC2)
+    ZNC21 <- fBasics::vec(ZNC21)
+    ZNC22 <- fBasics::vec(ZNC22)
   }
   
   if (length(x) > 1){
     if (p_NC > 0){
-      E <- rev(ZNC1 - (ZNC2 %*% BNC1) - IC1 - (x %*% Bx1))
+      E1 <- rev(ZNC1 - (ZNC2 %*% BNC1) - IC1 - (x %*% Bx1))
+      E2 <- rev(ZNC1 - (ZNC2 %*% BNC2) - IC1 - (x %*% Bx1))
     }
     else{
-      E <- rev(ZNC1 - IC1 - (x %*% Bx1))
+      E1 <- rev(ZNC1 - IC1 - (x %*% Bx1))
+      E2 <- rev(ZNC1 - IC1 - (x %*% Bx1))
     }
   }
   else{
     if (p_NC > 0){
-      E <- rev(ZNC1 - (ZNC2 %*% BNC1) - IC1)
+      E1 <- rev(ZNC1 - (ZNC21 %*% BNC1) - IC1)
+      E2 <- rev(ZNC1 - (ZNC22 %*% BNC2) - IC1)
     }
     else{
-      E <- rev(ZNC1 - IC1)
+      E1 <- rev(ZNC1 - IC1)
+      E2 <- rev(ZNC1 - IC1)
     }
   }
   
   n <- length(E)
   
-  loglik_eval <- -(n*lgamma((df1+1)/2) - n*log(sqrt(df1*pi*sig1^2)) - n*lgamma(df1/2) - ((df1+1)/2)*log(1+(E/sig1)^2/df1) %*% matlab::ones(n,1))
+  loglik_eval <- -(n*lgamma((df1+1)/2) - n*log(sqrt(df1*pi*sig1^2)) - n*lgamma(df1/2) - ((df1+1)/2)*log(1+((E1 * vec(E1 >= 0)  + (1 - vec(E1 >= 0)) * E2)/sig1)^2/df1) %*% matlab::ones(n,1))
   
   return(neg.loglikelihood = loglik_eval)
 }
