@@ -205,50 +205,50 @@ marx <- function(y,x,p_max,sig_level,p_C,p_NC){
 #' regressor.matrix(data$y, data$x, 2)
 
 regressor.matrix <- function(y,x,p){
-
+  
   if (is.null(x)){
     x <- "not"
   }
-
+  
   y <- fBasics::vec(y)
-
+  
   n <- length(y)
-
+  
   if (p==1){
     k <-1
   }
   else{
     k <- NCOL(y)
   }
-
-
+  
+  
   if (p > 0){
     Z <- matlab::zeros(n,k*p)
-
+    
     for (i in 1:p){
       Z[(1+i):n,((i-1)*k+1):(i*k)] <- y[1:(n-i)]
     }
-
+    
     Z <- Z[(1+p):n,]
-
+    
   }
   else{
     Z <- matrix(,nrow=n,ncol=0)
   }
-
+  
   if (x == "not" && length(x) == 1){
     Z <- Z
   }
-
-
+  
+  
   if (NCOL(x) == 1 && x != "not"){
     Z <- cbind(Z,x[(1+p):n])
   }
   else if (NCOL(x) > 1 && x != "not"){
     Z <- cbind(Z,x[(1+p):n,])
   }
-
-
+  
+  
   return(matrix = Z)
 }
 
