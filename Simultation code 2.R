@@ -52,6 +52,19 @@ monte_carlo_simulation <- function(T, phi, psi, num_simulations = 10000) {
   cbind(estimates, models)
 }
 
+#function for getting results from simulations
+get_final_estimates <- function(simulation) {
+  cols_to_use <- as.data.frame(simulation[, c("Causal", "nonCausal")])
+  cols_to_use <- as.data.frame(lapply(cols_to_use, as.numeric))  # force numeric
+  mean_estimates <- colMeans(cols_to_use)
+  sd_estimates <- sd_estimates <- apply(cols_to_use, 2, sd)
+  
+  return(data.frame(
+    mean = mean_estimates,
+    sd = sd_estimates
+  ))
+}
+
 #Estimate parameters
 # Lag and lead 1,1
 r <- 1
@@ -68,13 +81,10 @@ param_combinations <- list(
   c(0.1, 0.9)
 )
 
-sim_500_9_9 <- monte_carlo_simulation(500,0.9,0.9,100)
+#hier ff mooie loop maken met sample sizes and param combinations
 
-# Gemiddelde en standaarddeviatie van de schattingen
-mean_estimates <- colMeans(sim_500_9_9[,1:2])
-sd_estimates <- apply(sim_500_9_9[1:2], 2, sd)
+sim_500_9_9 <- monte_carlo_simulation(500,0.9,0.9,1000)
 
-# Resultaten printen
-print(paste("Gemiddelde van y:", mean_estimates[1], " Standaarddeviatie:", sd_estimates[1]))
-print(paste("Gemiddelde van v:", mean_estimates[2], " Standaarddeviatie:", sd_estimates[2]))
+est <- get_final_estimates(sim_500_9_9)
+
 
