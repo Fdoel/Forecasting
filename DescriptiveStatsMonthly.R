@@ -12,6 +12,7 @@ data <- data[-c(1, 2),]
 inflation_df <- data %>%
   select(c("sasdate", "CPIAUCSL", "UNRATE", "IPFINAL", "CUMFNS", "RPI", "RETAILx", "VIXCLSx")) %>%
   mutate(sasdate = as.Date(sasdate, "%m/%d/%Y")) %>%
+  
   # Calculate inflation by taking the logs of the CPI divided by its lag
   mutate(inflation = log(CPIAUCSL/lag(CPIAUCSL))*100) %>%
   filter(sasdate >= as.Date("1959-06-01"))
