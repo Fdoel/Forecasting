@@ -4,24 +4,6 @@ set.seed(321) # Set seed for reproducibility
 library(MASS)
 source("MARX_functions.R")
 
-# Simulation parameters
-n_sim <- 10000
-sample_sizes <- c(100, 200, 500)
-param_combinations <- list(
-  c(0.9, 0.9),
-  c(0.9, 0.1),
-  c(0.1, 0.9)
-)
-
-# Lag and lead 1,1
-r <- 1
-s <- 1
-
-# Hoe verwerk ik r and s initial zero???
-
-df <- 3
-sigma <- 0.1
-
 # STEP 1: series from causal AR(p) model is generated.
 ar_process <- function(phi, T) {
   epsilon_t <- rt(T + r, df = 3) * sigma  # t-distributed errors with df=3 en keer sigma?
@@ -43,14 +25,14 @@ nc_process <- function(psi, v, T) {
   return(y)
 }
 
-# estimation mean and sd
+# estimation mean
 estimate_parameters <- function(y,v) {
   return(c(mean(y), mean(v)))
 }
   
 # Monte Carlo simulation
 monte_carlo_simulation <- function(T, phi, psi, num_simulations = 10000) {
-  estimates <- matrix(NA, nrow = num_simulations, ncol = 2)  # Opslag voor schattingen
+  estimates <- matrix(NA, nrow = num_simulations, ncol = 2)  #Storage for estimates
   models <- rep(NULL,num_simulations)
   
   for (sim in 1:num_simulations) {
@@ -66,12 +48,27 @@ monte_carlo_simulation <- function(T, phi, psi, num_simulations = 10000) {
     models[sim] <- mixed(y_t,NULL,1,1)
   }
   
-  colnames(estimates) <- c("mean", "var")
+  colnames(estimates) <- c("Causal", "nonCausal")
   cbind(estimates, models)
 }
 
-# Er gaat iets mis, mean very very small
-sim_500_9_9 <- monte_carlo_simulation(500,0.9,0.9,10000)
+#Estimate parameters
+# Lag and lead 1,1
+r <- 1
+s <- 1
+df <- 3
+sigma <- 0.1
+
+# Simulation parameters
+n_sim <- 10000
+sample_sizes <- c(100, 200, 500)
+param_combinations <- list(
+  c(0.9, 0.9),
+  c(0.9, 0.1),
+  c(0.1, 0.9)
+)
+
+sim_500_9_9 <- monte_carlo_simulation(500,0.9,0.9,100)
 
 # Gemiddelde en standaarddeviatie van de schattingen
 mean_estimates <- colMeans(sim_500_9_9[,1:2])
