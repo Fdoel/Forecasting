@@ -11,8 +11,21 @@
 #' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
 #' regressor.matrix(data$y, data$x, 2)
 
-# DEZE IS NIET AANGEPAST, IDK OF DAT MOET
-regressor.matrix <- function(y,x,p) {
+#' @title The regressor matrix function
+#' @description This function allows you to create a regressor matrix.
+#' @param y   Data vector of time series observations.
+#' @param x   Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' @param p   Number of autoregressive terms to be included.
+#' @keywords estimation
+#' @return    \item{Z}{Regressor matrix}
+#' @author Sean Telg
+#' @export
+#' @examples
+#' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
+#' regressor.matrix(data$y, data$x, 2)
+#' 
+#' Inshallah dit werkt
+regressor.matrix_T <- function(y,x,p,c){
   
   if (is.null(x)){
     x <- "not"
@@ -56,8 +69,17 @@ regressor.matrix <- function(y,x,p) {
     Z <- cbind(Z,x[(1+p):n,])
   }
   
-  
-  return(matrix = Z)
+  ZT <- cbind(Z,Z)
+  nT <- nrow(ZT)
+  mT <- ncol(ZT)
+  for(i in 1:nT){
+    if(ZT[i, 1] > c){
+      ZT[i, 1:(mT/2)] <- 0
+    } else{
+      ZT[i, (mT/2 + 1):mT] <- 0
+    }
+  }
+  return(matrix = ZT)
 }
 
 #' @title The ARX estimation by OLS function
@@ -82,7 +104,6 @@ regressor.matrix <- function(y,x,p) {
 #' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
 #' arx.ls(data$y,data$x,2)
 
-# DEZE NOG AANPASSEN
 Tarx.ls <- function(y,x,p,c){
   
   if (is.null(x)){
