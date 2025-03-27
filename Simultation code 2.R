@@ -63,9 +63,7 @@ monte_carlo_simulation <- function(T, phi, psi, num_simulations = 10000) {
     
     estimates[sim, ] <- estimate_parameters(y_t, v_t)
     
-    
     models[sim] <- mixed(y_t,NULL,1,1)
-
   }
   cbind(estimates, models)
 }
