@@ -73,8 +73,8 @@ df <- 3
 sigma <- 0.1
 
 # Simulation parameters
-n_sim <- 10000
-sample_sizes <- c(100, 200, 500)
+n_sim <- 100
+sample_sizes <- c(300, 500, 800)
 param_combinations <- list(
   c(0.9, 0.9),
   c(0.9, 0.1),
@@ -82,9 +82,31 @@ param_combinations <- list(
 )
 
 #hier ff mooie loop maken met sample sizes and param combinations
+simulation_estimates <- matrix(NA, nrow = length(sample_sizes) * length(param_combinations), ncol = 7)
+colnames(simulation_estimates) <- c("Sample_size", "phi", "psi", "lag_est", "lag_sd", "lead_est", "lead_sd")
+i=1
 
-sim_500_9_9 <- monte_carlo_simulation(500,0.9,0.9,1000)
+for (n in sample_sizes) {
+  for (params in param_combinations) {
+    phi <- params[1]
+    psi <- params[2]
+    
+    simulation <- monte_carlo_simulation(n, phi, psi, n_sim)
+    estimates <- get_final_estimates(simulation)
+    
+    simulation_estimates[i,1] = n
+    simulation_estimates[i,2] = phi
+    simulation_estimates[i,3] = psi
+    simulation_estimates[i,4] = estimates[1,1]
+    simulation_estimates[i,5] = estimates[1,2]
+    simulation_estimates[i,6] = estimates[2,1]
+    simulation_estimates[i,7] = estimates[2,2]
+    i <- i+1
+  }
+}
 
-est <- get_final_estimates(sim_500_9_9)
+
+
+
 
 
