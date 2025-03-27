@@ -1,3 +1,65 @@
+#' @title The regressor matrix function
+#' @description This function allows you to create a regressor matrix.
+#' @param y   Data vector of time series observations.
+#' @param x   Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' @param p   Number of autoregressive terms to be included.
+#' @keywords estimation
+#' @return    \item{Z}{Regressor matrix}
+#' @author Sean Telg
+#' @export
+#' @examples
+#' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
+#' regressor.matrix(data$y, data$x, 2)
+
+# DEZE IS NIET AANGEPAST, IDK OF DAT MOET
+regressor.matrix <- function(y,x,p) {
+  
+  if (is.null(x)){
+    x <- "not"
+  }
+  
+  y <- fBasics::vec(y)
+  
+  n <- length(y)
+  
+  if (p==1){
+    k <-1
+  }
+  else{
+    k <- NCOL(y)
+  }
+  
+  
+  if (p > 0){
+    Z <- matlab::zeros(n,k*p)
+    
+    for (i in 1:p){
+      Z[(1+i):n,((i-1)*k+1):(i*k)] <- y[1:(n-i)]
+    }
+    
+    Z <- Z[(1+p):n,]
+    
+  }
+  else{
+    Z <- matrix(,nrow=n,ncol=0)
+  }
+  
+  if (x == "not" && length(x) == 1){
+    Z <- Z
+  }
+  
+  
+  if (NCOL(x) == 1 && x != "not"){
+    Z <- cbind(Z,x[(1+p):n])
+  }
+  else if (NCOL(x) > 1 && x != "not"){
+    Z <- cbind(Z,x[(1+p):n,])
+  }
+  
+  
+  return(matrix = Z)
+}
+
 #' @title The ARX estimation by OLS function
 #' @description This function allows you to estimate ARX models by ordinary least squares (OLS).
 #' @param y Data vector of time series observations.
@@ -20,7 +82,8 @@
 #' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
 #' arx.ls(data$y,data$x,2)
 
-arx.ls <- function(y,x,p){
+# DEZE NOG AANPASSEN
+Tarx.ls <- function(y,x,p,c){
   
   if (is.null(x)){
     x <- "not"
@@ -87,67 +150,8 @@ arx.ls <- function(y,x,p){
   return(list(coefficients = B, coef.auto = B_auto, coef.exo = B_x, mse = Cov, residuals = U, loglikelihood = Loglik, fitted.values = FV, df = df,vcov=vcov))
 }
 
-#' @title The regressor matrix function
-#' @description This function allows you to create a regressor matrix.
-#' @param y   Data vector of time series observations.
-#' @param x   Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
-#' @param p   Number of autoregressive terms to be included.
-#' @keywords estimation
-#' @return    \item{Z}{Regressor matrix}
-#' @author Sean Telg
-#' @export
-#' @examples
-#' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
-#' regressor.matrix(data$y, data$x, 2)
 
-regressor.matrix <- function(y,x,p) {
-  
-  if (is.null(x)){
-    x <- "not"
-  }
-  
-  y <- fBasics::vec(y)
-  
-  n <- length(y)
-  
-  if (p==1){
-    k <-1
-  }
-  else{
-    k <- NCOL(y)
-  }
-  
-  
-  if (p > 0){
-    Z <- matlab::zeros(n,k*p)
-    
-    for (i in 1:p){
-      Z[(1+i):n,((i-1)*k+1):(i*k)] <- y[1:(n-i)]
-    }
-    
-    Z <- Z[(1+p):n,]
-    
-  }
-  else{
-    Z <- matrix(,nrow=n,ncol=0)
-  }
-  
-  if (x == "not" && length(x) == 1){
-    Z <- Z
-  }
-  
-  
-  if (NCOL(x) == 1 && x != "not"){
-    Z <- cbind(Z,x[(1+p):n])
-  }
-  else if (NCOL(x) > 1 && x != "not"){
-    Z <- cbind(Z,x[(1+p):n,])
-  }
-  
-  
-  return(matrix = Z)
-}
-
+# Deze is wel al aangepast
 ll.MART <- function(params,y,x,p_C,p_NC){
   
   if (is.null(x)){
@@ -355,10 +359,11 @@ MART <- function(y, x, p_C, p_NC) {
   if (nargin < 5){
     y    <- fBasics::vec(y)
     z    <- rev(y)
-    z    <- fBasics::vec(z)
-    BC0  <- arx.ls(y,x,p_C)[[2]]
-    Bx0  <- arx.ls(y,x,p_C)[[3]]
-    BNC0 <- arx.ls(z,x.rev,p_NC)[[2]]
+    # Hier specificeer je startwaardes voor de parameters voor optimalisatie
+    z    <- fBasics::vec(z) # Z hier is basically de toekomst
+    BC0  <- arx.ls(y,x,p_C)[[2]] # Fit een AR model en pak de phi's
+    Bx0  <- arx.ls(y,x,p_C)[[3]] # Fit een AR model en pak de beta's
+    BNC0 <- arx.ls(z,x.rev,p_NC)[[2]] # Fir een AR model op de omgedraaide volgorde, dus basically de toekomst
     IC0  <- 0
     df0  <- 20
     sig0 <- 2
