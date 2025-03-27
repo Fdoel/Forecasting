@@ -45,12 +45,12 @@ nc_process <- function(psi, v, T) {
 
 # estimation mean and sd
 estimate_parameters <- function(y,v) {
-  return(c(mean(y), mean(v)))
+  return(c(mean(y), sd(y), mean(v), sd(v)))
 }
   
 # Monte Carlo simulation
 monte_carlo_simulation <- function(T, phi, psi, num_simulations = 10000) {
-  estimates <- matrix(NA, nrow = num_simulations, ncol = 2)  # Opslag voor schattingen
+  estimates <- matrix(NA, nrow = num_simulations, ncol = 4)  # Opslag voor schattingen
   models <- rep(NULL,num_simulations)
   
   for (sim in 1:num_simulations) {
@@ -66,7 +66,7 @@ monte_carlo_simulation <- function(T, phi, psi, num_simulations = 10000) {
     models[sim] <- mixed(y_t,NULL,1,1)
   }
   
-  colnames(estimates) <- c("mean", "var")
+  colnames(estimates) <- c("Causal_mean", "Causal_SD", "nonCausal_mean", "nonCausal_SD")
   cbind(estimates, models)
 }
 
