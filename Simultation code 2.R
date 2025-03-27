@@ -65,6 +65,8 @@ monte_carlo_simulation <- function(T, phi, psi, num_simulations = 10000) {
     
     models[sim] <- mixed(y_t,NULL,1,1)
   }
+  
+  colnames(estimates) <- c("mean", "var")
   cbind(estimates, models)
 }
 
@@ -72,10 +74,10 @@ monte_carlo_simulation <- function(T, phi, psi, num_simulations = 10000) {
 sim_500_9_9 <- monte_carlo_simulation(500,0.9,0.9,10000)
 
 # Gemiddelde en standaarddeviatie van de schattingen
-#mean_estimates <- colMeans(sim_500_9_9[1:2])
-#sd_estimates <- apply(sim_500_9_9[1:2], 2, sd)
+mean_estimates <- colMeans(sim_500_9_9[,1:2])
+sd_estimates <- apply(sim_500_9_9[1:2], 2, sd)
 
 # Resultaten printen
-#print(paste("Gemiddelde van y:", mean_estimates[1], " Standaarddeviatie:", sd_estimates[1]))
-#print(paste("Gemiddelde van v:", mean_estimates[2], " Standaarddeviatie:", sd_estimates[2]))
+print(paste("Gemiddelde van y:", mean_estimates[1], " Standaarddeviatie:", sd_estimates[1]))
+print(paste("Gemiddelde van v:", mean_estimates[2], " Standaarddeviatie:", sd_estimates[2]))
 
