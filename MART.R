@@ -342,14 +342,168 @@ ll.MART <- function(params,y,x,p_C,p_NC){
   }
   
   n <- length(E1)
-  
+  # Hier moeten eig nog ff die vec dingetjes verbeterd worden
   loglik_eval <- -(n*lgamma((df1+1)/2) - n*log(sqrt(df1*pi*sig1^2)) - n*lgamma(df1/2) - ((df1+1)/2)*log(1+((E1 * vec(E1 >= 0)  + (1 - vec(E1 >= 0)) * E2)/sig1)^2/df1) %*% matlab::ones(n,1))
   
   return(neg.loglikelihood = loglik_eval)
 }
 
+# Probeer zonder aangepast LL
+ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
+  
+  if (is.null(x)){
+    x <- "not"
+  }
+  
+  y <- fBasics::vec(y)
+  if (length(x) > 1){
+    colnum <- NCOL(x)
+    
+    if (p_C > 0 && p_NC > 0){
+      BC1  <- params[1:2*p_C]
+      BNC1 <- params[(2*p_C+1):(2*p_C + p_NC)]
+      Bx1  <- params[(2*(p_C+ p_NC) + 1):(2*(p_C + p_NC) + 2*colnum)]
+      IC1  <- params[(2*(p_C + p_NC) + 2*colnum + 1)]
+      sig1 <- params[(2*(p_C + p_NC) + 2*colnum + 2)]
+      df1  <- params[(2*(p_C + p_NC) + 2*colnum + 3)]
+    }
+    else if (p_NC > 0 && p_C == 0){
+      BC1  <- 0
+      BNC1 <- params[1:2*p_NC]
+      Bx1  <- params[(2*p_NC+1):(2*p_NC + 2*colnum)]
+      IC1  <- params[(2*p_NC + 2*colnum + 1)]
+      sig1 <- params[(2*p_NC + 2*colnum + 2)]
+      df1  <- params[(2*p_NC + 2*colnum + 3)]
+    }
+    else if (p_C > 0 && p_NC == 0){
+      BNC1 <- 0
+      BC1  <- params[1:2*p_C]
+      Bx1  <- params[(2*p_C + 1): (2*p_C + 2*colnum)]
+      IC1  <- params[(2*p_C + 2*colnum + 1)]
+      sig1 <- params[(2*p_C + 2*colnum + 2)]
+      df1  <- params[(2*p_C + 2*colnum + 3)]
+    }
+    else if (p_C == 0 && p_NC == 0){
+      BNC1  <- 0
+      BC1   <- 0
+      Bx1   <- params[(1:2*colnum)]
+      IC1   <- params[(2*colnum + 1)]
+      sig1  <- params[(2*colnum + 2)]
+      df1   <- params[(2*colnum + 3)]
+    }
+  }
+  else{
+    colnum <- 0
+    
+    if (p_C > 0 && p_NC > 0){
+      BC1  <- params[1:2*p_C]
+      print(BC1)
+      print(params)
+      BNC1 <- params[(2*p_C+1):(2*p_C + p_NC)]
+      IC1  <- params[(2*(p_C + p_NC) + 1)]
+      sig1 <- params[(2*(p_C + p_NC) + 2)]
+      df1  <- params[(2*(p_C + p_NC) + 3)]
+    }
+    else if (p_NC > 0 && p_C == 0){
+      BC1  <- 0
+      BNC1 <- params[1:2*p_NC]
+      IC1  <- params[(2*p_NC + 1)]
+      sig1 <- params[(2*p_NC + 2)]
+      df1  <- params[(2*p_NC + 3)]
+    }
+    else if (p_C > 0 && p_NC == 0){
+      BNC1 <- 0
+      BC1  <- params[1:2*p_C]
+      IC1  <- params[(2*p_C + 1)]
+      sig1 <- params[(2*p_C + 2)]
+      df1  <- params[(2*p_C + 3)]
+    }
+    else if (p_C == 0 && p_NC == 0){
+      BNC1  <- 0
+      BC1   <- 0
+      IC1   <- params[1]
+      sig1  <- params[2]
+      df1   <- params[3]
+    }
+    
+  }
+  
+  ZC1 <- y[(p_C+1):length(y)]
+  ZC1 <- fBasics::vec(ZC1)
+  ZC2 <- regressor.matrix_T(y,"not",p_C, c)
+  
+  if (p_C == 1){
+    ZC2 <- fBasics::vec(ZC2)
+  }
+  print(dim(ZC2))
+  print(dim(BC1))
+  
+  if (p_C > 0){
+    V <- ZC1 - (ZC2 %*% BC1)
+  }
+  else{
+    V <- ZC1
+  }
+  
+  U <- rev(V)
+  U <- fBasics::vec(U)
+  
+  ZNC1 <- U[(p_NC + 1):length(U)]
+  ZNC1 <- fBasics::vec(ZNC1)
+  ZNC2 <- regressor.matrix_T(U,"not",p_NC, c)
+  
+  if(colnum > 1){
+    for (i in 1:colnum){
+      x[,i] <- rev(x[,i])
+    }
+  }
+  else{
+    x <- rev(x)
+  }
+  
+  if (length(x) > 1){
+    if (colnum > 1){
+      x <- x[(p_NC +1):length(U),]
+    }
+    else{
+      x <- x[(p_NC + 1):length(U)]
+      x <- fBasics::vec(x)
+    }
+  }
+  else{
+    x = "not"
+  }
+  
+  if (p_NC == 1){
+    ZNC2 <- fBasics::vec(ZNC2)
+  }
+  
+  if (length(x) > 1){
+    if (p_NC > 0){
+      E <- rev(ZNC1 - (ZNC2 %*% BNC1) - IC1 - (x %*% Bx1))
+    }
+    else{
+      E <- rev(ZNC1 - IC1 - (x %*% Bx1))
+    }
+  }
+  else{
+    if (p_NC > 0){
+      E <- rev(ZNC1 - (ZNC2 %*% BNC1) - IC1)
+    }
+    else{
+      E <- rev(ZNC1 - IC1)
+    }
+  }
+  
+  n <- length(E)
+  
+  loglik_eval <- -(n*lgamma((df1+1)/2) - n*log(sqrt(df1*pi*sig1^2)) - n*lgamma(df1/2) - ((df1+1)/2)*log(1+(E/sig1)^2/df1) %*% matlab::ones(n,1))
+  
+  return(neg.loglikelihood = loglik_eval)
+}
+
 # DEZE FUNCTIE MOET NOG AANGEPAST WORDEN
-MART <- function(y, x, p_C, p_NC) {
+MART <- function(y, x, p_C, p_NC, c) {
   
   #print(match.call())
   nargin <- length(as.list(match.call())) - 1
@@ -358,20 +512,17 @@ MART <- function(y, x, p_C, p_NC) {
     x <- "not"
   }
   
-  if (length(x) == 1){
+  if (length(x) == 1) {
     numcol <- 0
-  }
-  else{
+  } else {
     numcol <- NCOL(x)
   }
-  
   if(numcol > 1){
     x.rev <- matrix(data=NA,nrow=length(x[,1]),ncol=numcol)
     for (i in 1:numcol){
       x.rev[,i] <- rev(x[,i])
     }
-  }
-  else{
+  }else{
     x.rev <- matrix(data=NA,nrow=length(x),ncol=numcol)
     x.rev <- rev(x)
   }
@@ -382,9 +533,9 @@ MART <- function(y, x, p_C, p_NC) {
     z    <- rev(y)
     # Hier specificeer je startwaardes voor de parameters voor optimalisatie
     z    <- fBasics::vec(z) # Z hier is basically de toekomst
-    BC0  <- arx.ls(y,x,p_C)[[2]] # Fit een AR model en pak de phi's
-    Bx0  <- arx.ls(y,x,p_C)[[3]] # Fit een AR model en pak de beta's
-    BNC0 <- arx.ls(z,x.rev,p_NC)[[2]] # Fir een AR model op de omgedraaide volgorde, dus basically de toekomst
+    BC0  <- arx.ls_T(y,x,p_C,c)[[2]] # Fit een AR model en pak de phi's
+    Bx0  <- arx.ls_T(y,x,p_C,c)[[3]] # Fit een AR model en pak de beta's
+    BNC0 <- arx.ls_T(z,x.rev,p_NC,c)[[2]] # Fir een AR model op de omgedraaide volgorde, dus basically de toekomst
     IC0  <- 0
     df0  <- 20
     sig0 <- 2
@@ -423,68 +574,68 @@ MART <- function(y, x, p_C, p_NC) {
     }
   }
   
-  optimization_results <- stats::optim(params0,ll.max,gr=NULL,y=fBasics::vec(y),p_C=p_C,p_NC=p_NC,x=x,method="BFGS",hessian=TRUE)
+  optimization_results <- stats::optim(params0,ll.MART.Z,gr=NULL,y=fBasics::vec(y),p_C=p_C,p_NC=p_NC,x=x,c=c,method="BFGS",hessian=TRUE)
   PARAMS <- optimization_results$par
   
   if (length(x) > 1){
     numcol <- NCOL(x)
     
     if (p_C > 0 && p_NC > 0){
-      B_C  <- PARAMS[1:p_C]
-      B_NC <- PARAMS[(p_C+1):(p_C + p_NC)]
-      B_x  <- PARAMS[(p_C + p_NC + 1):(p_C + p_NC + numcol)]
-      IC   <- PARAMS[(p_C + p_NC + numcol + 1)]
-      sig  <- PARAMS[(p_C + p_NC + numcol + 2)]
-      df   <- PARAMS[(p_C + p_NC + numcol + 3)]
+      B_C  <- PARAMS[1:2*p_C]
+      B_NC <- PARAMS[(2*p_C+1):(2*p_C + 2*p_NC)]
+      B_x  <- PARAMS[(2*(p_C + p_NC) + 1):(2*(p_C + p_NC) + 2*numcol)]
+      IC   <- PARAMS[(2*(p_C + p_NC) + 2*numcol + 1)]
+      sig  <- PARAMS[(2*(p_C + p_NC) + 2*numcol + 2)]
+      df   <- PARAMS[(2*(p_C + p_NC) + numcol + 3)]
     }
     else if (p_NC > 0 && p_C == 0){
       B_C  <- 0
-      B_NC <- PARAMS[1:p_NC]
-      B_x  <- PARAMS[(p_NC + 1):(p_NC + numcol)]
-      IC   <- PARAMS[(p_NC + numcol + 1)]
-      sig  <- PARAMS[(p_NC + numcol + 2)]
-      df   <- PARAMS[(p_NC + numcol + 3)]
+      B_NC <- PARAMS[1:2*p_NC]
+      B_x  <- PARAMS[(2*p_NC + 1):(2*p_NC + 2*numcol)]
+      IC   <- PARAMS[(2*p_NC + 2*numcol + 1)]
+      sig  <- PARAMS[(2*p_NC + 2*numcol + 2)]
+      df   <- PARAMS[(2*p_NC + 2*numcol + 3)]
     }
     else if (p_C > 0 && p_NC == 0){
       B_NC <- 0
-      B_C  <- PARAMS[1:p_C]
-      B_x  <- PARAMS[(p_C + 1):(p_C + numcol)]
-      IC   <- PARAMS[(p_C + numcol + 1)]
-      sig  <- PARAMS[(p_C + numcol + 2)]
-      df   <- PARAMS[(p_C + numcol + 3)]
+      B_C  <- PARAMS[1:2*p_C]
+      B_x  <- PARAMS[(2*p_C + 1):(2*p_C + 2*numcol)]
+      IC   <- PARAMS[(2*p_C + 2*numcol + 1)]
+      sig  <- PARAMS[(2*p_C + 2*numcol + 2)]
+      df   <- PARAMS[(2*p_C + 2*numcol + 3)]
     }
     else if (p_C == 0 && p_NC == 0){
       B_NC  <- 0
       B_C   <- 0
-      B_x   <- PARAMS[(p_C + 3):(p_C + 2 + numcol)]
-      IC    <- PARAMS[(p_C + numcol + 3)]
-      sig   <- PARAMS[(p_C + numcol + 4)]
-      df    <- PARAMS[(p_C + numcol + 5)]
+      B_x   <- PARAMS[(2*p_C + 3):(2*p_C + 2 + 2*numcol)]
+      IC    <- PARAMS[(2*p_C + 2*numcol + 3)]
+      sig   <- PARAMS[(2*p_C + 2*numcol + 4)]
+      df    <- PARAMS[(2*p_C + 2*numcol + 5)]
     }
   }
   else{
     numcol <- 0
     B_x <- 0
     if (p_C > 0 && p_NC > 0){
-      B_C  <- PARAMS[1:p_C]
-      B_NC <- PARAMS[(p_C+1):(p_C + p_NC)]
-      IC   <- PARAMS[(p_C + p_NC + 1)]
-      sig  <- PARAMS[(p_C + p_NC + 2)]
-      df   <- PARAMS[(p_C + p_NC + 3)]
+      B_C  <- PARAMS[1:2*p_C]
+      B_NC <- PARAMS[(2*p_C+1):(2*p_C + p_NC)]
+      IC   <- PARAMS[(2*(p_C + p_NC) + 1)]
+      sig  <- PARAMS[(2*(p_C + p_NC) + 2)]
+      df   <- PARAMS[(2*(p_C + p_NC) + 3)]
     }
     else if (p_NC > 0 && p_C == 0){
       B_C  <- 0
-      B_NC <- PARAMS[1:p_NC]
-      IC   <- PARAMS[(p_NC + 1)]
-      sig  <- PARAMS[(p_NC + 2)]
-      df   <- PARAMS[(p_NC + 3)]
+      B_NC <- PARAMS[1:2*(p_NC)]
+      IC   <- PARAMS[(2*(p_NC) + 1)]
+      sig  <- PARAMS[(2*(p_NC) + 2)]
+      df   <- PARAMS[(2*(p_NC) + 3)]
     }
     else if (p_C > 0 && p_NC == 0){
       B_NC <- 0
-      B_C  <- PARAMS[1:p_C]
-      IC   <- PARAMS[(p_C + 1)]
-      sig  <- PARAMS[(p_C + 2)]
-      df   <- PARAMS[(p_C + 3)]
+      B_C  <- PARAMS[1:2*(p_C)]
+      IC   <- PARAMS[(2*p_C + 1)]
+      sig  <- PARAMS[(2*p_C + 2)]
+      df   <- PARAMS[(2*p_C + 3)]
     }
     else if (p_C == 0 && p_NC == 0){
       B_NC  <- 0
@@ -497,7 +648,7 @@ MART <- function(y, x, p_C, p_NC) {
   
   ZC1 <- y[(p_C+1):length(y)]
   ZC1 <- fBasics::vec(ZC1)
-  ZC2 <- regressor.matrix(y,"not",p_C)
+  ZC2 <- regressor.matrix_T(y,"not",p_C,c)
   
   if (p_C == 1){
     ZC2 <- fBasics::vec(ZC2)
@@ -515,7 +666,7 @@ MART <- function(y, x, p_C, p_NC) {
   
   ZNC1 <- U[(p_NC + 1):length(U)]
   ZNC1 <- fBasics::vec(ZNC1)
-  ZNC2 <- regressor.matrix(U,"not",p_NC)
+  ZNC2 <- regressor.matrix_T(U,"not",p_NC,c)
   
   if(numcol > 1){
     for (i in 1:numcol){
