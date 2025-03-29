@@ -93,8 +93,6 @@ for (n in sample_sizes) {
     simulation <- monte_carlo_simulation(n, phi, psi, n_sim)
     estimates <- get_final_estimates(simulation)
     
-    print(estimates)
-    
     simulation_estimates[i,1] = n
     simulation_estimates[i,2] = phi
     simulation_estimates[i,3] = psi
