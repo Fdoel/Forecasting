@@ -360,25 +360,25 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
     colnum <- NCOL(x)
     
     if (p_C > 0 && p_NC > 0){
-      BC1  <- params[1:2*p_C]
-      BNC1 <- params[(2*p_C+1):(2*p_C + p_NC)]
-      Bx1  <- params[(2*(p_C+ p_NC) + 1):(2*(p_C + p_NC) + 2*colnum)]
+      BC1  <- params[1:(2*p_C)]
+      BNC1 <- params[((2*p_C)+1):(2*(p_C + p_NC))]
+      Bx1  <- params[((2*(p_C+ p_NC) )+ 1):(2*(p_C + p_NC) + 2*colnum)]
       IC1  <- params[(2*(p_C + p_NC) + 2*colnum + 1)]
       sig1 <- params[(2*(p_C + p_NC) + 2*colnum + 2)]
       df1  <- params[(2*(p_C + p_NC) + 2*colnum + 3)]
     }
     else if (p_NC > 0 && p_C == 0){
       BC1  <- 0
-      BNC1 <- params[1:2*p_NC]
-      Bx1  <- params[(2*p_NC+1):(2*p_NC + 2*colnum)]
+      BNC1 <- params[1:(2*p_NC)]
+      Bx1  <- params[((2*p_NC)+1):((2*p_NC) + 2*colnum)]
       IC1  <- params[(2*p_NC + 2*colnum + 1)]
       sig1 <- params[(2*p_NC + 2*colnum + 2)]
       df1  <- params[(2*p_NC + 2*colnum + 3)]
     }
     else if (p_C > 0 && p_NC == 0){
       BNC1 <- 0
-      BC1  <- params[1:2*p_C]
-      Bx1  <- params[(2*p_C + 1): (2*p_C + 2*colnum)]
+      BC1  <- params[1:(2*p_C)]
+      Bx1  <- params[(2*p_C + 1):(2*p_C + 2*colnum)]
       IC1  <- params[(2*p_C + 2*colnum + 1)]
       sig1 <- params[(2*p_C + 2*colnum + 2)]
       df1  <- params[(2*p_C + 2*colnum + 3)]
@@ -396,24 +396,26 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
     colnum <- 0
     
     if (p_C > 0 && p_NC > 0){
-      BC1  <- params[1:2*p_C]
+      BC1  <- params[1:(2*p_C)]
+      print("BC1:")
       print(BC1)
+      print("params")
       print(params)
-      BNC1 <- params[(2*p_C+1):(2*p_C + p_NC)]
+      BNC1 <- params[((2*p_C)+1):(2*(p_C + p_NC))]
       IC1  <- params[(2*(p_C + p_NC) + 1)]
       sig1 <- params[(2*(p_C + p_NC) + 2)]
       df1  <- params[(2*(p_C + p_NC) + 3)]
     }
     else if (p_NC > 0 && p_C == 0){
       BC1  <- 0
-      BNC1 <- params[1:2*p_NC]
+      BNC1 <- params[1:(2*p_NC)]
       IC1  <- params[(2*p_NC + 1)]
       sig1 <- params[(2*p_NC + 2)]
       df1  <- params[(2*p_NC + 3)]
     }
     else if (p_C > 0 && p_NC == 0){
       BNC1 <- 0
-      BC1  <- params[1:2*p_C]
+      BC1  <- params[1:(2*p_C)]
       IC1  <- params[(2*p_C + 1)]
       sig1 <- params[(2*p_C + 2)]
       df1  <- params[(2*p_C + 3)]
@@ -604,7 +606,7 @@ MART <- function(y, x, p_C, p_NC, c) {
       sig  <- PARAMS[(2*p_C + 2*numcol + 2)]
       df   <- PARAMS[(2*p_C + 2*numcol + 3)]
     }
-    else if (p_C == 0 && p_NC == 0){
+    else if(p_C == 0 && p_NC == 0){
       B_NC  <- 0
       B_C   <- 0
       B_x   <- PARAMS[(2*p_C + 3):(2*p_C + 2 + 2*numcol)]
@@ -613,7 +615,7 @@ MART <- function(y, x, p_C, p_NC, c) {
       df    <- PARAMS[(2*p_C + 2*numcol + 5)]
     }
   }
-  else{
+  else {
     numcol <- 0
     B_x <- 0
     if (p_C > 0 && p_NC > 0){
