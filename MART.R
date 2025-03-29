@@ -583,7 +583,7 @@ MART <- function(y, x, p_C, p_NC, c) {
     numcol <- NCOL(x)
     
     if (p_C > 0 && p_NC > 0){
-      B_C  <- PARAMS[1:2*p_C]
+      B_C  <- PARAMS[1:(2*p_C)]
       B_NC <- PARAMS[(2*p_C+1):(2*p_C + 2*p_NC)]
       B_x  <- PARAMS[(2*(p_C + p_NC) + 1):(2*(p_C + p_NC) + 2*numcol)]
       IC   <- PARAMS[(2*(p_C + p_NC) + 2*numcol + 1)]
@@ -614,20 +614,19 @@ MART <- function(y, x, p_C, p_NC, c) {
       sig   <- PARAMS[(2*p_C + 2*numcol + 4)]
       df    <- PARAMS[(2*p_C + 2*numcol + 5)]
     }
-  }
-  else {
+  } else{
     numcol <- 0
     B_x <- 0
     if (p_C > 0 && p_NC > 0){
-      B_C  <- PARAMS[1:2*p_C]
-      B_NC <- PARAMS[(2*p_C+1):(2*p_C + p_NC)]
+      B_C  <- PARAMS[1:(2*p_C)]
+      B_NC <- PARAMS[(2*p_C+1):(2*(p_C + p_NC))]
       IC   <- PARAMS[(2*(p_C + p_NC) + 1)]
       sig  <- PARAMS[(2*(p_C + p_NC) + 2)]
       df   <- PARAMS[(2*(p_C + p_NC) + 3)]
     }
     else if (p_NC > 0 && p_C == 0){
       B_C  <- 0
-      B_NC <- PARAMS[1:2*(p_NC)]
+      B_NC <- PARAMS[1:(2*p_NC)]
       IC   <- PARAMS[(2*(p_NC) + 1)]
       sig  <- PARAMS[(2*(p_NC) + 2)]
       df   <- PARAMS[(2*(p_NC) + 3)]
@@ -658,8 +657,7 @@ MART <- function(y, x, p_C, p_NC, c) {
   
   if (p_C > 0){
     V <- ZC1 - ZC2 %*% B_C
-  }
-  else{
+  } else{
     V <- ZC1
   }
   
@@ -674,8 +672,7 @@ MART <- function(y, x, p_C, p_NC, c) {
     for (i in 1:numcol){
       x[,i] <- rev(x[,i])
     }
-  }
-  else{
+  }else{
     x <- rev(x)
   }
   
@@ -687,8 +684,7 @@ MART <- function(y, x, p_C, p_NC, c) {
       x <- x[(p_NC +1):length(U)]
       x <- fBasics::vec(x)
     }
-  }
-  else{
+  } else{
     x <- "not"
   }
   
@@ -704,8 +700,7 @@ MART <- function(y, x, p_C, p_NC, c) {
     else{
       E <- rev(ZNC1 - IC - (x %*% B_x))
     }
-  }
-  else{
+  } else{
     if (p_NC > 0){
       E <- rev(ZNC1 - (ZNC2 %*% B_NC) - IC)
     }
@@ -721,3 +716,5 @@ MART <- function(y, x, p_C, p_NC, c) {
   
   return(list(coef.c = B_C, coef.nc = B_NC, coef.exo = B_x, coef.int = IC, scale = sig,df = df,residuals = E, se.dist = se.dist))
 }
+
+
