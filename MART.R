@@ -397,10 +397,6 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
     
     if (p_C > 0 && p_NC > 0){
       BC1  <- params[1:(2*p_C)]
-      print("BC1:")
-      print(BC1)
-      print("params")
-      print(params)
       BNC1 <- params[((2*p_C)+1):(2*(p_C + p_NC))]
       IC1  <- params[(2*(p_C + p_NC) + 1)]
       sig1 <- params[(2*(p_C + p_NC) + 2)]
@@ -437,9 +433,7 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
   if (p_C == 1){
     ZC2 <- fBasics::vec(ZC2)
   }
-  print(dim(ZC2))
-  print(dim(BC1))
-  
+
   if (p_C > 0){
     V <- ZC1 - (ZC2 %*% BC1)
   }
