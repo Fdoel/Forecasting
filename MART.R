@@ -104,7 +104,7 @@ regressor.matrix_T <- function(y,x,p,c){
 #' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
 #' arx.ls(data$y,data$x,2)
 
-Tarx.ls <- function(y,x,p,c){
+arx.ls_T <- function(y,x,p,c){
   
   if (is.null(x)){
     x <- "not"
@@ -114,31 +114,31 @@ Tarx.ls <- function(y,x,p,c){
   
   Y <- y[(p+1):length(y)]
   int <- rep(1,(length(y)-p))
-  Z <- regressor.matrix(y,x,p)
-  Z <- cbind(int,Z)
+  ZT <- regressor.matrix_T(y,x,p,c)
+  ZT <- cbind(int,ZT)
   
-  df <- nrow(Z) - NCOL(Z)
+  df <- nrow(ZT) - NCOL(ZT)
   
-  B <- solve(t(Z) %*% Z) %*% (t(Z) %*% Y)
+  B <- solve(t(ZT) %*% ZT) %*% (t(ZT) %*% Y)
   
   if (p > 0){
     if (length(x) > 1){
-      rownames(B) <- c('int', paste('lag', 1:p), paste('exo', 1:NCOL(x)))
+      rownames(B) <- c('int', paste('lag', 1:(2*p)), paste('exo', 1:(2*NCOL(x))))
     }
     else{
-      rownames(B) <- c('int', paste('lag', 1:p))
+      rownames(B) <- c('int', paste('lag', 1:(2*p)))
     }
   }
   else{
     if (length(x) > 1){
-      rownames(B) <- c('int', paste('exo', 1:NCOL(x)))
+      rownames(B) <- c('int', paste('exo', 1:(2*NCOL(x))))
     }
     else{
       rownames(B) <- 'int'
     }
   }
   
-  FV <- Z %*% B
+  FV <- ZT %*% B
   U <- Y - FV
   
   sig <- (t(U) %*% U)
@@ -147,10 +147,10 @@ Tarx.ls <- function(y,x,p,c){
   Cov <- (1/n)*sig
   Cov <- as.numeric(Cov)
   
-  sigma2 <- sum((Y - Z %*% B)^2)/df
-  qz <- qr(Z)
+  sigma2 <- sum((Y - ZT %*% B)^2)/df
+  qz <- qr(ZT)
   vcov <- sigma2*chol2inv(qz$qr)
-  colnames(vcov) <- rownames(vcov) <- colnames(Z)
+  colnames(vcov) <- rownames(vcov) <- colnames(ZT)
   
   Loglik <- -(n/2)*(1 + log(2*pi)+log(Cov))
   
@@ -158,11 +158,11 @@ Tarx.ls <- function(y,x,p,c){
     B_auto <- 0
   }
   else{
-    B_auto <- B[2:(p+1)]
+    B_auto <- B[2:(2*p+1)]
   }
   
   if (length(x) > 1){
-    B_x <- B[(p+2):length(B)]
+    B_x <- B[(2*p+2):length(B)]
   }
   else{
     B_x <- 0
