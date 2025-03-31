@@ -169,7 +169,6 @@ arx.ls_T <- function(y,x,p,c){
 
 # Dit verwacht params in een bepaalde vorm die nu niet zo uit ARX_T komt
 ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
-  
   if (is.null(x)){
     x <- "not"
   }
@@ -185,24 +184,21 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
       IC1  <- params[(2*(p_C + p_NC) + 2*colnum + 1)]
       sig1 <- params[(2*(p_C + p_NC) + 2*colnum + 2)]
       df1  <- params[(2*(p_C + p_NC) + 2*colnum + 3)]
-    }
-    else if (p_NC > 0 && p_C == 0){
+    } else if (p_NC > 0 && p_C == 0){
       BC1  <- 0
       BNC1 <- params[1:(2*p_NC)]
       Bx1  <- params[((2*p_NC)+1):((2*p_NC) + 2*colnum)]
       IC1  <- params[(2*p_NC + 2*colnum + 1)]
       sig1 <- params[(2*p_NC + 2*colnum + 2)]
       df1  <- params[(2*p_NC + 2*colnum + 3)]
-    }
-    else if (p_C > 0 && p_NC == 0){
+    } else if (p_C > 0 && p_NC == 0){
       BNC1 <- 0
       BC1  <- params[1:(2*p_C)]
       Bx1  <- params[(2*p_C + 1):(2*p_C + 2*colnum)]
       IC1  <- params[(2*p_C + 2*colnum + 1)]
       sig1 <- params[(2*p_C + 2*colnum + 2)]
       df1  <- params[(2*p_C + 2*colnum + 3)]
-    }
-    else if (p_C == 0 && p_NC == 0){
+    } else if (p_C == 0 && p_NC == 0){
       BNC1  <- 0
       BC1   <- 0
       Bx1   <- params[(1:2*colnum)]
@@ -210,39 +206,33 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
       sig1  <- params[(2*colnum + 2)]
       df1   <- params[(2*colnum + 3)]
     }
-  }
-  else{
+  } else{
     colnum <- 0
-    
     if (p_C > 0 && p_NC > 0){
       BC1  <- params[1:(2*p_C)]
       BNC1 <- params[((2*p_C)+1):(2*(p_C + p_NC))]
       IC1  <- params[(2*(p_C + p_NC) + 1)]
       sig1 <- params[(2*(p_C + p_NC) + 2)]
       df1  <- params[(2*(p_C + p_NC) + 3)]
-    }
-    else if (p_NC > 0 && p_C == 0){
+    } else if (p_NC > 0 && p_C == 0){
       BC1  <- 0
       BNC1 <- params[1:(2*p_NC)]
       IC1  <- params[(2*p_NC + 1)]
       sig1 <- params[(2*p_NC + 2)]
       df1  <- params[(2*p_NC + 3)]
-    }
-    else if (p_C > 0 && p_NC == 0){
+    } else if (p_C > 0 && p_NC == 0){
       BNC1 <- 0
       BC1  <- params[1:(2*p_C)]
       IC1  <- params[(2*p_C + 1)]
       sig1 <- params[(2*p_C + 2)]
       df1  <- params[(2*p_C + 3)]
-    }
-    else if (p_C == 0 && p_NC == 0){
+    } else if (p_C == 0 && p_NC == 0){
       BNC1  <- 0
       BC1   <- 0
       IC1   <- params[1]
       sig1  <- params[2]
       df1   <- params[3]
     }
-    
   }
   
   ZC1 <- y[(p_C+1):length(y)]
@@ -255,8 +245,7 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
 
   if (p_C > 0){
     V <- ZC1 - (ZC2 %*% BC1)
-  }
-  else{
+  } else{
     V <- ZC1
   }
   
@@ -291,8 +280,9 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
   }
   
   if (length(x) > 1){
+    
     if (p_NC > 0){
-      E <- rev(ZNC1 - (ZNC2 %*% BNC1) - IC1 - (x %*% Bx1))
+      E <- rev(ZNC1 - (ZNC2 %*% BNC1) - IC1)
     }
     else{
       E <- rev(ZNC1 - IC1 - (x %*% Bx1))
@@ -316,7 +306,6 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
 
 # DEZE FUNCTIE MOET NOG AANGEPAST WORDEN
 MART <- function(y, x, p_C, p_NC, c) {
-  
   #print(match.call())
   nargin <- length(as.list(match.call())) - 1
   
@@ -359,38 +348,34 @@ MART <- function(y, x, p_C, p_NC, c) {
     if (length(x) > 1){
       if (p_C > 0 && p_NC > 0){
         params0 <- rbind(BC0,BNC0,Bx0,IC0,sig0,df0)
-      }
-      else if (p_NC > 0 && p_C == 0){
+      } else if (p_NC > 0 && p_C == 0){
         params0 <- rbind(BNC0,Bx0,IC0,sig0,df0)
-      }
-      else if (p_C > 0 && p_NC == 0){
+      } else if (p_C > 0 && p_NC == 0){
         params0 <- rbind(BC0,Bx0,IC0,sig0,df0)
-      }
-      else if (p_C == 0 && p_NC == 0){
+      } else if (p_C == 0 && p_NC == 0){
         params0 <- rbind(Bx0,IC0,sig0,df0)
       }
-    }
-    else{
+    } else {
       if (p_C > 0 && p_NC > 0){
         params0 <- rbind(BC0,BNC0,IC0,sig0,df0)
-      }
-      else if (p_NC > 0 && p_C == 0){
+      } else if (p_NC > 0 && p_C == 0){
         params0 <- rbind(BNC0,IC0,sig0,df0)
-      }
-      else if (p_C > 0 && p_NC == 0){
+      } else if (p_C > 0 && p_NC == 0){
         params0 <- rbind(BC0,IC0,sig0,df0)
-      }
-      else if (p_C == 0 && p_NC == 0){
+      } else if (p_C == 0 && p_NC == 0){
         params0 <- rbind(IC0,sig0,df0)
       }
     }
   }
   
+  ZCX <- regressor.matrix_T(y,x,p_C, c)
+  x <- ZCX[,(2*p_C+1):ncol(ZCX)]
+  
   optimization_results <- stats::optim(params0,ll.MART.Z,gr=NULL,y=fBasics::vec(y),p_C=p_C,p_NC=p_NC,x=x,c=c,method="BFGS",hessian=TRUE)
   PARAMS <- optimization_results$par
   
   if (length(x) > 1){
-    numcol <- NCOL(x)
+    numcol <- ncol(x)
     
     if (p_C > 0 && p_NC > 0){
       B_C  <- PARAMS[1:(2*p_C)]
