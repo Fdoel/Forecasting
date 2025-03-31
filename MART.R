@@ -368,9 +368,6 @@ MART <- function(y, x, p_C, p_NC, c) {
     }
   }
   
-  ZCX <- regressor.matrix_T(y,x,p_C, c)
-  x <- ZCX[,(2*p_C+1):ncol(ZCX)]
-  
   optimization_results <- stats::optim(params0,ll.MART.Z,gr=NULL,y=fBasics::vec(y),p_C=p_C,p_NC=p_NC,x=x,c=c,method="BFGS",hessian=TRUE)
   PARAMS <- optimization_results$par
   
@@ -387,7 +384,7 @@ MART <- function(y, x, p_C, p_NC, c) {
     }
     else if (p_NC > 0 && p_C == 0){
       B_C  <- 0
-      B_NC <- PARAMS[1:2*p_NC]
+      B_NC <- PARAMS[1:(2*p_NC)]
       B_x  <- PARAMS[(2*p_NC + 1):(2*p_NC + 2*numcol)]
       IC   <- PARAMS[(2*p_NC + 2*numcol + 1)]
       sig  <- PARAMS[(2*p_NC + 2*numcol + 2)]
@@ -395,7 +392,7 @@ MART <- function(y, x, p_C, p_NC, c) {
     }
     else if (p_C > 0 && p_NC == 0){
       B_NC <- 0
-      B_C  <- PARAMS[1:2*p_C]
+      B_C  <- PARAMS[1:(2*p_C)]
       B_x  <- PARAMS[(2*p_C + 1):(2*p_C + 2*numcol)]
       IC   <- PARAMS[(2*p_C + 2*numcol + 1)]
       sig  <- PARAMS[(2*p_C + 2*numcol + 2)]
