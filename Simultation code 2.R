@@ -1,3 +1,4 @@
+# Code voor simulatie van model.
 set.seed(321) # Set seed for reproducibility
 
 # Load required library
@@ -20,7 +21,7 @@ nc_process <- function(psi, v, T) {
   for (t in (T - s):1) {
     y[t] <- psi * y[t + 1] + v[t]
   }
-
+  
   return(y)
 }
 
@@ -28,9 +29,10 @@ nc_process <- function(psi, v, T) {
 estimate_parameters <- function(y,v) {
   return(c(mean(y), mean(v)))
 }
-  
+
 # Monte Carlo simulation
 monte_carlo_simulation <- function(T, phi, psi, num_simulations = 10000) {
+  
   estimates <- matrix(NA, nrow = num_simulations, ncol = 2)  #Storage for estimates
   models <- rep(NULL,num_simulations)
   
@@ -46,21 +48,40 @@ monte_carlo_simulation <- function(T, phi, psi, num_simulations = 10000) {
     
     models[sim] <- mixed(y_t,NULL,1,1)
   }
-  
   colnames(estimates) <- c("Causal", "nonCausal")
   cbind(estimates, models)
 }
 
 #function for getting results from simulations
 get_final_estimates <- function(simulation) {
-  cols_to_use <- as.data.frame(simulation[, c("Causal", "nonCausal")])
-  cols_to_use <- as.data.frame(lapply(cols_to_use, as.numeric))  # force numeric
-  mean_estimates <- colMeans(cols_to_use)
-  sd_estimates <- sd_estimates <- apply(cols_to_use, 2, sd)
   
-  return(data.frame(
+  simulation <- as.data.frame(simulation)
+  colnames(simulation) <- c("Causal", "nonCausal", "models")
+  cols_to_use <- simulation$models
+  cols_to_use <- as.data.frame(simulation$models)
+  colnames(cols_to_use) <- seq(1, ncol(cols_to_use))
+  
+  # Column names
+  columns <- c("int", "lag 1", "lead 1", "exo", "df", "scale")
+  
+  # Creating DataFrame
+  df = as.data.frame(cols_to_use, columns=columns)
+  
+  # Calculate row means
+  means <- apply(df, 1, mean)
+  sds <- apply(df, 1, sd)
+  
+  
+  mean_estimates <- c(means[2] ,means[3])
+  sd_estimates <- c(sds[2], sds[3])
+  df_estimates <- means[5]
+  scale_estimates <- means[6]
+  
+  return(list(
     mean = mean_estimates,
-    sd = sd_estimates
+    sd = sd_estimates,
+    df = df_estimates,
+    scale = scale_estimates
   ))
 }
 
@@ -81,31 +102,32 @@ param_combinations <- list(
 )
 
 #hier ff mooie loop maken met sample sizes and param combinations
-simulation_estimates <- matrix(NA, nrow = length(sample_sizes) * length(param_combinations), ncol = 7)
-colnames(simulation_estimates) <- c("Sample_size", "phi", "psi", "lag_est", "lag_sd", "lead_est", "lead_sd")
+simulation_estimates <- matrix(NA, nrow = length(sample_sizes) * length(param_combinations), ncol = 9)
+colnames(simulation_estimates) <- c("Sample_size", "phi", "psi", "lag_est", "lag_sd", "lead_est", "lead_sd", "df", "scale")
 i=1
 
-for (n in sample_sizes) {
+
+sim_frama <- monte_carlo_simulation(300, 0.9, 0.9, 100)
+get_final_estimates(sim_frama)
+
+for (T in sample_sizes) {
   for (params in param_combinations) {
     phi <- params[1]
     psi <- params[2]
     
-    simulation <- monte_carlo_simulation(n, phi, psi, n_sim)
+    simulation <- monte_carlo_simulation(T, phi, psi, n_sim)
     estimates <- get_final_estimates(simulation)
     
-    simulation_estimates[i,1] = n
+    simulation_estimates[i,1] = T
     simulation_estimates[i,2] = phi
     simulation_estimates[i,3] = psi
-    simulation_estimates[i,4] = estimates[1,1]
-    simulation_estimates[i,5] = estimates[1,2]
-    simulation_estimates[i,6] = estimates[2,1]
-    simulation_estimates[i,7] = estimates[2,2]
+    simulation_estimates[i, 4] = estimates$mean[1]  # Lag estimate
+    simulation_estimates[i, 5] = estimates$sd[1]  # Lag standard deviation
+    simulation_estimates[i, 6] = estimates$mean[2]  # Lead estimate
+    simulation_estimates[i, 7] = estimates$sd[2]  # Lead standard deviation
+    simulation_estimates[i, 8] = estimates$df  # df value
+    simulation_estimates[i, 9] = estimates$scale  # scale value
+    
     i <- i+1
   }
 }
-
-
-
-
-
-
