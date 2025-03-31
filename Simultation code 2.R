@@ -1,3 +1,4 @@
+# Code voor simulatie van model.
 set.seed(321) # Set seed for reproducibility
 
 # Load required library
