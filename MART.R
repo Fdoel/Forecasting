@@ -197,7 +197,7 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
     if (p_C > 0 && p_NC > 0){
       BC1  <- params[1:p_CT]
       BNC1 <- params[(p_CT+1):(p_CT + p_NCT)]
-      Bx1  <- params[((p_CT + p_NCT)+ 1):(p_CT + p_NCT + colnum_T)]
+      Bx1  <- params[((p_CT + p_NCT)+ 1):(p_CT + p_NCT + colnumT)]
       IC1  <- params[(p_CT + p_NCT + colnumT + 1)]
       sig1 <- params[(p_CT + p_NCT + colnumT + 2)]
       df1  <- params[(p_CT + p_NCT + colnumT + 3)]
@@ -256,7 +256,6 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
   ZC1 <- y[(p_C+1):length(y)]
   ZC1 <- fBasics::vec(ZC1)
   ZC2 <- regressor.matrix_T(y,"not",p_C, c)
-  #ZX <- regressor.matrix_T(y, x, 1, c)[, 2:(2+2*ncol(as.matrix(x)))]
   
   if (p_C > 0){
     V <- ZC1 - (ZC2 %*% BC1)
@@ -269,31 +268,26 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
   ZNC1 <- U[(p_NC + 1):length(U)]
   ZNC1 <- fBasics::vec(ZNC1)
   ZNC2 <- regressor.matrix_T(U,"not",p_NC, c)
-  
   if((colnumT) > 1){
+    ZX <- regressor.matrix_T(y, x, 1, c)[, 3:(2+2*ncol(as.matrix(x)))]
     for (i in 1:(colnumT)) {
-      x[,i] <- rev(x[,i])
+      ZX[,i] <- rev(ZX[,i])
     }
-  } else {
-    x <- rev(x)
   }
-  
   if (length(x) > 1){
     if ((colnumT) > 1){
-      x <- x[(p_NC +1):length(U),]
+      ZX <- ZX[(p_NC +1):length(U),]
     } else {
-      x <- x[(p_NC + 1):length(U)]
-      x <- fBasics::vec(x)
+      ZX <- ZX[(p_NC + 1):length(U)]
     }
   } else {
     x = "not"
   }
   if (length(x) > 1){
-    x <- regressor.matrix_T(y, x, p_NC, c)
     if (p_NC > 0){
-      E <- rev(ZNC1 - (ZNC2 %*% BNC1) - IC1)
+      E <- rev(ZNC1 - (ZNC2 %*% BNC1) - IC1 - (ZX %*% Bx1))
     } else{
-      E <- rev(ZNC1 - IC1 - (x %*% Bx1))
+      E <- rev(ZNC1 - IC1 - (ZX %*% Bx1))
     }
   } else {
     if (p_NC > 0){
@@ -316,7 +310,6 @@ MART <- function(y, x, p_C, p_NC, c) {
   p_CT <- 2*p_C
   p_NCT <- 2*p_NC
   nargin <- length(as.list(match.call())) - 2
-  
   if (is.null(x)){
     x <- "not"
   }
@@ -383,9 +376,7 @@ MART <- function(y, x, p_C, p_NC, c) {
   
   if (length(x) > 1){
     numcol <- ncol(as.matrix(x))
-    # CHECK DIT
-    # x <- regressor.matrix_T(y,x,p_NC,c)[,(2*(p_NC) + 1):(2*(p_NC) + numcolT)]
-    print(x)
+    ZX <- regressor.matrix_T(y, x, 1, c)[, 3:(2+2*ncol(as.matrix(x)))]
     if (p_C > 0 && p_NC > 0){
       B_C  <- PARAMS[1:(p_CT)]
       B_NC <- PARAMS[(p_CT+1):(p_CT + p_NCT)]
@@ -465,22 +456,18 @@ MART <- function(y, x, p_C, p_NC, c) {
   ZNC1 <- fBasics::vec(ZNC1)
   ZNC2 <- regressor.matrix_T(U,"not",p_NC,c)
   
-  if(numcol > 1){
-    for (i in 1:numcol){
-      x[,i] <- rev(x[,i])
+  if(numcolT > 1){
+    for (i in 1:numcolT){
+      ZX[,i] <- rev(ZX[,i])
     }
-  }else{
-    x <- rev(x)
   }
   
   if(length(x) > 1){
-    if (numcol > 1 ){
-      x <- 
-      x <- x[(p_NC +1):length(U),]
+    if (numcolT > 1 ){
+      ZX <- ZX[(p_NC +1):length(U),]
     }
     else{
-      x <- x[(p_NC +1):length(U)]
-      x <- fBasics::vec(x)
+      ZX <- ZX[(p_NC +1):length(U)]
     }
   } else{
     x <- "not"
@@ -489,14 +476,10 @@ MART <- function(y, x, p_C, p_NC, c) {
   
   if (length(x) > 1){
     if (p_NC > 0){
-      # CHECK DIT
-      # x <- regressor.matrix_T(y,x,p_NC,c)[,(2*(p_NC) + 1):(2*(p_NC) + numcolT)]
-      print(dim(x))
-      print(dim(B_x))
-      E <- rev(ZNC1 - (ZNC2 %*% B_NC) - IC - (x %*% B_x))
+      E <- rev(ZNC1 - (ZNC2 %*% B_NC) - IC - (ZX %*% B_x))
     }
     else{
-      E <- rev(ZNC1 - IC - (x %*% B_x))
+      E <- rev(ZNC1 - IC - (ZX %*% B_x))
     }
   } else{
     if (p_NC > 0){
