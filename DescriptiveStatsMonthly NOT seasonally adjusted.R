@@ -38,7 +38,7 @@ inflation_df <- FRED_data %>%
   mutate(sasdate = as.Date(sasdate, "%m/%d/%Y")) %>%
   
   # Calculate inflation by taking the logs of the CPI divided by its lag
-  mutate(inflation = log(CPIAUCSL/lag(CPIAUCSL))*100) %>%
+  mutate(inflation_SA = log(CPIAUCSL/lag(CPIAUCSL))*100) %>%
   filter(sasdate >= as.Date("1959-06-01"))
   
 # Get summary statistics on all columns except date including Kurtosis, Max, Min, Mean, Median, Skewness, and Standard Deviation
@@ -78,7 +78,7 @@ vix_summary_df <- VIX_summary[-1] %>%
 inflation_df %>%
   ggplot(aes(x = sasdate)) +
   geom_line(aes(y = CPIAUCSL, color = "CPI"), size = 1, linetype = "dashed") +  # Dashed line for CPI
-  geom_line(aes(y = inflation * 100, color = "Inflation"), size = 0.7) +  # Scale inflation
+  geom_line(aes(y = inflation_SA * 100, color = "Inflation"), size = 0.7) +  # Scale inflation
   scale_y_continuous(
     name = "CPI",
     sec.axis = sec_axis(~ . / 100, name = "Inflation (%)")  # Scale back for display
@@ -98,8 +98,8 @@ inflation_df %>%
   )
 
 # Test for seasonality in inflation
-seastests::kw(inflation_df$inflation, freq = 12)
-seastests::seasdum(inflation_df$inflation, freq = 12)
+seastests::kw(inflation_df$inflation_SA, freq = 12)
+seastests::seasdum(inflation_df$inflation_SA, freq = 12)
 # Do not reject no seasonality at the 5% level
 
 # Test for seasonality in inflation
