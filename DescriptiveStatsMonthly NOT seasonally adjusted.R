@@ -7,25 +7,26 @@ library(readxl)
 CPI_US_labour_dataset <- read_excel("CPI US labour dataset.xlsx", 
                                     range = "A12:M124")
 
-# Reshape from wide to long format:
-CPI_nonSA <- CPI_US_labour_dataset %>%
-  # Pivot all columns except the first one (assumed to be the Year)
+# Reshape from wide to long format and create a proper date column
+CPI_US_labour_long <- CPI_US_labour_dataset %>%
+  # Assume first column is Year, pivot the remaining month columns to long format
   pivot_longer(
     cols = -1,
     names_to = "Month",
-    values_to = "CPI_value"
+    values_to = "CPI_nonSA"
   ) %>%
-  # Rename the first column as 'Year' (if it isn't already)
   rename(Year = 1) %>%
-  # Filter for observations from 1959 onward
   filter(Year >= 1959) %>%
-  # Convert the month abbreviations to month numbers, then build a proper date
   mutate(
     Month_num = match(Month, month.abb),
     Date = as.Date(paste(Year, Month_num, "01", sep = "-"))
   ) %>%
-  # Order by the Date
   arrange(Date)
+
+# Add an inflation column computed as log(CPI(t)/CPI(t-1)) * 100
+CPI_US_labour_long <- CPI_US_labour_long %>%
+  arrange(Date) %>%
+  mutate(inflation_nonSA = log(CPI_nonSA / lag(CPI_nonSA)) * 100)
 
 # Load the data
 FRED_data <- read.csv("FRED.csv")
@@ -38,8 +39,16 @@ inflation_df <- FRED_data %>%
   mutate(sasdate = as.Date(sasdate, "%m/%d/%Y")) %>%
   
   # Calculate inflation by taking the logs of the CPI divided by its lag
-  mutate(inflation = log(CPIAUCSL/lag(CPIAUCSL))*100) %>%
+  mutate(inflation_SA = log(CPIAUCSL/lag(CPIAUCSL))*100) %>%
   filter(sasdate >= as.Date("1959-06-01"))
+
+inflation_df <- inflation_df %>%
+  left_join(
+    CPI_US_labour_long %>% 
+      filter(Date >= as.Date("1959-06-01")) %>% 
+      select(Date, CPI_nonSA, inflation_nonSA),
+    by = c("sasdate" = "Date")
+  )
   
 # Get summary statistics on all columns except date including Kurtosis, Max, Min, Mean, Median, Skewness, and Standard Deviation
 info_df <- inflation_df[-1] %>%
@@ -78,7 +87,7 @@ vix_summary_df <- VIX_summary[-1] %>%
 inflation_df %>%
   ggplot(aes(x = sasdate)) +
   geom_line(aes(y = CPIAUCSL, color = "CPI"), size = 1, linetype = "dashed") +  # Dashed line for CPI
-  geom_line(aes(y = inflation * 100, color = "Inflation"), size = 0.7) +  # Scale inflation
+  geom_line(aes(y = inflation_SA * 100, color = "Inflation"), size = 0.7) +  # Scale inflation
   scale_y_continuous(
     name = "CPI",
     sec.axis = sec_axis(~ . / 100, name = "Inflation (%)")  # Scale back for display
@@ -98,14 +107,13 @@ inflation_df %>%
   )
 
 # Test for seasonality in inflation
-seastests::kw(inflation_df$inflation, freq = 12)
-seastests::seasdum(inflation_df$inflation, freq = 12)
+seastests::kw(inflation_df$inflation_SA, freq = 12)
+seastests::seasdum(inflation_df$inflation_SA, freq = 12)
 # Do not reject no seasonality at the 5% level
 
 # Test for seasonality in inflation
 seastests::kw(inflation_df$CPIAUCSL, freq = 12)
 seastests::seasdum(inflation_df$CPIAUCSL, freq = 12)
-# Do not reject no seasonality at the 5% level
 
 # Rename the df for use in other scripts
 inflation_df_monthly <- inflation_df
