@@ -12,8 +12,7 @@
 #' regressor.matrix(data$y, data$x, 2)
 #' 
 #' Inshallah dit werkt
-regressor.matrix_T <- function(y, x, p, c){
-  
+regressor.matrix_T <- function(y, x, p, c) {
   # Handle NULL x case
   if (missing(x) || is.null(x)) {
     x <- "not"
@@ -47,8 +46,15 @@ regressor.matrix_T <- function(y, x, p, c){
   }
   
   # Create thresholded ZT matrix
-  nT <- nrow(Z)
-  Z_c <- Z[,1:p]
+  if(identical(x, "not")) {
+    if(p == 1) {
+    nT <- length(Z)
+    Z_c <- Z
+    } else {
+    nT <- nrow(Z)
+    Z_c <- Z[,1:p]
+    }
+  }
   Z_c <- cbind(Z_c, Z_c)
   if (!identical(x, "not")) {
     Z_x <- Z[,(p + 1):ncol(Z)]
@@ -238,7 +244,6 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
   ZC1 <- y[(p_C+1):length(y)]
   ZC1 <- fBasics::vec(ZC1)
   ZC2 <- regressor.matrix_T(y,"not",p_C, c)
-  
   if (p_C == 1){
     ZC2 <- fBasics::vec(ZC2)
   }
@@ -248,7 +253,6 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
   } else{
     V <- ZC1
   }
-  
   U <- rev(V)
   U <- fBasics::vec(U)
   
@@ -307,7 +311,7 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
 # DEZE FUNCTIE MOET NOG AANGEPAST WORDEN
 MART <- function(y, x, p_C, p_NC, c) {
   #print(match.call())
-  nargin <- length(as.list(match.call())) - 1
+  nargin <- length(as.list(match.call())) - 2
   
   if (is.null(x)){
     x <- "not"
@@ -346,23 +350,23 @@ MART <- function(y, x, p_C, p_NC, c) {
     Bx0 <- fBasics::vec(Bx0)
     
     if (length(x) > 1){
-      if (p_C > 0 && p_NC > 0){
+      if (p_C > 0 & p_NC > 0){
         params0 <- rbind(BC0,BNC0,Bx0,IC0,sig0,df0)
-      } else if (p_NC > 0 && p_C == 0){
+      } else if (p_NC > 0 & p_C == 0){
         params0 <- rbind(BNC0,Bx0,IC0,sig0,df0)
-      } else if (p_C > 0 && p_NC == 0){
+      } else if (p_C > 0 & p_NC == 0){
         params0 <- rbind(BC0,Bx0,IC0,sig0,df0)
-      } else if (p_C == 0 && p_NC == 0){
+      } else if (p_C == 0 & p_NC == 0){
         params0 <- rbind(Bx0,IC0,sig0,df0)
       }
     } else {
-      if (p_C > 0 && p_NC > 0){
+      if (p_C > 0 & p_NC > 0){
         params0 <- rbind(BC0,BNC0,IC0,sig0,df0)
-      } else if (p_NC > 0 && p_C == 0){
+      } else if (p_NC > 0 & p_C == 0){
         params0 <- rbind(BNC0,IC0,sig0,df0)
-      } else if (p_C > 0 && p_NC == 0){
+      } else if (p_C > 0 & p_NC == 0){
         params0 <- rbind(BC0,IC0,sig0,df0)
-      } else if (p_C == 0 && p_NC == 0){
+      } else if (p_C == 0 & p_NC == 0){
         params0 <- rbind(IC0,sig0,df0)
       }
     }
@@ -506,7 +510,5 @@ MART <- function(y, x, p_C, p_NC, c) {
   se.dist <- se[(length(se)-1):length(se)]
   se.dist <- rev(se.dist)
   
-  return(list(coef.c1 = B_C[1:p_C], coef.c2 = B_C[(p_C+1):(2*p_C)], coef.nc1 = B_NC[1:p_NC], coef.c2 = B_NC[(p_NC+1):(2*p_NC)], coef.exo1 = B_x[1:(length(B_x)/2)], coef.exo2 = B_x[(length(B_x)/2 +1): length(B_x)], coef.int = IC, scale = sig,df = df,residuals = E, se.dist = se.dist))
+  return(list(coef.c1 = B_C[1:p_C], coef.c2 = B_C[(p_C+1):(2*p_C)], coef.nc1 = B_NC[1:p_NC], coef.nc2 = B_NC[(p_NC+1):(2*p_NC)], coef.exo1 = B_x[1:(length(B_x)/2)], coef.exo2 = B_x[(length(B_x)/2 +1): length(B_x)], coef.int = IC, scale = sig,df = df,residuals = E, se.dist = se.dist))
 }
-
-
