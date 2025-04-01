@@ -91,7 +91,7 @@ vix_summary_df <- VIX_summary[-1] %>%
   pivot_wider(names_from = "Variable", values_from = "value") %>%
   as.data.frame()
 
-# Plot the inflation data with CPi on one y axis and inflation on the other
+# Plot the SA inflation data with SA CPI on one y axis and inflation on the other
 inflation_df %>%
   ggplot(aes(x = sasdate)) +
   geom_line(aes(y = CPIAUCSL, color = "CPI"), size = 1, linetype = "dashed") +  # Dashed line for CPI
@@ -113,6 +113,30 @@ inflation_df %>%
     axis.ticks = element_line(color = "black"), 
     axis.ticks.length = unit(5, "pt"), 
   )
+
+# Plot the non SA inflation data with CPi on one y axis and inflation on the other
+inflation_df %>%
+  ggplot(aes(x = sasdate)) +
+  geom_line(aes(y = CPInonSA, color = "CPI"), size = 1, linetype = "dashed") +  # Dashed line for CPI
+  geom_line(aes(y = inflationNonSA * 100, color = "Inflation"), size = 0.7) +  # Scale inflation
+  scale_y_continuous(
+    name = "CPI (raw)",
+    sec.axis = sec_axis(~ . / 100, name = "Inflation (%) (raw)")  # Scale back for display
+  ) +
+  labs(title = "",
+       x = "Date",
+       color = "Variable") +
+  scale_color_manual(values = c("CPI" = "blue", "Inflation" = "red")) +  # Define colors properly
+  theme_minimal() +
+  theme(
+    panel.background = element_rect(fill = "white", color = NA),
+    panel.grid = element_blank(), 
+    panel.border = element_rect(color = "black", fill = NA, size = 0.5),
+    axis.line = element_blank(),
+    axis.ticks = element_line(color = "black"), 
+    axis.ticks.length = unit(5, "pt"), 
+  )
+
 
 # Test for seasonality in inflation
 seastests::kw(inflation_df$inflationNonSA, freq = 12)
