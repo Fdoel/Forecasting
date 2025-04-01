@@ -2,14 +2,38 @@
 library(tidyverse)
 library(e1071)
 library(ggplot2)
+library(readxl)
+
+CPI_US_labour_dataset <- read_excel("CPI US labour dataset.xlsx", 
+                                    range = "A12:M124")
+
+# Reshape from wide to long format:
+CPI_nonSA <- CPI_US_labour_dataset %>%
+  # Pivot all columns except the first one (assumed to be the Year)
+  pivot_longer(
+    cols = -1,
+    names_to = "Month",
+    values_to = "CPI_value"
+  ) %>%
+  # Rename the first column as 'Year' (if it isn't already)
+  rename(Year = 1) %>%
+  # Filter for observations from 1959 onward
+  filter(Year >= 1959) %>%
+  # Convert the month abbreviations to month numbers, then build a proper date
+  mutate(
+    Month_num = match(Month, month.abb),
+    Date = as.Date(paste(Year, Month_num, "01", sep = "-"))
+  ) %>%
+  # Order by the Date
+  arrange(Date)
 
 # Load the data
-data <- read.csv("FRED.csv")
+FRED_data <- read.csv("FRED.csv")
 
 # Omit the first two rows as we only require raw data
-data <- data[-c(1, 2),]
+FRED_data <- FRED_data[-c(1, 2),]
 
-inflation_df <- data %>%
+inflation_df <- FRED_data %>%
   select(c("sasdate", "CPIAUCSL", "UNRATE", "IPFINAL", "CUMFNS", "RPI", "RETAILx", "VIXCLSx")) %>%
   mutate(sasdate = as.Date(sasdate, "%m/%d/%Y")) %>%
   
