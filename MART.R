@@ -10,8 +10,6 @@
 #' @examples
 #' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
 #' regressor.matrix(data$y, data$x, 2)
-#' 
-#' Inshallah dit werkt
 regressor.matrix_T <- function(y, x, p, c) {
   # Handle NULL x case
   if (missing(x) || is.null(x)) {
@@ -185,63 +183,67 @@ arx.ls_T <- function(y,x,p,c){
 
 # Dit verwacht params in een bepaalde vorm die nu niet zo uit ARX_T komt
 ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
+  p_CT <- p_C*2
+  p_NCT <- p_NC*2
   if (is.null(x)){
     x <- "not"
   }
   
   y <- fBasics::vec(y)
   if (length(x) > 1){
-    colnum <- NCOL(x)
+    colnum <- NCOL(as.matrix(x))
+    colnumT <- colnum*2
     
     if (p_C > 0 && p_NC > 0){
-      BC1  <- params[1:(2*p_C)]
-      BNC1 <- params[((2*p_C)+1):(2*(p_C + p_NC))]
-      Bx1  <- params[((2*(p_C+ p_NC) )+ 1):(2*(p_C + p_NC) + 2*colnum)]
-      IC1  <- params[(2*(p_C + p_NC) + 2*colnum + 1)]
-      sig1 <- params[(2*(p_C + p_NC) + 2*colnum + 2)]
-      df1  <- params[(2*(p_C + p_NC) + 2*colnum + 3)]
+      BC1  <- params[1:p_CT]
+      BNC1 <- params[(p_CT+1):(p_CT + p_NCT)]
+      Bx1  <- params[((p_CT + p_NCT)+ 1):(p_CT + p_NCT + colnum_T)]
+      IC1  <- params[(p_CT + p_NCT + colnumT + 1)]
+      sig1 <- params[(p_CT + p_NCT + colnumT + 2)]
+      df1  <- params[(p_CT + p_NCT + colnumT + 3)]
     } else if (p_NC > 0 && p_C == 0){
       BC1  <- 0
-      BNC1 <- params[1:(2*p_NC)]
-      Bx1  <- params[((2*p_NC)+1):((2*p_NC) + 2*colnum)]
-      IC1  <- params[(2*p_NC + 2*colnum + 1)]
-      sig1 <- params[(2*p_NC + 2*colnum + 2)]
-      df1  <- params[(2*p_NC + 2*colnum + 3)]
+      BNC1 <- params[1:(p_NCT)]
+      Bx1  <- params[((p_NCT)+1):((p_NCT) + colnumT)]
+      IC1  <- params[(p_NCT + colnumT + 1)]
+      sig1 <- params[(p_NCT + colnumT + 2)]
+      df1  <- params[(p_NCT + colnumT + 3)]
     } else if (p_C > 0 && p_NC == 0){
       BNC1 <- 0
-      BC1  <- params[1:(2*p_C)]
-      Bx1  <- params[(2*p_C + 1):(2*p_C + 2*colnum)]
-      IC1  <- params[(2*p_C + 2*colnum + 1)]
-      sig1 <- params[(2*p_C + 2*colnum + 2)]
-      df1  <- params[(2*p_C + 2*colnum + 3)]
+      BC1  <- params[1:(p_CT)]
+      Bx1  <- params[(p_CT + 1):(p_CT + colnumT)]
+      IC1  <- params[(p_CT + colnumT + 1)]
+      sig1 <- params[(p_CT + colnumT + 2)]
+      df1  <- params[(p_CT + colnumT + 3)]
     } else if (p_C == 0 && p_NC == 0){
       BNC1  <- 0
       BC1   <- 0
-      Bx1   <- params[(1:2*colnum)]
-      IC1   <- params[(2*colnum + 1)]
-      sig1  <- params[(2*colnum + 2)]
-      df1   <- params[(2*colnum + 3)]
+      Bx1   <- params[(1:(colnumT))]
+      IC1   <- params[(colnumT + 1)]
+      sig1  <- params[(colnumT + 2)]
+      df1   <- params[(colnumT + 3)]
     }
   } else{
     colnum <- 0
+    colnumT <- 0
     if (p_C > 0 && p_NC > 0){
-      BC1  <- params[1:(2*p_C)]
-      BNC1 <- params[((2*p_C)+1):(2*(p_C + p_NC))]
-      IC1  <- params[(2*(p_C + p_NC) + 1)]
-      sig1 <- params[(2*(p_C + p_NC) + 2)]
-      df1  <- params[(2*(p_C + p_NC) + 3)]
+      BC1  <- params[1:(p_CT)]
+      BNC1 <- params[((p_CT)+1):(p_CT + p_NCT)]
+      IC1  <- params[(p_CT + p_NCT + 1)]
+      sig1 <- params[(p_CT + p_NCT + 2)]
+      df1  <- params[(p_CT + p_NCT + 3)]
     } else if (p_NC > 0 && p_C == 0){
       BC1  <- 0
-      BNC1 <- params[1:(2*p_NC)]
-      IC1  <- params[(2*p_NC + 1)]
-      sig1 <- params[(2*p_NC + 2)]
-      df1  <- params[(2*p_NC + 3)]
+      BNC1 <- params[1:(p_NCT)]
+      IC1  <- params[(p_NCT + 1)]
+      sig1 <- params[(p_NCT + 2)]
+      df1  <- params[(p_NCT + 3)]
     } else if (p_C > 0 && p_NC == 0){
       BNC1 <- 0
-      BC1  <- params[1:(2*p_C)]
-      IC1  <- params[(2*p_C + 1)]
-      sig1 <- params[(2*p_C + 2)]
-      df1  <- params[(2*p_C + 3)]
+      BC1  <- params[1:(p_CT)]
+      IC1  <- params[(p_CT + 1)]
+      sig1 <- params[(p_CT + 2)]
+      df1  <- params[(p_CT + 3)]
     } else if (p_C == 0 && p_NC == 0){
       BNC1  <- 0
       BC1   <- 0
@@ -254,6 +256,7 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
   ZC1 <- y[(p_C+1):length(y)]
   ZC1 <- fBasics::vec(ZC1)
   ZC2 <- regressor.matrix_T(y,"not",p_C, c)
+  #ZX <- regressor.matrix_T(y, x, 1, c)[, 2:(2+2*ncol(as.matrix(x)))]
   
   if (p_C > 0){
     V <- ZC1 - (ZC2 %*% BC1)
@@ -267,8 +270,8 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
   ZNC1 <- fBasics::vec(ZNC1)
   ZNC2 <- regressor.matrix_T(U,"not",p_NC, c)
   
-  if(colnum > 1){
-    for (i in 1:colnum){
+  if((colnumT) > 1){
+    for (i in 1:(colnumT)) {
       x[,i] <- rev(x[,i])
     }
   } else {
@@ -276,7 +279,7 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
   }
   
   if (length(x) > 1){
-    if (colnum > 1){
+    if ((colnumT) > 1){
       x <- x[(p_NC +1):length(U),]
     } else {
       x <- x[(p_NC + 1):length(U)]
@@ -286,7 +289,7 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
     x = "not"
   }
   if (length(x) > 1){
-    
+    x <- regressor.matrix_T(y, x, p_NC, c)
     if (p_NC > 0){
       E <- rev(ZNC1 - (ZNC2 %*% BNC1) - IC1)
     } else{
@@ -310,7 +313,8 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c){
 
 # DEZE FUNCTIE MOET NOG AANGEPAST WORDEN
 MART <- function(y, x, p_C, p_NC, c) {
-  #print(match.call())
+  p_CT <- 2*p_C
+  p_NCT <- 2*p_NC
   nargin <- length(as.list(match.call())) - 2
   
   if (is.null(x)){
@@ -319,8 +323,10 @@ MART <- function(y, x, p_C, p_NC, c) {
   
   if (length(x) == 1) {
     numcol <- 0
+    numcolT <- 0
   } else {
-    numcol <- NCOL(x)
+    numcol <- ncol(as.matrix(x))
+    numcolT <- numcol*2
   }
   if(numcol > 1){
     x.rev <- matrix(data=NA,nrow=length(x[,1]),ncol=numcol)
@@ -376,62 +382,63 @@ MART <- function(y, x, p_C, p_NC, c) {
   PARAMS <- optimization_results$par
   
   if (length(x) > 1){
-    numcol <- ncol(x)
-    print(numcol)
-    
+    numcol <- ncol(as.matrix(x))
+    # CHECK DIT
+    # x <- regressor.matrix_T(y,x,p_NC,c)[,(2*(p_NC) + 1):(2*(p_NC) + numcolT)]
+    print(x)
     if (p_C > 0 && p_NC > 0){
-      B_C  <- PARAMS[1:(2*p_C)]
-      B_NC <- PARAMS[(2*p_C+1):(2*p_C + 2*p_NC)]
-      B_x  <- PARAMS[(2*(p_C + p_NC) + 1):(2*(p_C + p_NC) + 2*numcol)]
-      IC   <- PARAMS[(2*(p_C + p_NC) + 2*numcol + 1)]
-      sig  <- PARAMS[(2*(p_C + p_NC) + 2*numcol + 2)]
-      df   <- PARAMS[(2*(p_C + p_NC) + numcol + 3)]
+      B_C  <- PARAMS[1:(p_CT)]
+      B_NC <- PARAMS[(p_CT+1):(p_CT + p_NCT)]
+      B_x  <- PARAMS[(p_CT + p_NCT + 1):(p_CT + p_NCT + numcolT)]
+      IC   <- PARAMS[(p_CT + p_NCT + numcolT + 1)]
+      sig  <- PARAMS[(p_CT + p_NCT + numcolT + 2)]
+      df   <- PARAMS[(p_CT + p_NCT + numcol + 3)]
     }
     else if (p_NC > 0 && p_C == 0){
       B_C  <- 0
-      B_NC <- PARAMS[1:(2*p_NC)]
-      B_x  <- PARAMS[(2*p_NC + 1):(2*p_NC + 2*numcol)]
-      IC   <- PARAMS[(2*p_NC + 2*numcol + 1)]
-      sig  <- PARAMS[(2*p_NC + 2*numcol + 2)]
-      df   <- PARAMS[(2*p_NC + 2*numcol + 3)]
+      B_NC <- PARAMS[1:(p_NCT)]
+      B_x  <- PARAMS[(p_NCT + 1):(p_NCT + numcolT)]
+      IC   <- PARAMS[(p_NCT + numcolT + 1)]
+      sig  <- PARAMS[(p_NCT + numcolT + 2)]
+      df   <- PARAMS[(p_NCT + numcolT + 3)]
     }
     else if (p_C > 0 && p_NC == 0){
       B_NC <- 0
-      B_C  <- PARAMS[1:(2*p_C)]
-      B_x  <- PARAMS[(2*p_C + 1):(2*p_C + 2*numcol)]
-      IC   <- PARAMS[(2*p_C + 2*numcol + 1)]
-      sig  <- PARAMS[(2*p_C + 2*numcol + 2)]
-      df   <- PARAMS[(2*p_C + 2*numcol + 3)]
+      B_C  <- PARAMS[1:(p_CT)]
+      B_x  <- PARAMS[(p_CT + 1):(p_CT + numcolT)]
+      IC   <- PARAMS[(p_CT + numcolT + 1)]
+      sig  <- PARAMS[(p_CT + numcolT + 2)]
+      df   <- PARAMS[(p_CT + numcolT + 3)]
     }
     else if(p_C == 0 && p_NC == 0){
       B_NC  <- 0
       B_C   <- 0
-      B_x   <- PARAMS[(2*p_C + 3):(2*p_C + 2 + 2*numcol)]
-      IC    <- PARAMS[(2*p_C + 2*numcol + 3)]
-      sig   <- PARAMS[(2*p_C + 2*numcol + 4)]
-      df    <- PARAMS[(2*p_C + 2*numcol + 5)]
+      B_x   <- PARAMS[(p_CT + 3):(p_CT + 2 + numcolT)]
+      IC    <- PARAMS[(p_CT + numcolT + 3)]
+      sig   <- PARAMS[(p_CT + numcolT + 4)]
+      df    <- PARAMS[(p_CT + numcolT + 5)]
     }
   } else{
     numcol <- 0
     B_x <- 0
     if (p_C > 0 && p_NC > 0){
-      B_C  <- PARAMS[1:(2*p_C)]
-      B_NC <- PARAMS[(2*p_C+1):(2*(p_C + p_NC))]
-      IC   <- PARAMS[(2*(p_C + p_NC) + 1)]
-      sig  <- PARAMS[(2*(p_C + p_NC) + 2)]
-      df   <- PARAMS[(2*(p_C + p_NC) + 3)]
+      B_C  <- PARAMS[1:(p_CT)]
+      B_NC <- PARAMS[(p_CT+1):(p_CT + p_NCT)]
+      IC   <- PARAMS[(p_CT + p_NCT + 1)]
+      sig  <- PARAMS[(p_CT + p_NCT + 2)]
+      df   <- PARAMS[(p_CT + p_NCT + 3)]
     } else if (p_NC > 0 && p_C == 0){
       B_C  <- 0
-      B_NC <- PARAMS[1:(2*p_NC)]
+      B_NC <- PARAMS[1:(p_NCT)]
       IC   <- PARAMS[(2*(p_NC) + 1)]
       sig  <- PARAMS[(2*(p_NC) + 2)]
       df   <- PARAMS[(2*(p_NC) + 3)]
     } else if (p_C > 0 && p_NC == 0){
       B_NC <- 0
-      B_C  <- PARAMS[1:(2*p_C)]
-      IC   <- PARAMS[(2*p_C + 1)]
-      sig  <- PARAMS[(2*p_C + 2)]
-      df   <- PARAMS[(2*p_C + 3)]
+      B_C  <- PARAMS[1:(p_CT)]
+      IC   <- PARAMS[(p_CT + 1)]
+      sig  <- PARAMS[(p_CT + 2)]
+      df   <- PARAMS[(p_CT + 3)]
     } else if (p_C == 0 && p_NC == 0){
       B_NC  <- 0
       B_C   <- 0
@@ -468,6 +475,7 @@ MART <- function(y, x, p_C, p_NC, c) {
   
   if(length(x) > 1){
     if (numcol > 1 ){
+      x <- 
       x <- x[(p_NC +1):length(U),]
     }
     else{
@@ -481,6 +489,10 @@ MART <- function(y, x, p_C, p_NC, c) {
   
   if (length(x) > 1){
     if (p_NC > 0){
+      # CHECK DIT
+      # x <- regressor.matrix_T(y,x,p_NC,c)[,(2*(p_NC) + 1):(2*(p_NC) + numcolT)]
+      print(dim(x))
+      print(dim(B_x))
       E <- rev(ZNC1 - (ZNC2 %*% B_NC) - IC - (x %*% B_x))
     }
     else{
@@ -500,5 +512,5 @@ MART <- function(y, x, p_C, p_NC, c) {
   se.dist <- se[(length(se)-1):length(se)]
   se.dist <- rev(se.dist)
   
-  return(list(coef.c1 = B_C[1:p_C], coef.c2 = B_C[(p_C+1):(2*p_C)], coef.nc1 = B_NC[1:p_NC], coef.nc2 = B_NC[(p_NC+1):(2*p_NC)], coef.exo1 = B_x[1:(length(B_x)/2)], coef.exo2 = B_x[(length(B_x)/2 +1): length(B_x)], coef.int = IC, scale = sig,df = df,residuals = E, se.dist = se.dist))
+  return(list(coef.c1 = B_C[1:p_C], coef.c2 = B_C[(p_C+1):(p_CT)], coef.nc1 = B_NC[1:p_NC], coef.nc2 = B_NC[(p_NC+1):(p_NCT)], coef.exo1 = B_x[1:(length(B_x)/2)], coef.exo2 = B_x[(length(B_x)/2 +1): length(B_x)], coef.int = IC, scale = sig,df = df,residuals = E, se.dist = se.dist))
 }
