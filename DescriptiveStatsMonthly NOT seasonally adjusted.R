@@ -13,7 +13,7 @@ CPI_US_labour_long <- CPI_US_labour_dataset %>%
   pivot_longer(
     cols = -1,
     names_to = "Month",
-    values_to = "CPI_nonSA"
+    values_to = "CPInonSA"
   ) %>%
   rename(Year = 1) %>%
   filter(Year >= 1959) %>%
@@ -26,9 +26,9 @@ CPI_US_labour_long <- CPI_US_labour_dataset %>%
 # Add an inflation column computed as log(CPI(t)/CPI(t-1)) * 100
 CPI_US_labour_long <- CPI_US_labour_long %>%
   arrange(Date) %>%
-  mutate(inflation_nonSA = log(CPI_nonSA / lag(CPI_nonSA)) * 100)
+  mutate(inflationNonSA = log(CPInonSA / lag(CPInonSA)) * 100)
 
-# Load the data
+# Load the FRED data
 FRED_data <- read.csv("FRED.csv")
 
 # Omit the first two rows as we only require raw data
@@ -39,19 +39,23 @@ inflation_df <- FRED_data %>%
   mutate(sasdate = as.Date(sasdate, "%m/%d/%Y")) %>%
   
   # Calculate inflation by taking the logs of the CPI divided by its lag
-  mutate(inflation_SA = log(CPIAUCSL/lag(CPIAUCSL))*100) %>%
+  mutate(inflationSA = log(CPIAUCSL/lag(CPIAUCSL))*100) %>%
   filter(sasdate >= as.Date("1959-06-01"))
 
 inflation_df <- inflation_df %>%
   left_join(
     CPI_US_labour_long %>% 
       filter(Date >= as.Date("1959-06-01")) %>% 
-      select(Date, CPI_nonSA, inflation_nonSA),
+      select(Date, CPInonSA, inflationNonSA),
     by = c("sasdate" = "Date")
   )
-  
-# Get summary statistics on all columns except date including Kurtosis, Max, Min, Mean, Median, Skewness, and Standard Deviation
-info_df <- inflation_df[-1] %>%
+
+#ensure all data is available
+inflation_df <- inflation_df %>%
+  filter(sasdate < as.Date("2025-01-01"))
+
+info_df <- inflation_df %>%
+  select(-sasdate, -VIXCLSx) %>%  # Exclude date and VIXCLSx columns if not needed
   summarise_all(list(
     Mean = mean,
     Median = median,
@@ -61,7 +65,11 @@ info_df <- inflation_df[-1] %>%
     Skewness = ~ skewness(., na.rm = TRUE),
     Kurtosis = ~ kurtosis(., na.rm = TRUE)
   )) %>%
-  pivot_longer(cols = everything(), names_to = c("Statistic", "Variable"), names_sep = "_") %>%
+  pivot_longer(
+    cols = everything(), 
+    names_to = c("Statistic", "Variable"), 
+    names_sep = "_"
+  ) %>%
   pivot_wider(names_from = "Variable", values_from = "value") %>%
   as.data.frame()
 
@@ -87,10 +95,10 @@ vix_summary_df <- VIX_summary[-1] %>%
 inflation_df %>%
   ggplot(aes(x = sasdate)) +
   geom_line(aes(y = CPIAUCSL, color = "CPI"), size = 1, linetype = "dashed") +  # Dashed line for CPI
-  geom_line(aes(y = inflation_SA * 100, color = "Inflation"), size = 0.7) +  # Scale inflation
+  geom_line(aes(y = inflationSA * 100, color = "Inflation"), size = 0.7) +  # Scale inflation
   scale_y_continuous(
-    name = "CPI",
-    sec.axis = sec_axis(~ . / 100, name = "Inflation (%)")  # Scale back for display
+    name = "CPI (Seasonally Adjusted)",
+    sec.axis = sec_axis(~ . / 100, name = "Inflation (%) (Seasonally Adjusted)")  # Scale back for display
   ) +
   labs(title = "",
        x = "Date",
@@ -107,11 +115,14 @@ inflation_df %>%
   )
 
 # Test for seasonality in inflation
-seastests::kw(inflation_df$inflation_SA, freq = 12)
-seastests::seasdum(inflation_df$inflation_SA, freq = 12)
-# Do not reject no seasonality at the 5% level
+seastests::kw(inflation_df$inflationNonSA, freq = 12)
+seastests::seasdum(inflation_df$inflationNonSA, freq = 12)
+seastests::kw(inflation_df$inflationSA, freq = 12)
+seastests::seasdum(inflation_df$inflationSA, freq = 12)
 
-# Test for seasonality in inflation
+# Test for seasonality in CPI
+seastests::kw(inflation_df$CPInonSA, freq = 12)
+seastests::seasdum(inflation_df$CPInonSA, freq = 12)
 seastests::kw(inflation_df$CPIAUCSL, freq = 12)
 seastests::seasdum(inflation_df$CPIAUCSL, freq = 12)
 
