@@ -66,7 +66,7 @@ regressor.matrix_T <- function(y, x, p, c) {
       Z_x <- cbind(Z_x, Z_x)
       mX <- ncol(Z_x)
       for(i in 1:nT) {
-        if(Z_c[i, 1] > c) {
+        if(y[p+i] > c) {
           Z_x[i, 1:(mX/2)] <- 0
         } else {
           Z_x[i, (mX/2 + 1):mX] <- 0
@@ -75,7 +75,7 @@ regressor.matrix_T <- function(y, x, p, c) {
     }
     mC <- ncol(Z_c)
     for(i in 1:nT) {
-      if(Z_c[i, 1] > c) {
+      if(y[p+i] > c) {
         Z_c[i, 1:(mC/2)] <- 0
       } else {
         Z_c[i, (mC/2 + 1):mC] <- 0
@@ -571,15 +571,15 @@ regressor.matrix_ST <- function(y, x, p, c, gamma) {
       mX <- ncol(Z_x)
       for(i in 1:nT) {
         Z_x_old <- Z_x[i,]
-        Z_x[i,1:(mX/2)] <- logistic.smooth(y[i], gamma, c)*Z_x_old[1:(mX/2)]
-        Z_x[i, (mX/2 + 1):mX] <- (1-logistic.smooth(y[i], gamma, c))*Z_x_old[(mX/2 + 1):mX]
+        Z_x[i,1:(mX/2)] <- logistic.smooth(y[p+i], gamma, c)*Z_x_old[1:(mX/2)]
+        Z_x[i, (mX/2 + 1):mX] <- (1-logistic.smooth(y[p+i], gamma, c))*Z_x_old[(mX/2 + 1):mX]
       }
     }
     mC <- ncol(Z_c)
     for(i in 1:nT) {
       Z_c_old <- Z_c[i,]
-      Z_c[i,1:(mC/2)] <- logistic.smooth(y[i], gamma, c)*Z_c_old[1:(mC/2)]
-      Z_c[i, (mC/2 + 1):mC] <- (1-logistic.smooth(y[i], gamma, c))*Z_c_old[(mC/2 + 1):mC]
+      Z_c[i,1:(mC/2)] <- logistic.smooth(y[p+i], gamma, c)*Z_c_old[1:(mC/2)]
+      Z_c[i, (mC/2 + 1):mC] <- (1-logistic.smooth(y[p+i], gamma, c))*Z_c_old[(mC/2 + 1):mC]
     }
     if (!identical(x, "not")) {
       ZT <- cbind(Z_c, Z_x)
