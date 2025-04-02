@@ -1,9 +1,13 @@
+# Load required library
+library(MASS)
+source("MARX_functions.R")
 
+#loop and store results 
+for (i in 0:6) {
+  for (j in 0:6) {
+    marx_loop <- marx(inflation_df_monthly$inflationSA, NULL, p_max = 20, sig_level = 0.1, p_C=i, p_NC=j)
+  }
+}
 
-
-#use inflation_df_monthly
-
-first_try <- marx(inflation_df_monthly$inflation, NULL, p_max = 10, sig_level = 0.1, p_C=0, p_NC = 6)
-second_try <- marx(inflation_df_monthly$inflation, NULL, p_max = 10, sig_level = 0.05, p_C = 3, p_NC = 3)
-
-ff_proberen <- marx(inflation_df_monthly$inflation, NULL, p_max = 16, sig_level = 0.05)
+#example of marx function, simple MAR model
+marx_example <- marx(inflation_df_monthly$inflationSA, NULL, p_max = 20, sig_level = 0.1) #user friendly function with interface
