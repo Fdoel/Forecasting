@@ -2,10 +2,17 @@
 library(MASS)
 source("MARX_functions.R")
 
-#loop and store results 
+# Create an empty list to store outputs
+results_list <- list()
+
+# Loop over your values and capture the printed output
 for (i in 0:6) {
   for (j in 0:6) {
-    marx_loop <- marx(inflation_df_monthly$inflationSA, NULL, p_max = 20, sig_level = 0.1, p_C=i, p_NC=j)
+    output <- capture.output(
+      marx_loop <- marx(inflation_df_monthly$inflationSA, NULL, p_max = 20, sig_level = 0.1, p_C = i, p_NC = j)
+    )
+    # Save the captured output with a meaningful name
+    results_list[[paste0("p_C_", i, "_p_NC_", j)]] <- output
   }
 }
 
