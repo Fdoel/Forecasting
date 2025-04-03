@@ -1158,9 +1158,9 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402){
 }
 
 # Function to make get the information criteria
-information.criterion <- function(type = c("MARX", "MART", "SMART"), model) {
+information.criteria <- function(type = c("MARX", "MART", "SMART"), model) {
   n <- length(model$residuals)
-  if(model == "MARX") {
+  if(type == "MARX") {
     k <- length(model$coef.c) + length(model$coef.nc) + length(model$coef.exo) + length(model$coef.int) + 2
   } else {
     k <- length(model$coef.c1) + length(model$coef.c2) + length(model$coef.nc1) + length(model$coef.nc2) + length(model$coef.exo1) + length(model$coef.exo2) + 2
