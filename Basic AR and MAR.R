@@ -3,17 +3,21 @@ library(MASS)
 source("MARX_functions.R")
 source("MART.R")
 
-# Create an empty list to store outputs
-results_list <- list()
-
 # Loop over your values and capture the printed output
-for (i in 0:6) {
-  for (j in 0:6) {
-    output <- capture.output(
-      marx_loop <- marx(inflation_df_monthly$inflationSA, NULL, p_max = 20, sig_level = 0.1, p_C = i, p_NC = j)
-    )
-    # Save the captured output with a meaningful name
-    results_list[[paste0("p_C_", i, "_p_NC_", j)]] <- output
+p_C_max <- 12
+p_NC_max <- 12
+
+AIC <- matrix(NA, nrow = p_C_max, ncol = p_NC_max)
+BIC <- matrix(NA, nrow = p_C_max, ncol = p_NC_max)
+HQ <- matrix(NA, nrow = p_C_max, ncol = p_NC_max)
+
+for (i in 0:p_C_max) {
+  for (j in 0:p_NC_max) {
+    marx_loop <- marx.t(inflation_df_monthly$inflationSA, NULL, p_C = i, p_NC = j)
+    information <- information.criteria(type="MARX", marx_loop)
+    AIC[i,j] <- information$aic
+    BIC[i,j] <- information$bic
+    HQ[i,j] <- information$hq
   }
 }
 
