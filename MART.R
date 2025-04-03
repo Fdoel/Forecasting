@@ -1010,15 +1010,15 @@ SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
 #' @param Seed    (optional) Seed for random number generation. Default: 9999
 #' @keywords forecasting
 #' @return \item{y.for}{Vector containing forecasted values for y.}
-#' @author Sean Telg
+#' @author Sean Telg, Floris van den Doel
 #' @export
 #' @examples
 
 
 # Treshold verandert niet fundamenteel de simulatie van toekomstige errors, je moet alleen uitkijken dat dimensies enzo kloppen
-forecast.MART <- function(y,X,p_C,p_NC,c,X.for,h,M,N){
+forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402){
   
-  set.seed(9999)
+  set.seed(seed)
   if (missing(X) == TRUE){
     X = NULL
   }
@@ -1026,8 +1026,8 @@ forecast.MART <- function(y,X,p_C,p_NC,c,X.for,h,M,N){
   if (missing(N) == TRUE){
     N = 10000
   }
-
-  object <- mixed(y,X,p_C,p_NC) # Dit aanpassen naar MART
+  
+  model <- MART(y, X, p_C, p_NC, c, d)
   obs <- length(y)
   
   ## Check whether there are exogenous variables and whether truncation M is known
@@ -1066,51 +1066,20 @@ forecast.MART <- function(y,X,p_C,p_NC,c,X.for,h,M,N){
     }
   }
   
-  coef.caus <- c()
-  # Dit ff checken (dit klopt denk ik niet)
-  if (object$order[1] == 0){
-    r = 1
-    coef.caus <- object$coefficients[(r+1)]
-  }
-  else{
-    r = object$order[1]
-    coef.caus <- object$coefficients[2:(r+1)]
-  }
-  
-  coef.noncaus <- c()
-  if (object$order[2] == 0){
-    s = 1
-    coef.noncaus <- object$coefficients[(r+1+s)]
-  }
-  else{
-    s = object$order[2]
-    coef.noncaus <- object$coefficients[(r+2):(r+1+s)]
-  }
-  
-  coef.exo <- c()
-  if (object$order[3] == 0){
-    q = 1
-    coef.exo <- object$coefficients[(r+1+s+q)]
-  }
-  else{
-    q = object$order[3]
-    coef.exo <- object$coefficients[(r+1+s+1):(r+s+1+q)]
-  }
-  
   ## Simulate future epsilon and use forecasted X
   hve <- c()
   hve2 <- matrix(data=0, nrow=N,ncol=h)
   
   for (iter in 1:N){
     
-    eps.sim <- object$coefficients["scale",]*stats::rt(M,object$coefficients["df",])
-    
+    eps.sim <- model$scale*stats::rt(M,model$df)
     z2 <- c()
     for (i in 1:M){
       if(is.null(X.for) == TRUE){
         z2[i] <- eps.sim[i]
       }
       else{
+        # Dit op de een of andere manier omzetten naar threshold maar zie niet 123 hoe
         if(NCOL(X.for) > 1){
           z2[i] <- eps.sim[i] +  coef.exo %*% t(X.for[i,])
         }
@@ -1122,16 +1091,21 @@ forecast.MART <- function(y,X,p_C,p_NC,c,X.for,h,M,N){
     
     ## Compute filtered values u = phi(L)y and moving average values
     # split in phi1 en phi2 voor twee regimes.
-    phi <- c(1,coef.caus)
+    phi1 <- c(1,model$coef.c1)
+    phi2 <- c(1,model$coef.c2)
     
     u <- c()
     for (i in (r+1):obs){
-      # Hier de treshold inzetten
-      u[i] <- phi %*% y[i:(i-r)]
+      if(y[r+i-d] >c) {
+        u[i] <- phi1 %*% y[i:(i-r)]
+      } else {
+        u[i] <- phi2 %*% y[i:(i-r)]
+      }
     }
     w <- c(u[(obs-s+1):obs],z2)
-    
+    # Wat is C?
     C <- matrix(data=0, nrow=(M+s), ncol=(M+s))
+    # Dit moet ook naar threshold
     C[1,] <- compute.MA(coef.noncaus,(M+s-1))
     
     if (s > 1){
@@ -1181,4 +1155,21 @@ forecast.MART <- function(y,X,p_C,p_NC,c,X.for,h,M,N){
   }
   
   return(y.for)
+}
+
+# Function to make get the information criteria
+information.criterion <- function(type = c("MARX", "MART", "SMART"), model) {
+  n <- length(model$residuals)
+  if(model == "MARX") {
+    k <- length(model$coef.c) + length(model$coef.nc) + length(model$coef.exo) + length(model$coef.int) + 2
+  } else {
+    k <- length(model$coef.c1) + length(model$coef.c2) + length(model$coef.nc1) + length(model$coef.nc2) + length(model$coef.exo1) + length(model$coef.exo2) + 2
+  }
+  df <- model$df
+  sig <- model$scale
+  loglikelihood <- -(n*lgamma((df+1)/2) - n*log(sqrt(df*pi*sig^2)) - n*lgamma(df/2) - ((df+1)/2)*log(1+(model$residuals/sig)^2/df) %*% matlab::ones(n,1))
+  aic <- -2*loglikelihood + 2*k
+  bic <- -2*loglikelihood + log(n)*k
+  hq <- -2*loglikelihood + 2*log(log(n))*k
+  return(list(aic = aic, bic = bic, hq = hq, loglikelihood = loglikelihood, k = k, n = n, df = df, sig = sig))
 }
