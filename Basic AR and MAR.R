@@ -1,6 +1,7 @@
 # Load required library
 library(MASS)
 source("MARX_functions.R")
+source("MART.R")
 
 # Create an empty list to store outputs
 results_list <- list()
