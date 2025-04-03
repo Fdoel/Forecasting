@@ -309,7 +309,7 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c,d=1){
 MART <- function(y, x, p_C, p_NC, c, d=1) {
   p_CT <- 2*p_C
   p_NCT <- 2*p_NC
-  nargin <- length(as.list(match.call())) - 2
+  nargin <- length(as.list(match.call())) - 3
   if (is.null(x)){
     x <- "not"
   }
@@ -332,7 +332,7 @@ MART <- function(y, x, p_C, p_NC, c, d=1) {
   }
   
   
-  if (nargin < 5){
+  if (nargin < 7){
     y    <- fBasics::vec(y)
     z    <- rev(y)
     # Hier specificeer je startwaardes voor de parameters voor optimalisatie
@@ -808,7 +808,7 @@ ll.SMART.Z <- function(params,y,x,p_C,p_NC,c,gamma,d=1) {
 SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
   p_CT <- 2*p_C
   p_NCT <- 2*p_NC
-  nargin <- length(as.list(match.call())) - 2
+  nargin <- length(as.list(match.call())) - 3
   if (is.null(x)){
     x <- "not"
   }
@@ -831,7 +831,7 @@ SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
   }
   
   
-  if (nargin < 6){
+  if (nargin < 7){
     y    <- fBasics::vec(y)
     z    <- rev(y)
     # Hier specificeer je startwaardes voor de parameters voor optimalisatie
@@ -1163,13 +1163,13 @@ information.criteria <- function(type = c("MARX", "MART", "SMART"), model) {
   if(type == "MARX") {
     k <- length(model$coef.c) + length(model$coef.nc) + length(model$coef.exo) + length(model$coef.int) + 2
   } else {
-    k <- length(model$coef.c1) + length(model$coef.c2) + length(model$coef.nc1) + length(model$coef.nc2) + length(model$coef.exo1) + length(model$coef.exo2) + 2
+    k <- 2*length(model$coef.c1) + 2*length(model$coef.nc1) + 2*length(model$coef.exo1) + 2
   }
   df <- model$df
   sig <- model$scale
-  loglikelihood <- -(n*lgamma((df+1)/2) - n*log(sqrt(df*pi*sig^2)) - n*lgamma(df/2) - ((df+1)/2)*log(1+(model$residuals/sig)^2/df) %*% matlab::ones(n,1))
-  aic <- -2*loglikelihood + 2*k
-  bic <- -2*loglikelihood + log(n)*k
-  hq <- -2*loglikelihood + 2*log(log(n))*k
+  loglikelihood <- -(n*lgamma((df+1)/2) - n*log(sqrt(df*pi*sig^2)) - n*lgamma(df/2) - ((df+1)/2)*(log(1+(model$residuals/sig)^2/df) %*% matlab::ones(n,1)))
+  aic <- (-2*loglikelihood + 2*k)/n
+  bic <- (-2*loglikelihood + log(n)*k)/n
+  hq <- (-2*loglikelihood + 2*log(log(n))*k)/n
   return(list(aic = aic, bic = bic, hq = hq, loglikelihood = loglikelihood, k = k, n = n, df = df, sig = sig))
 }
