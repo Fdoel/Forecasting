@@ -12,6 +12,7 @@ BIC <- matrix(NA, nrow = p_C_max, ncol = p_NC_max)
 HQ <- matrix(NA, nrow = p_C_max, ncol = p_NC_max)
 
 for (i in 0:p_C_max) {
+  
   for (j in 0:p_NC_max) {
     marx_loop <- marx.t(inflation_df_monthly$inflationNonSA, NULL, p_C = i, p_NC = j)
     information <- information.criteria(type="MARX", marx_loop)
@@ -20,4 +21,8 @@ for (i in 0:p_C_max) {
     HQ[i,j] <- information$hq
   }
 }
+
+fit <- ar(inflation_df_monthly$inflationSA, order.max=20)
+
+
 
