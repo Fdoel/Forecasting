@@ -2,50 +2,17 @@
 library(MASS)
 source("MARX_functions.R")
 
-# Loop over your values and capture the printed output
-p_C_max <- 5
-p_NC_max <- 5
 
-AIC <- matrix(NA, nrow = p_C_max, ncol = p_NC_max)
-BIC <- matrix(NA, nrow = p_C_max, ncol = p_NC_max)
-HQ <- matrix(NA, nrow = p_C_max, ncol = p_NC_max)
+#gwn interface volgen
+marx(inflation_df_monthly$inflationNonSA, NULL, p_max=6, sig_level = 0.1)
 
-for (i in 0:p_C_max) {
-  
-  for (j in 0:p_NC_max) {
-    marx_loop <- marx.t(inflation_df_monthly$inflationNonSA, NULL, p_C = i, p_NC = j)
-    
-    information <- information_criteria_MARX(marx_loop, inflation_df_monthly$inflationSA, NULL)
-    AIC[i,j] <- information[1]
-    BIC[i,j] <- information[2]
-    HQ[i,j] <- information[3]
-  }
-}
+marx_test1 <- mixed(inflation_df_monthly$inflationNonSA, NULL, p_C=0, p_NC=4)
+marx_test2 <- mixed(inflation_df_monthly$inflationNonSA, NULL, p_C=1, p_NC=3)
+marx_test3 <- mixed(inflation_df_monthly$inflationNonSA, NULL, p_C=2, p_NC=2)
+marx_test4 <- mixed(inflation_df_monthly$inflationNonSA, NULL, p_C=3, p_NC=1)
+marx_test5 <- mixed(inflation_df_monthly$inflationNonSA, NULL, p_C=4, p_NC=0)
 
-information_criteria_MARX <- function(marx_model, y, x) {
-  mse <- sum(marx_model$residuals^2)
-  n <- length(marx_model$residuals)
-  
-  if (length(x) > 1){
-    numcol <- NCOL(x)
-  }
-  else{
-    numcol = 0
-  }
-  
-  p <- length(marx_model$coef.c) + length(marx_model$coef.nc)
-  
-  aic <- -2*mse/n + (2/n)*(p+1+numcol)
-  bic <- -2*mse/n + ((log(n))/n)*(p+1+numcol)
-  hq <- -2*mse/n + ((2*log(log(n)))/n)*(p+1+numcol)
-  return(c(aic = aic, bic = bic, hq = hq))
-}
-
-marx(inflation_df_monthly$inflationNonSA, NULL, p_max=6, sig_level=0.1)
-
-
-
-
+forecast <- forecast.marx(y=inflation_df_monthly$inflationNonSA, X=NULL, p_C=1, p_NC=3, h=1, M=50, N=10000)$Y.for
 
 
 
