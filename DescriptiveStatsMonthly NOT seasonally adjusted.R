@@ -150,6 +150,17 @@ seastests::seasdum(inflation_df$CPInonSA, freq = 12)
 seastests::kw(inflation_df$CPIAUCSL, freq = 12)
 seastests::seasdum(inflation_df$CPIAUCSL, freq = 12)
 
+#add inflation with regard to year previously
+inflation_df <- inflation_df %>%
+  arrange(sasdate) %>%
+  mutate(
+    # Year-over-year seasonal adjusted inflation and previous year's seasonal adjusted CPI
+    inflation_yoy_SA = log(CPIAUCSL / lag(CPIAUCSL, 12)) * 100,
+    
+    # Year-over-year non-seasonally adjusted inflation and previous year's non-seasonally adjusted CPI
+    inflation_yoy_nonSA = log(CPInonSA / lag(CPInonSA, 12)) * 100,
+  )
+
 # Rename the df for use in other scripts
 inflation_df_monthly <- inflation_df
 save(inflation_df_monthly, file = "inflation_df_monthly.RData")
