@@ -14,22 +14,23 @@ ar_process <- function(phi_1, phi_2, T, c = 0.25) {
   v <- rep(0, T + r - 1)  
   for (t in (r + 1):T) {
     c <- as.numeric(c)
-    if(v[t-d] > c) {
+    if(v[t-d] > c) { # Hier wel min d en niet plus d
       v[t] <- phi_1 * v[t - 1] + epsilon_t[t]
     }
     else{
       v[t] <- phi_2 * v[t - 1] + epsilon_t[t]
     }
   }
-  return(v) # [-(1:r)] # Remove the first r elements and return the rest
+  return(v)
 }
 
 # STEP 2: series from non causal component is generated
-nc_process <- function(psi_1, psi_2, v, T, c = 0.0) {
+nc_process <- function(psi_1, psi_2, v, T, c = 0.25) {
   d <- 1
   y <- rep(0, T + s - 1)  
   for (t in (T - s):1) {
-      if (v[t + d] > c) {
+    # Ik vergelijk nu threshold c met gegenereerde data voor v, moet dat bij y? Of moet de threshold c met iets anders vergeleken worden?
+      if (v[t + d] > c) { # plus d en niet min d
         y[t] <- psi_1 * y[t + 1] + v[t]
       }
       else{
@@ -45,7 +46,7 @@ estimate_parameters <- function(y,v) {
 }
 
 # Monte Carlo simulation
-monte_carlo_simulation <- function(T, phi_1, phi_2, psi_1, psi_2, num_simulations = 10000, c = 0.0) {  
+monte_carlo_simulation <- function(T, phi_1, phi_2, psi_1, psi_2, num_simulations = 10000, c = 0.25) {  
   estimates <- matrix(NA, nrow = num_simulations, ncol = 2)  # Storage for estimates  
   models <- vector("list", num_simulations)  # Initialize models as a list  
 
@@ -82,7 +83,7 @@ for (sim in 1:num_simulations) {
      
     # Step 5: Perform MART estimation
     estimation <- tryCatch({
-      MART(y_t, NULL, 1, 1, 0.0)
+      MART(y_t, NULL, 1, 1, 0.25)
     }, error = function(e) {
       message(paste("Error in MART at simulation", sim, ":", e$message))
       return(NULL)  # return NULL to indicate failure
