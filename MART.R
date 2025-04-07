@@ -1157,19 +1157,22 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402){
   return(y.for)
 }
 
-# Function to make get the information criteria
 information.criteria <- function(type = c("MARX", "MART", "SMART"), model) {
   n <- length(model$residuals)
-  if(type == "MARX") {
-    k <- length(model$coef.c) + length(model$coef.nc) + length(model$coef.exo) + length(model$coef.int) + 2
+  
+  k <- if (type == "MARX") {
+    sum(lengths(list(model$coef.c, model$coef.nc, model$coef.exo, model$coef.int))) + 2
   } else {
-    k <- 2*length(model$coef.c1) + 2*length(model$coef.nc1) + 2*length(model$coef.exo1) + 2
+    2 * sum(lengths(list(model$coef.c1, model$coef.nc1, model$coef.exo1))) + 2
   }
+  
   df <- model$df
   sig <- model$scale
-  loglikelihood <- -(n*lgamma((df+1)/2) - n*log(sqrt(df*pi*sig^2)) - n*lgamma(df/2) - ((df+1)/2)*(log(1+(model$residuals/sig)^2/df) %*% matlab::ones(n,1)))
-  aic <- (-2*loglikelihood + 2*k)/n
-  bic <- (-2*loglikelihood + log(n)*k)/n
-  hq <- (-2*loglikelihood + 2*log(log(n))*k)/n
+  loglikelihood <- (n*lgamma((df+1)/2) - n*log(sqrt(df*pi*sig^2)) - n*lgamma(df/2) - ((df+1)/2)*sum(log(1+(model$residuals/sig)^2/df)))
+  
+  aic <- (-2 * loglikelihood + 2 * k) / n
+  bic <- (-2 * loglikelihood + log(n) * k) / n
+  hq  <- (-2 * loglikelihood + 2 * log(log(n)) * k) / n
+  
   return(list(aic = aic, bic = bic, hq = hq, loglikelihood = loglikelihood, k = k, n = n, df = df, sig = sig))
 }
