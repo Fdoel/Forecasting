@@ -1,0 +1,313 @@
+# MART
+
+#' @title The model selection for pseudo-ARX function
+#' @description This function allows you to calculate AIC, BIC, HQ for pseudo-ARX models.
+#' @param y Data vector of time series observations.
+#' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' @param p_max Maximum number of autoregressive terms to be included.
+#' @keywords selection
+#' @keywords pseudo-causal
+#' @return \item{bic}{Vector containing values BIC for p=0 up to p_max.}
+#' @return \item{aic}{Vector containing values AIC for p=0 up to p_max.}
+#' @return \item{hq}{vector containing values HQ for p=0 up to p_max.}
+#' @author Sean Telg
+#' @export
+#' @examples
+#' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
+#' selection.lag(data$y,data$x,8)
+
+selection.lag_t <- function(y,x,p_max,c,d=1){
+  c <- c
+  d <- 1
+  if (is.null(x)){
+    x <- "not"
+  }
+  
+  bic_results <- bic(y,x,p_max,c,d=1)
+  
+  bic_vec <- bic_results[[2]]
+  colnames(bic_vec) <- paste('p =', 0:p_max)
+  
+  cat('Order Selection Criteria Pseudo Causal Model:', "\n")
+  cat(' ', "\n")
+  cat('BAYESIAN INFORMATION CRITERION', "\n")
+  print(bic_vec)
+  cat(' ', "\n")
+  cat('Minimum value attained at p = ')
+  cat(which.min(bic_vec) -1)
+  cat(' ',  "\n")
+  cat(' ',  "\n")
+  
+  return(list(bic = bic_vec))
+}
+
+#' @title The Bayesian/Schwarz information criterion (BIC) function
+#' @description This function allows you to calculate the Bayesian/Schwarz information criteria (BIC) for ARX models.
+#' @param y Data vector of time series observations.
+#' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' @param p_max Maximum number of autoregressive terms to be included.
+#' @keywords selection
+#' @return \item{p}{Lag order chosen by BIC.}
+#' @return \item{values}{Vector containing values BIc for p = 0 up to p_max.}
+#' @author Sean Telg
+#' @export
+#' @examples
+#' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
+#' bic(data$y, data$x,8)
+
+bic <- function(y,x,p_max,c,d=1){
+  
+  if (is.null(x)){
+    x <- "not"
+  }
+  
+  y <- fBasics::vec(y)
+  # y <- y - mean(y)
+  # n <- length(y) - p_max
+  
+  if (length(x) > 1){
+    numcol <- NCOL(x)
+  }
+  else{
+    numcol = 0
+  }
+  
+  crit <- matrix(data=NA, nrow=(p_max+1), ncol=1)
+  
+  for (p in 0:p_max){
+    
+    arx.ls_T_results <- arx.ls_T(fBasics::vec(y),x,p,c,d=1)
+    n <- length(arx.ls_T_results[[5]])
+    Cov <- arx.ls_T_results[[6]]
+    crit[(p+1)] <- -2*Cov/n + ((log(n))/n)*(p+1+numcol)
+  }
+  
+  p_bic <- which.min(crit) - 1
+  
+  crit <- t(crit)
+  colnames(crit) <- paste('p =', 0:p_max)
+  
+  return(list(p = p_bic, values= crit))
+}
+
+
+#' @title The ARX estimation by OLS function
+#' @description This function allows you to estimate ARX models by ordinary least squares (OLS).
+#' @param y Data vector of time series observations.
+#' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' @param p Number of autoregressive terms to be included.
+#' @keywords estimation
+#' @keywords pseudo-causal
+#' @return \item{coefficients}{Vector of estimated coefficients.}
+#' @return \item{coef.auto}{Vector of estimated autoregressive parameters.}
+#' @return \item{coef.exo}{Vector of estimated exogenous parameters.}
+#' @return \item{mse}{Mean squared error.}
+#' @return \item{residuals}{Residuals.}
+#' @return \item{loglikelihood}{Value of the loglikelihood.}
+#' @return \item{fitted.values}{Fitted values.}
+#' @return \item{df}{Degrees of freedom.}
+#' @return \item{vcov}{Variance-covariance matrix of residuals.}
+#' @author Sean Telg
+#' @export
+#' @examples
+#' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
+#' arx.ls(data$y,data$x,2)
+
+arx.ls_T <- function(y,x,p,c,d=1){
+  c <- c
+  d <- 1
+  if (is.null(x)){
+    x <- "not"
+  }
+  
+  n <- length(y) - p
+  
+  Y <- y[(p+1):length(y)]
+  int <- rep(1,(length(y)-p))
+  ZT <- regressor.matrix_T(y,x,p,c,d)
+  ZT <- as.matrix(cbind(int,ZT))
+  
+  df <- nrow(ZT) - NCOL(ZT)
+  
+  B <- solve(t(ZT) %*% ZT) %*% (t(ZT) %*% Y)
+  
+  if (p > 0){
+    if (length(x) > 1){
+      rownames(B) <- c('int', paste('lag', 1:(2*p)), paste('exo', 1:(2*NCOL(x))))
+    }
+    else{
+      rownames(B) <- c('int', paste('lag', 1:(2*p)))
+    }
+  }
+  else{
+    if (length(x) > 1){
+      rownames(B) <- c('int', paste('exo', 1:(2*NCOL(x))))
+    }
+    else{
+      rownames(B) <- 'int'
+    }
+  }
+  
+  FV <- ZT %*% B
+  U <- Y - FV
+  
+  sig <- (t(U) %*% U)
+  sig <- as.numeric(sig)
+  
+  Cov <- (1/n)*sig
+  Cov <- as.numeric(Cov)
+  
+  sigma2 <- sum((Y - ZT %*% B)^2)/df
+  qz <- qr(ZT)
+  vcov <- sigma2*chol2inv(qz$qr)
+  colnames(vcov) <- rownames(vcov) <- colnames(ZT)
+  
+  Loglik <- -(n/2)*(1 + log(2*pi)+log(Cov))
+  
+  if (p == 0){
+    B_auto <- 0
+  }
+  else{
+    B_auto <- B[2:(2*p+1)]
+  }
+  
+  if (length(x) > 1){
+    B_x <- B[(2*p+2):length(B)]
+  }
+  else{
+    B_x <- 0
+  }
+  
+  return(list(coefficients = B, coef.auto = B_auto, coef.exo = B_x, mse = Cov, residuals = U, loglikelihood = Loglik, fitted.values = FV, df = df,vcov=vcov))
+}
+
+
+#' @title The lag-lead model selection for MARX function
+#' @description This function allows you to determine the MARX model (for p = r + s) that maximizes the t-log-likelihood.
+#' @param y Data vector of time series observations.
+#' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' @param p_pseudo Number of autoregressive terms to be included in the pseudo-causal model.
+#' @keywords selection
+#' @keywords causal-noncausal
+#' @return \item{p.C}{The number of lags selected.}
+#' @return \item{p.NC}{The number of leads selected.}
+#' @return \item{loglikelihood}{The value of the loglikelihood for all models with p = r + s.}
+#' @author Sean Telg
+#' @export
+#' @examples
+#' data <- sim.marx(c('t',3,1), c('t',3,1),100,0.5,0.4,0.3)
+#' selection.lag.lead(data$y,data$x,2)
+
+selection.lag.lead_T <- function(y,x,p_pseudo,c,d=1){
+  
+  if (is.null(x)){
+    x <- "not"
+  }
+  
+  P_C <- as.numeric(seq(length=(p_pseudo+1), from=0, by=1))
+  P_C <- as.numeric(fBasics::vec(P_C))
+  P_NC <- as.numeric(rev(P_C))
+  P_NC <- as.numeric(fBasics::vec(P_NC))
+  
+  n <- length(y) - p_pseudo
+  
+  loglik <- c()
+  
+  for (i in 1:(p_pseudo+1)){
+    MART_results <- MART(y,x,P_C[i],P_NC[i],c,d=1);
+    sig <- as.numeric(MART_results[[8]])
+    df  <- as.numeric(MART_results[[9]])
+    E   <- as.numeric(MART_results[[10]])
+    
+    loglik[i] <- (n*lgamma((df+1)/2) - n*log(sqrt(df*pi*sig^2)) - n*lgamma(df/2) - ((df+1)/2)*log(1+(E/sig)^2/df) %*% matlab::ones(n,1))
+  }
+  
+  maxloglik <- which.max(loglik)
+  
+  P = as.numeric(cbind(P_C,P_NC))
+  
+  P = as.numeric(fBasics::vec(P[maxloglik,]))
+  
+  p_C  <- P[1]
+  p_NC <- P[2]
+  
+  return(list(p.C = p_C, p.NC = p_NC,loglikelihood = rev(loglik)))
+}
+
+
+selection.lag_t(inflation_df_monthly$inflationNonSA,NULL,12, median(inflation_df_monthly$inflationNonSA),d=1)
+p_pseudo <- readline(prompt = "Choose lag order for pseudo causal model: ")
+p_pseudo <- as.numeric(p_pseudo)
+
+pseudo <- arx.ls_T(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),d=1)
+Cov_pseudo <- pseudo[[4]]
+U_pseudo <- pseudo[[5]]
+test_cdf_pseudo <- cbind(U_pseudo, stats::pnorm(U_pseudo,0,Cov_pseudo))
+
+kstest_results <- stats::ks.test(test_cdf_pseudo[,1],"pnorm",0,Cov_pseudo)
+jarquebera     <- tseries::jarque.bera.test(U_pseudo)
+
+if (kstest_results$p.value < 0.05){
+  hh_pseudo = 1 			## reject
+}else{
+  hh_pseudo = 0 			## not reject
+}
+
+
+if (jarquebera$p.value < 0.05){
+  jarque_check = 1
+}else{
+  jarque_check = 0
+}
+
+
+if (hh_pseudo == 0){
+  
+  cat(' ', "\n")
+  cat(' ', "\n")
+  cat('THE KS-TEST FAILS TO REJECT THE NULL OF NORMALLY DISTRIBUTED RESIDUALS OF THE PURELY CAUSAL ARX MODEL', "\n")
+  cat('p-value:')
+  cat(kstest_results$p.value, "\n")
+  cat('WARNING: MIxED ARX MODEL MIGHT NOT BE IDENTIFIABLE!', "\n")
+  cat(' ', "\n")
+  cat(' ', "\n")
+}else{
+  
+  cat(' ', "\n")
+  cat(' ', "\n")
+  cat('THE KS-TEST REJECTS THE NULL OF NORMALLY DISTRIBUTED RESIDUALS OF THE PURELY CAUSAL ARX MODEL', "\n")
+  cat('p-value:')
+  cat(kstest_results$p.value, "\n")
+  cat(' ', "\n")
+  cat(' ', "\n")
+}
+
+
+if (jarque_check == 0){
+  
+  cat(' ', "\n")
+  cat(' ', "\n")
+  cat('THE JB-TEST FAILS TO REJECT THE NULL OF NORMALLY DISTRIBUTED RESIDUALS OF THE PURELY CAUSAL ARX MODEL', "\n")
+  cat('p-value:')
+  cat(jarquebera$p.value, "\n")
+  cat('WARNING: MIxED ARX MODEL MIGHT NOT BE IDENTIFIABLE!', "\n")
+  cat(' ', "\n")
+  cat(' ', "\n")
+}else{
+  
+  cat(' ', "\n")
+  cat(' ', "\n")
+  cat('THE JB-TEST REJECTS THE NULL OF NORMALLY DISTRIBUTED RESIDUALS OF THE PURELY CAUSAL ARX MODEL', "\n")
+  cat('p-value:')
+  cat(jarquebera$p.value, "\n")
+  cat(' ', "\n")
+  cat(' ', "\n")
+}
+
+stats::qqnorm(U_pseudo, main="Normal Probability Plot of Residuals")
+stats::qqline(U_pseudo)
+
+selection.lag.lead_results <- selection.lag.lead_T(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),d=1)
+p_C <- selection.lag.lead_results[[1]]
+p_NC <- selection.lag.lead_results[[2]]
+
