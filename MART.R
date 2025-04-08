@@ -997,6 +997,36 @@ SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
   return(list(coef.c1 = B_C[1:p_C], coef.c2 = B_C[(p_C+1):(p_CT)], coef.nc1 = B_NC[1:p_NC], coef.nc2 = B_NC[(p_NC+1):(p_NCT)], coef.exo1 = B_x[1:(length(B_x)/2)], coef.exo2 = B_x[(length(B_x)/2 +1): length(B_x)], coef.int = IC, scale = sig,df = df,residuals = E, se.dist = se.dist))
 }
 
+#' @title Coefficients of the moving average representation function
+#' @description   This function allows you to invert a polynomial (either the causal or the noncausal one) and output the corresponding coefficients of the moving average representation.
+#' @param pol     Coefficient vector. If polynomial is 1 - ax - bx^2, coefficient vector is c(a, b).
+#' @param M       Truncation value M (how many MA coefficients should be computed?).
+#' @keywords stability, stationarity
+#' @return \item{psi}{Vector containing coefficients of the moving average representation.}
+#' @author Sean Telg
+#' @export
+#' @examples
+#' pol <- c(0.3,0.4)
+#' psi <- companion.form(pol)
+
+compute.MA <- function(pol,M){
+  r <- length(pol)
+  str <- c(rep(0,(r-1)),1)
+  psi <- c(1)
+  
+  for (j in 1:M){
+    psi[j+1] <- t(pol) %*% rev(str)
+    
+    if (r > 1){
+      str <- c(str[2:length(str)],psi[j+1])
+    }
+    else{
+      str <- psi[j+1]
+    }
+  }
+  return(psi)
+}
+
 #' @title Forecasting function for the MART model
 #' @description   This function allows you to forecast with the mixed causal-noncausal model with possibly exogenous regressors.
 #' @param y       Data vector y.
@@ -1016,7 +1046,7 @@ SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
 
 
 # Treshold verandert niet fundamenteel de simulatie van toekomstige errors, je moet alleen uitkijken dat dimensies enzo kloppen
-forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402){
+forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
   
   set.seed(seed)
   if (missing(X) == TRUE){
@@ -1066,9 +1096,13 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402){
     }
   }
   
+  r <- length(model$coef.c1)
+  s <- length(model$coef.nc1)
   ## Simulate future epsilon and use forecasted X
-  hve <- c()
-  hve2 <- matrix(data=0, nrow=N,ncol=h)
+  hve_reg1 <- c()
+  hve_reg2 <- c()
+  hve21 <- matrix(data=0, nrow=N,ncol=h)
+  hve22 <- matrix(data=0, nrow=N,ncol=h)
   
   for (iter in 1:N){
     
@@ -1103,54 +1137,75 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402){
       }
     }
     w <- c(u[(obs-s+1):obs],z2)
-    # Wat is C?
-    C <- matrix(data=0, nrow=(M+s), ncol=(M+s))
-    # Dit moet ook naar threshold
-    C[1,] <- compute.MA(coef.noncaus,(M+s-1))
+    # C is a function of the non-causal polynomial. So we need to split it up for now
+    C1 <- matrix(data=0, nrow=(M+s), ncol=(M+s))
+    C2 <- matrix(data=0, nrow=(M+s), ncol=(M+s))
+    C1[1,] <- compute.MA(model$coef.nc1,(M+s-1))
+    C2[1,] <- compute.MA(model$coef.nc2,(M+s-1))
     
     if (s > 1){
       for (i in 2:s){
-        C[i,] <- c(0, C[(i-1),1:(length(C[(i-1),])-1)])
+        C1[i,] <- c(0, C1[(i-1),1:(length(C1[(i-1),])-1)])
+        C2[i,] <- c(0, C2[(i-1),1:(length(C2[(i-1),])-1)])
       }
     }
     
     for (i in (s+1):(M+s)){
-      C[i,] <- c(rep(0,(i-1)),1,rep(0,(M+s-i)))
+      C1[i,] <- c(rep(0,(i-1)),1,rep(0,(M+s-i)))
+      C2[i,] <- c(rep(0,(i-1)),1,rep(0,(M+s-i)))
     }
     
-    D = solve(C)
+    D1 = solve(C1)
+    D2 = solve(C2)
     
-    e <- D %*% w
+    e1 <- D1 %*% w
+    e2 <- D2 %*% w
     
     h1 <- c()
+    h2 <- c()
     
     for (i in 1:s){
-      h1[i] <- metRology::dt.scaled(e[i], df=object$coefficients["df",], sd=object$coefficients["scale",])
+      h1[i] <- metRology::dt.scaled(e1[i], df=model$df, sd=model$scale)
+      h2[i] <- metRology::dt.scaled(e2[i], df=model$df, sd=model$scale)
     }
     
-    hve[iter] = prod(h1)
+    hve_reg1[iter] = prod(h1)
+    hve_reg2[iter] = prod(h2)
     
     for (j in 1:h){
-      mov.av <-  C[1,1:(M-j+1)] %*% z2[j:M]
-      hve2[iter,j] <- mov.av * hve[iter]
+      mov.av1 <-  C1[1,1:(M-j+1)] %*% z2[j:M]
+      mov.av2 <- C2[1,1:(M-j+1)] %*% z2[j:M]
+      
+      hve21[iter,j] <- mov.av1 * hve_reg1[iter]
+      hve22[iter,j] <- mov.av2 * hve_reg2[iter]
       
     }
   }
   
   y.star <- y[(obs-r+1):obs]
   y.for <- c()
-  exp <- c()
+  exp1 <- c()
+  exp2 <- c()
   
   for (j in 1:h){
-    exp[j] = ((1/N)*sum(hve2[,j]))/((1/N)*sum(hve))
+    exp1[j] = ((1/N)*sum(hve21[,j]))/((1/N)*sum(hve_reg1))
+    exp2[j] = ((1/N)*sum(hve22[,j]))/((1/N)*sum(hve_reg2))
     
-    if(length(coef.caus) == 1){
-      y.for[j] <-  object$coefficients[1]/(1-sum(coef.noncaus)) + coef.caus * y.star + exp[j]
+    if(y[obs - d + j] > c) {
+      p <- 0.5
+      if(length(model$coef.c1) == 1){
+        y.for[j] <- model$coef.c1 * y.star + p *((object$coefficients[1]/(1-sum(coef.nc1))  + exp1[j])) + (1-p)*((object$coefficients[1]/(1-sum(model$coef.nc2))  + exp2[j]))
+      } else{
+        y.for[j] <-  t(model$coef.c1) %*% y.star + p *((object$coefficients[1]/(1-sum(coef.nc1))  + exp1[j])) + (1-p)*((object$coefficients[1]/(1-sum(model$coef.nc2))  + exp2[j]))
+      }
+    } else {
+      p <- 0.5
+      if(length(model$coef.c1) == 1){
+        y.for[j] <- model$coef.c2 * y.star + p *((object$coefficients[1]/(1-sum(coef.nc1))  + exp1[j])) + (1-p)*((object$coefficients[1]/(1-sum(model$coef.nc2))  + exp2[j]))
+      } else{
+        y.for[j] <-  t(model$coef.c2) %*% y.star + p *((object$coefficients[1]/(1-sum(coef.nc1))  + exp1[j])) + (1-p)*((object$coefficients[1]/(1-sum(model$coef.nc2))  + exp2[j]))
+      }
     }
-    else{
-      y.for[j] <-  object$coefficients[1]/(1-sum(coef.noncaus)) + t(coef.caus) %*% y.star + exp[j]
-    }
-    
     y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
   }
   
