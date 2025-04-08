@@ -1,6 +1,6 @@
 library(MASS)
 library(parallel)
-
+library(pbmcapply)
 source("MARX_functions.R")
 source("MART.R")
 
@@ -9,7 +9,6 @@ load("inflation_df_monthly.RData")
 p_C_max <- 12
 p_NC_max <- 12
 
-# Number of cores
 if (.Platform$OS.type == "windows") {
   n_cores <- 1
 } else {
@@ -17,13 +16,10 @@ if (.Platform$OS.type == "windows") {
   RNGkind("L'Ecuyer-CMRG")
 }
 
-# Fixed threshold
 threshold <- 0.29
 
-# Create grid of (i, j) combinations
 param_grid <- expand.grid(i = 0:p_C_max, j = 0:p_NC_max)
 
-# Define function to run MART and extract information
 run_model_info <- function(params) {
   i <- params$i
   j <- params$j
@@ -39,8 +35,7 @@ run_model_info <- function(params) {
                     n = info$n))
 }
 
-# Run in parallel
-info_results <- mclapply(
+info_results <- pbmclapply(
   1:nrow(param_grid),
   function(idx) run_model_info(param_grid[idx, ]),
   mc.cores = n_cores

@@ -1065,21 +1065,17 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
   if (missing(X.for) == TRUE && missing(M) == TRUE){
     X.for = NULL
     M = 50
-  }
-  else if(missing(X.for) == TRUE && missing(M) == FALSE){
+  } else if(missing(X.for) == TRUE && missing(M) == FALSE){
     X.for = NULL
     M = M
-  }
-  else if(missing(X.for) == FALSE && missing(M) == TRUE){
+  } else if(missing(X.for) == FALSE && missing(M) == TRUE){
     if (NCOL(X.for) == 1){
       if(is.null(X.for) == TRUE){
         M = 50
-      }
-      else{
+      } else{
         M = length(X.for)
       }
-    }
-    else{
+    } else{
       M = length(X.for[,1])
     }
   } else if(missing(X.for) == FALSE && missing(M) == FALSE){
@@ -1130,7 +1126,7 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
     
     u <- c()
     for (i in (r+1):obs){
-      if(y[r+i-d] >c) {
+      if(y[i-d] >c) {
         u[i] <- phi1 %*% y[i:(i-r)]
       } else {
         u[i] <- phi2 %*% y[i:(i-r)]
@@ -1191,19 +1187,19 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
     exp1[j] = ((1/N)*sum(hve21[,j]))/((1/N)*sum(hve_reg1))
     exp2[j] = ((1/N)*sum(hve22[,j]))/((1/N)*sum(hve_reg2))
     
-    if(y[obs - d + j] > c) {
-      p <- 0.5
+    if(y[(obs - d + j)] > c) {
+      p <- 0.8
       if(length(model$coef.c1) == 1){
-        y.for[j] <- model$coef.c1 * y.star + p *((object$coefficients[1]/(1-sum(coef.nc1))  + exp1[j])) + (1-p)*((object$coefficients[1]/(1-sum(model$coef.nc2))  + exp2[j]))
+        y.for[j] <- model$coef.c1 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
       } else{
-        y.for[j] <-  t(model$coef.c1) %*% y.star + p *((object$coefficients[1]/(1-sum(coef.nc1))  + exp1[j])) + (1-p)*((object$coefficients[1]/(1-sum(model$coef.nc2))  + exp2[j]))
+        y.for[j] <-  t(model$coef.c1) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
       }
     } else {
-      p <- 0.5
+      p <- 0.2
       if(length(model$coef.c1) == 1){
-        y.for[j] <- model$coef.c2 * y.star + p *((object$coefficients[1]/(1-sum(coef.nc1))  + exp1[j])) + (1-p)*((object$coefficients[1]/(1-sum(model$coef.nc2))  + exp2[j]))
+        y.for[j] <- model$coef.c2 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
       } else{
-        y.for[j] <-  t(model$coef.c2) %*% y.star + p *((object$coefficients[1]/(1-sum(coef.nc1))  + exp1[j])) + (1-p)*((object$coefficients[1]/(1-sum(model$coef.nc2))  + exp2[j]))
+        y.for[j] <-  t(model$coef.c2) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
       }
     }
     y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
