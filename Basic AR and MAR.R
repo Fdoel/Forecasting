@@ -5,26 +5,31 @@ source("MART.R")
 library(forecast)
 
 # Loop over your values and capture the printed output
-p_C_max <- 12
-p_NC_max <- 12
-
-LL <- matrix(NA, nrow = p_C_max + 1, ncol = p_NC_max + 1)
-AIC <- matrix(NA, nrow = p_C_max + 1, ncol = p_NC_max + 1)
-BIC <- matrix(NA, nrow = p_C_max + 1, ncol = p_NC_max + 1)
-HQ <- matrix(NA, nrow = p_C_max + 1, ncol = p_NC_max + 1)
-N <- matrix(NA, nrow = p_C_max + 1, ncol = p_NC_max + 1)
-
-for (i in 0:p_C_max) {
-  for (j in 0:p_NC_max) {
-    marx_loop <- marx.t(inflation_df_monthly$inflationNonSA, NULL, p_C = i, p_NC = j)
-    information <- information.criteria(type="MARX", marx_loop)
-    LL[(i+1),(j+1)] <- information$loglikelihood
-    AIC[(i+1),(j+1)] <- information$aic
-    BIC[(i+1),(j+1)] <- information$bic
-    HQ[(i+1),(j+1)] <- information$hq
-    N[(i+1),(j+1)] <- information$n
+if(FALSE) {
+  marx(inflation_df_monthly$inflationNonSA, NULL, p_max = 18, sig_level = 0.1)
+  
+  p_C_max <- 12
+  p_NC_max <- 12
+  
+  LL <- matrix(NA, nrow = p_C_max + 1, ncol = p_NC_max + 1)
+  AIC <- matrix(NA, nrow = p_C_max + 1, ncol = p_NC_max + 1)
+  BIC <- matrix(NA, nrow = p_C_max + 1, ncol = p_NC_max + 1)
+  HQ <- matrix(NA, nrow = p_C_max + 1, ncol = p_NC_max + 1)
+  N <- matrix(NA, nrow = p_C_max + 1, ncol = p_NC_max + 1)
+  
+  for (i in 0:p_C_max) {
+    for (j in 0:p_NC_max) {
+      marx_loop <- marx.t(inflation_df_monthly$inflationNonSA, NULL, p_C = i, p_NC = j)
+      information <- information.criteria(type="MARX", marx_loop)
+      LL[(i+1),(j+1)] <- information$loglikelihood
+      AIC[(i+1),(j+1)] <- information$aic
+      BIC[(i+1),(j+1)] <- information$bic
+      HQ[(i+1),(j+1)] <- information$hq
+      N[(i+1),(j+1)] <- information$n
+    }
   }
 }
+
 
 #perfom iid test of resids
 model_ar12 <- Arima(inflation_df_monthly$inflationNonSA, order = c(12, 0, 0))
@@ -50,9 +55,18 @@ p_value <- pchisq(test_statistic, df = m, lower.tail = FALSE)
 cat("Chi-squared test statistic:", test_statistic, "\n")
 cat("p-value:", p_value, "\n")
 
+ar12 <- marx.t(inflation_df_monthly$inflationNonSA, NULL, p_C = 12, p_NC = 0)
+ar12_crit <- information.criteria("MARX", ar12)
+
+mar_final <- marx.t(inflation_df_monthly$inflationNonSA, NULL, p_C = 1, p_NC = 11)
+mar111_crit <- information.criteria("MARX", mar_final)
 
 
-marx_test <- marx.t(inflation_df_monthly$inflationNonSA, NULL, p_C = 1, p_NC = 12)
+
+
+
+
+
 
 
 
