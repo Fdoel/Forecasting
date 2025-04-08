@@ -62,14 +62,6 @@ mar_final <- marx.t(inflation_df_monthly$inflationNonSA, NULL, p_C = 1, p_NC = 1
 mar111_crit <- information.criteria("MARX", mar_final)
 
 
-
-
-
-
-
-
-
-
 #forecasting test
 p <- 4
 M <- 50
