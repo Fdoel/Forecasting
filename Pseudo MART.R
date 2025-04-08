@@ -125,7 +125,7 @@ arx.ls_T <- function(y,x,p,c,d=1){
   Y <- y[(p+1):length(y)]
   int <- rep(1,(length(y)-p))
   ZT <- regressor.matrix_T(y,x,p,c,d)
-  ZT <- as.matrix(cbind(int,ZT))
+  ZT <- cbind(int,ZT)
   
   df <- nrow(ZT) - NCOL(ZT)
   
@@ -198,40 +198,83 @@ arx.ls_T <- function(y,x,p,c,d=1){
 #' data <- sim.marx(c('t',3,1), c('t',3,1),100,0.5,0.4,0.3)
 #' selection.lag.lead(data$y,data$x,2)
 
-selection.lag.lead_T <- function(y,x,p_pseudo,c,d=1){
-  
-  if (is.null(x)){
+selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 1) {
+  y <- as.numeric(y)
+  # Check if x is NULL and set it to 'not' if true
+  if (is.null(x)) {
     x <- "not"
   }
   
-  P_C <- as.numeric(seq(length=(p_pseudo+1), from=0, by=1))
+  P_C <- as.numeric(seq(length = (p_pseudo + 1), from = 0, by = 1))
   P_C <- as.numeric(fBasics::vec(P_C))
+  print(P_C)
   P_NC <- as.numeric(rev(P_C))
   P_NC <- as.numeric(fBasics::vec(P_NC))
+  print(P_NC)
   
   n <- length(y) - p_pseudo
-  
   loglik <- c()
   
-  for (i in 1:(p_pseudo+1)){
-    MART_results <- MART(y,x,P_C[i],P_NC[i],c,d=1);
-    sig <- as.numeric(MART_results[[8]])
-    df  <- as.numeric(MART_results[[9]])
-    E   <- as.numeric(MART_results[[10]])
+  for (i in 1:(p_pseudo + 1)) {
     
-    loglik[i] <- (n*lgamma((df+1)/2) - n*log(sqrt(df*pi*sig^2)) - n*lgamma(df/2) - ((df+1)/2)*log(1+(E/sig)^2/df) %*% matlab::ones(n,1))
+    # Using tryCatch to handle potential errors during the MART call and the subsequent operations
+    tryCatch({
+      MART_results <- MART(y, x, P_C[i], P_NC[i], c, d = 1)
+      
+      sig <- as.numeric(MART_results[[8]])
+      df  <- as.numeric(MART_results[[9]])
+      E   <- MART_results[[10]]
+      
+      # Check if the components are numeric
+      if (!is.numeric(E)) stop("E is not numeric.")
+      if (!is.numeric(df)) stop("df is not numeric.")
+      if (!is.numeric(sig)) stop("sig is not numeric.")
+      
+      # Check if E is a valid numeric matrix/vector
+      E_vec <- as.vector(E)
+      
+      # Safely calculate the term (log likelihood component)
+      term <- log(1 + (E_vec / sig)^2 / df)
+      
+      # Store log likelihood for this iteration
+      loglik[i] <- n * lgamma((df + 1) / 2) -
+        n * log(sqrt(df * pi * sig^2)) -
+        n * lgamma(df / 2) -
+        ((df + 1) / 2) * sum(term)
+      
+    }, error = function(e) {
+      # Catch errors during this iteration and provide informative feedback
+      cat("Error in iteration", i, "\n")
+      cat("Error message: ", e$message, "\n")
+      cat("Skipping to next iteration...\n")
+      loglik[i] <- NA  # Assign NA to loglik in case of error
+    })
+  }
+  
+  # After the loop, check for a valid max log-likelihood index
+  if (all(is.na(loglik))) {
+    stop("All log-likelihoods failed. Cannot proceed.")
   }
   
   maxloglik <- which.max(loglik)
+  print(maxloglik)
   
-  P = as.numeric(cbind(P_C,P_NC))
+  if (!is.numeric(maxloglik)) stop("maxloglik is not numeric.")
   
-  P = as.numeric(fBasics::vec(P[maxloglik,]))
+  P <- cbind(P_C, P_NC)
+  print(P[maxloglik, ])
+  P <- fBasics::vec(P[maxloglik, ])
+  
+  if (!is.numeric(P)) stop("P is not numeric.")
   
   p_C  <- P[1]
   p_NC <- P[2]
   
-  return(list(p.C = p_C, p.NC = p_NC,loglikelihood = rev(loglik)))
+  if (!is.numeric(p_C)) stop("p_C is not numeric.")
+  if (!is.numeric(p_NC)) stop("p_NC is not numeric.")
+  if (!is.numeric(rev(loglik))) stop("rev(loglik) is not numeric.")
+  
+  return(list(p.C = p_C, p.NC = p_NC, loglikelihood = rev(loglik)))
 }
 
 
