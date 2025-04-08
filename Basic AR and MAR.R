@@ -2,6 +2,7 @@
 library(MASS)
 source("MARX_functions.R")
 source("MART.R")
+library(forecast)
 
 # Loop over your values and capture the printed output
 p_C_max <- 12
@@ -25,7 +26,33 @@ for (i in 0:p_C_max) {
   }
 }
 
+#perfom iid test of resids
+model_ar12 <- Arima(inflation_df_monthly$inflationNonSA, order = c(12, 0, 0))
+resids_ar12 <- model_ar12$residuals
 
+# Step 2: Create the squared residuals
+resids_sq <- resids_ar12^2
+
+# Step 3: Regress residuals on lagged squared residuals (you can set m to desired number of lags)
+m <- 12
+X <- embed(resids_sq, m + 1)
+y <- X[, 1]
+X_lags <- X[, -1]
+
+# Step 4: Run the regression
+model_test <- lm(y ~ X_lags)
+
+# Step 5: Perform the joint significance test (H0: all δ's = 0)
+test_statistic <- summary(model_test)$r.squared * length(y)
+p_value <- pchisq(test_statistic, df = m, lower.tail = FALSE)
+
+# Step 6: Output
+cat("Chi-squared test statistic:", test_statistic, "\n")
+cat("p-value:", p_value, "\n")
+
+
+
+marx_test <- marx.t(inflation_df_monthly$inflationNonSA, NULL, p_C = 1, p_NC = 12)
 
 
 
