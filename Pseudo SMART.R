@@ -1,4 +1,4 @@
-# MART
+# SMART
 
 #' @title The model selection for pseudo-ARX function
 #' @description This function allows you to calculate AIC, BIC, HQ for pseudo-ARX models.
@@ -16,14 +16,14 @@
 #' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
 #' selection.lag(data$y,data$x,8)
 
-selection.lag_t <- function(y,x,p_max,c,d=1){
+selection.lag_st <- function(y,x,p_max,c,gamma,d=1){
   c <- c
   d <- 1
   if (is.null(x)){
     x <- "not"
   }
   
-  bic_results <- bic(y,x,p_max,c,d=1)
+  bic_results <- bic(y,x,p_max,c,gamma,d=1)
   
   bic_vec <- bic_results[[2]]
   colnames(bic_vec) <- paste('p =', 0:p_max)
@@ -55,7 +55,7 @@ selection.lag_t <- function(y,x,p_max,c,d=1){
 #' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
 #' bic(data$y, data$x,8)
 
-bic <- function(y,x,p_max,c,d=1){
+bic <- function(y,x,p_max,c,gamma,d=1){
   
   if (is.null(x)){
     x <- "not"
@@ -76,9 +76,9 @@ bic <- function(y,x,p_max,c,d=1){
   
   for (p in 0:p_max){
     
-    arx.ls_T_results <- arx.ls_T(fBasics::vec(y),x,p,c,d=1)
-    n <- length(arx.ls_T_results[[5]])
-    Cov <- arx.ls_T_results[[6]]
+    arx.ls_ST_results <- arx.ls_ST(fBasics::vec(y),x,p,c,gamma,d=1)
+    n <- length(arx.ls_ST_results[[5]])
+    Cov <- arx.ls_ST_results[[6]]
     crit[(p+1)] <- -2*Cov/n + ((log(n))/n)*(2*p+1+numcol)
   }
   
@@ -113,7 +113,7 @@ bic <- function(y,x,p_max,c,d=1){
 #' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
 #' arx.ls(data$y,data$x,2)
 
-arx.ls_T <- function(y,x,p,c,d=1){
+arx.ls_ST <- function(y,x,p,c,gamma,d=1){
   c <- c
   d <- 1
   if (is.null(x)){
@@ -124,7 +124,7 @@ arx.ls_T <- function(y,x,p,c,d=1){
   
   Y <- y[(p+1):length(y)]
   int <- rep(1,(length(y)-p))
-  ZT <- regressor.matrix_T(y,x,p,c,d)
+  ZT <- regressor.matrix_ST(y,x,p,c,gamma,d)
   ZT <- cbind(int,ZT)
   
   df <- nrow(ZT) - NCOL(ZT)
@@ -198,7 +198,7 @@ arx.ls_T <- function(y,x,p,c,d=1){
 #' data <- sim.marx(c('t',3,1), c('t',3,1),100,0.5,0.4,0.3)
 #' selection.lag.lead(data$y,data$x,2)
 
-selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 1) {
+selection.lag.lead_ST <- function(y, x, p_pseudo, c, gamma, d = 1) {
   y <- as.numeric(y)
   # Check if x is NULL and set it to 'not' if true
   if (is.null(x)) {
@@ -219,11 +219,11 @@ selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 1) {
     
     # Using tryCatch to handle potential errors during the MART call and the subsequent operations
     tryCatch({
-      MART_results <- MART(y, x, P_C[i], P_NC[i], c, d = 1)
+      SMART_results <- SMART(y, x, P_C[i], P_NC[i], c, gamma, d = 1)
       
-      sig <- as.numeric(MART_results[[8]])
-      df  <- as.numeric(MART_results[[9]])
-      E   <- MART_results[[10]]
+      sig <- as.numeric(SMART_results[[8]])
+      df  <- as.numeric(SMART_results[[9]])
+      E   <- SMART_results[[10]]
       
       # Check if the components are numeric
       if (!is.numeric(E)) stop("E is not numeric.")
@@ -231,7 +231,6 @@ selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 1) {
       if (!is.numeric(sig)) stop("sig is not numeric.")
       
       loglik[i] <- (n*lgamma((df+1)/2) - n*log(sqrt(df*pi*sig^2)) - n*lgamma(df/2) - ((df+1)/2)*log(1+(E/sig)^2/df) %*% matlab::ones(n,1))
-      
       
     }, error = function(e) {
       # Catch errors during this iteration and provide informative feedback
@@ -269,11 +268,11 @@ selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 1) {
 }
 
 
-selection.lag_t(inflation_df_monthly$inflationNonSA,NULL,12, median(inflation_df_monthly$inflationNonSA),d=1)
+selection.lag_st(inflation_df_monthly$inflationNonSA,NULL,12, median(inflation_df_monthly$inflationNonSA),gamma=20,d=1)
 p_pseudo <- readline(prompt = "Choose lag order for pseudo causal model: ")
 p_pseudo <- as.numeric(p_pseudo)
 
-pseudo <- arx.ls_T(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),d=1)
+pseudo <- arx.ls_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=20,d=1)
 Cov_pseudo <- pseudo[[4]]
 U_pseudo <- pseudo[[5]]
 test_cdf_pseudo <- cbind(U_pseudo, stats::pnorm(U_pseudo,0,Cov_pseudo))
@@ -341,7 +340,7 @@ if (jarque_check == 0){
 stats::qqnorm(U_pseudo, main="Normal Probability Plot of Residuals")
 stats::qqline(U_pseudo)
 
-selection.lag.lead_results <- selection.lag.lead_T(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),d=1)
+selection.lag.lead_results <- selection.lag.lead_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=20,d=1)
 p_C <- selection.lag.lead_results[[1]]
 p_NC <- selection.lag.lead_results[[2]]
 
