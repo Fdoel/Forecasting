@@ -3,6 +3,9 @@ library(tidyverse)
 library(e1071)
 library(ggplot2)
 library(readxl)
+library(rstudioapi)
+
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 CPI_US_labour_dataset <- read_excel("CPI US labour dataset.xlsx", 
                                     range = "A12:M124")
