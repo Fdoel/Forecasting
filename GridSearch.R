@@ -16,7 +16,7 @@ p_NC_max <- 12
 if (.Platform$OS.type == "windows") {
   n_cores <- 1
 } else {
-  n_cores <- 2
+  n_cores <- 4
   RNGkind("L'Ecuyer-CMRG")  # Safe parallel RNG
 }
 
