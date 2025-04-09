@@ -62,32 +62,47 @@ ar12_crit <- information.criteria("MARX", ar12)
 mar_final <- marx.t(inflation_df_monthly$inflationNonSA, NULL, p_C = 1, p_NC = 11)
 mar111_crit <- information.criteria("MARX", mar_final)
 
-
 #forecasting test
 p <- 12
-M <- 100
-#forecasts_size <- length(inflation_df_monthly[,1]) - p - M
-forecasts_size <- 35
+M <- 50
+forecasts_size <- length(inflation_df_monthly[,1]) - p
 forecast_vector <- vector(mode = "numeric", length = forecasts_size)
 
-
-
 for(i in 1:(forecasts_size)) {
-  forecast_data <- inflation_df_monthly[i:forecasts_size, ]
+  forecast_data <- inflation_df_monthly[i:forecasts_size+i, ]
   forecast_vector[i] <- forecast.marx(y=forecast_data$inflationNonSA, p_C=1, p_NC=11, h=1, M=M, N=1000)
 }
 
-p <- 12
-M <- 100
-forecasts_size <- nrow(inflation_df_monthly) - p - M
 
-forecast_vector <- pbmclapply(1:forecasts_size, function(i) {
-  forecast_data <- inflation_df_monthly[i:forecasts_size, ]
-  forecast.marx(y = forecast_data$inflationNonSA, p_C = 1, p_NC = 11, h = 1, M = M, N = 100)
-}, mc.cores = parallel::detectCores() - 1)  # leave one core free
+# Setup
+h <- 1                   # Forecast horizon
+N <- 1000                # Simulations
+M <- 50                  # MA truncation
+p_C <- 1
+p_NC <- 11
 
-# Convert result from list to numeric vector
-forecast_vector <- unlist(forecast_vector)
+# Forecast series
+data_series <- inflation_df_monthly$inflationNonSA
+start_index <- 100  # enough data to fit the model
+end_index <- length(data_series) - h
+
+# Store forecasts
+forecast_series <- numeric(end_index - start_index + 1)
+
+for (t in start_index:end_index) {
+  y_window <- data_series[1:t]  # expanding window (use 1:t) or rolling (use (t - window_size + 1):t)
+  
+  forecast_series[t - start_index + 1] <- forecast.marx(
+    y = y_window,
+    p_C = p_C,
+    p_NC = p_NC,
+    h = h,
+    M = M,
+    N = N
+  )[h]  # store the 1-step forecast
+}
+
+
 
 
 
