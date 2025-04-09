@@ -73,39 +73,97 @@ for(i in 1:(forecasts_size)) {
   forecast_vector[i] <- forecast.marx(y=forecast_data$inflationNonSA, p_C=1, p_NC=11, h=1, M=M, N=1000)
 }
 
+library(pbmcapply)
+library(pbmcapply)
 
-# Setup
-h <- 1                   # Forecast horizon
-N <- 1000                # Simulations
-M <- 50                  # MA truncation
-p_C <- 1
-p_NC <- 11
+# Parameters
+h <- 12
+N <- 1000
+M <- 50
 
-# Forecast series
+# Model specifications
+p_C_mixed <- 1;  p_NC_mixed <- 11   # Mixed model
+p_C_causal <- 12; p_NC_causal <- 0  # Purely causal model
+p_C_mid <- 11; p_NC_mid <- 1        # 11-lag, 1-lead model (new)
+
+# Data
 data_series <- inflation_df_monthly$inflationNonSA
-start_index <- 100  # enough data to fit the model
+start_index <- 100
 end_index <- length(data_series) - h
+forecast_indices <- start_index:end_index
 
-# Store forecasts
-forecast_series <- numeric(end_index - start_index + 1)
+# Parallel forecast with progress bar
+results_list <- pbmclapply(
+  X = forecast_indices,
+  FUN = function(t) {
+    y_window <- data_series[1:t]
+    
+    forecast_mixed <- forecast.marx(
+      y = y_window,
+      p_C = p_C_mixed,
+      p_NC = p_NC_mixed,
+      h = h,
+      M = M,
+      N = N
+    )
+    
+    forecast_causal <- forecast.marx(
+      y = y_window,
+      p_C = p_C_causal,
+      p_NC = p_NC_causal,
+      h = h,
+      M = M,
+      N = N
+    )
+    
+    forecast_mid <- forecast.marx(
+      y = y_window,
+      p_C = p_C_mid,
+      p_NC = p_NC_mid,
+      h = h,
+      M = M,
+      N = N
+    )
+    
+    actual <- data_series[(t + 1):(t + h)]
+    
+    return(list(
+      mixed = forecast_mixed,
+      causal = forecast_causal,
+      mid = forecast_mid,
+      actual = actual
+    ))
+  },
+  mc.cores = parallel::detectCores() - 1
+)
 
-for (t in start_index:end_index) {
-  y_window <- data_series[1:t]  # expanding window (use 1:t) or rolling (use (t - window_size + 1):t)
-  
-  forecast_series[t - start_index + 1] <- forecast.marx(
-    y = y_window,
-    p_C = p_C,
-    p_NC = p_NC,
-    h = h,
-    M = M,
-    N = N
-  )[h]  # store the 1-step forecast
+# Convert list results to matrices
+forecast_mixed <- do.call(rbind, lapply(results_list, `[[`, "mixed"))
+forecast_causal <- do.call(rbind, lapply(results_list, `[[`, "causal"))
+forecast_mid <- do.call(rbind, lapply(results_list, `[[`, "mid"))
+actual_matrix <- do.call(rbind, lapply(results_list, `[[`, "actual"))
+
+# Label columns
+colnames(forecast_mixed) <- paste0("h", 1:h)
+colnames(forecast_causal) <- paste0("h", 1:h)
+colnames(forecast_mid) <- paste0("h", 1:h)
+colnames(actual_matrix) <- paste0("h", 1:h)
+
+# === RMSE computation ===
+rmse <- function(forecast, actual) {
+  sqrt(colMeans((forecast - actual)^2, na.rm = TRUE))
 }
 
+rmse_mixed <- rmse(forecast_mixed, actual_matrix)
+rmse_causal <- rmse(forecast_causal, actual_matrix)
+rmse_mid <- rmse(forecast_mid, actual_matrix)
 
+rmse_df <- data.frame(
+  horizon = 1:h,
+  RMSE_mixed = rmse_mixed,
+  RMSE_causal = rmse_causal,
+  RMSE_mid = rmse_mid
+)
 
-
-
-
-
-
+# Print RMSE comparison
+print(rmse_df)
