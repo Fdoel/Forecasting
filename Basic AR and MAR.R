@@ -94,7 +94,7 @@ mar111_crit <- information.criteria("MARX", mar_final)  # Info criteria for MAR(
 # Forecasting parameters
 h <- 24          # Forecast horizon
 N <- 1000        # Posterior draws
-M <- 50          # Simulations per draw
+M <- 50          # MA truncation
 
 # Model specifications
 p_C_mixed <- 1;  p_NC_mixed <- 11    # Mixed MAR(1,11)
@@ -107,11 +107,14 @@ start_index <- 100
 end_index <- length(data_series) - h
 forecast_indices <- start_index:end_index
 
-# Parallel forecast loop using all 3 model configurations
+# -----------------------------------------------------------------------------
+# Forecasting loop using all 3 model configurations
+# -----------------------------------------------------------------------------
+
 results_list <- pbmclapply(
   X = forecast_indices,
   FUN = function(t) {
-    y_window <- data_series[1:t]  # Expand window up to time t
+    y_window <- data_series[1:t]  # Expanding window up to time t
     
     forecast_mixed <- forecast.marx(
       y = y_window,
@@ -140,7 +143,7 @@ results_list <- pbmclapply(
       N = N
     )
     
-    actual <- data_series[(t + 1):(t + h)]  # True values to compare with forecasts
+    actual <- data_series[(t + 1):(t + h)]  # Future observed values
     
     return(list(
       mixed = forecast_mixed,
@@ -149,20 +152,18 @@ results_list <- pbmclapply(
       actual = actual
     ))
   },
-  mc.cores = parallel::detectCores() - 1  # Use all cores minus one
+  mc.cores = parallel::detectCores() - 1  # Use all but one core
 )
 
 # -----------------------------------------------------------------------------
 # Organize forecast results into matrices
 # -----------------------------------------------------------------------------
 
-# Combine lists into forecast matrices
 forecast_mixed <- do.call(rbind, lapply(results_list, `[[`, "mixed"))
 forecast_causal <- do.call(rbind, lapply(results_list, `[[`, "causal"))
 forecast_mid <- do.call(rbind, lapply(results_list, `[[`, "mid"))
 actual_matrix <- do.call(rbind, lapply(results_list, `[[`, "actual"))
 
-# Label forecast horizons
 colnames(forecast_mixed) <- paste0("h", 1:h)
 colnames(forecast_causal) <- paste0("h", 1:h)
 colnames(forecast_mid) <- paste0("h", 1:h)
@@ -172,23 +173,57 @@ colnames(actual_matrix) <- paste0("h", 1:h)
 # Compute RMSE for each model across horizons
 # -----------------------------------------------------------------------------
 
-# RMSE calculation function
 rmse <- function(forecast, actual) {
   sqrt(colMeans((forecast - actual)^2, na.rm = TRUE))
 }
 
-# Compute RMSEs
 rmse_mixed <- rmse(forecast_mixed, actual_matrix)
 rmse_causal <- rmse(forecast_causal, actual_matrix)
 rmse_mid <- rmse(forecast_mid, actual_matrix)
 
-# Combine RMSEs into a tidy data frame
+# -----------------------------------------------------------------------------
+# Compute Diebold-Mariano test p-values
+# -----------------------------------------------------------------------------
+
+compute_dm_tests <- function(forecast1, forecast2, actual, h) {
+  p_values <- numeric(h)
+  for (i in 1:h) {
+    e1 <- actual[, i] - forecast1[, i]
+    e2 <- actual[, i] - forecast2[, i]
+    valid <- complete.cases(e1, e2)
+    e1 <- e1[valid]
+    e2 <- e2[valid]
+    
+    if (length(e1) > 10) {
+      dm <- tryCatch(
+        dm.test(e1, e2, alternative = "two.sided", h = 1, power = 2),
+        error = function(e) return(NA)
+      )
+      p_values[i] <- ifelse(is.list(dm), dm$p.value, NA)
+    } else {
+      p_values[i] <- NA
+    }
+  }
+  return(p_values)
+}
+
+dm_mixed_vs_causal <- compute_dm_tests(forecast_mixed, forecast_causal, actual_matrix, h)
+dm_mixed_vs_mid    <- compute_dm_tests(forecast_mixed, forecast_mid, actual_matrix, h)
+dm_causal_vs_mid   <- compute_dm_tests(forecast_causal, forecast_mid, actual_matrix, h)
+
+# -----------------------------------------------------------------------------
+# Combine RMSEs and DM p-values into a tidy data frame
+# -----------------------------------------------------------------------------
+
 rmse_df <- data.frame(
   horizon = 1:h,
   RMSE_mixed = rmse_mixed,
   RMSE_causal = rmse_causal,
-  RMSE_mid = rmse_mid
+  RMSE_mid = rmse_mid,
+  DM_mixed_vs_causal = dm_mixed_vs_causal,
+  DM_mixed_vs_mid = dm_mixed_vs_mid,
+  DM_causal_vs_mid = dm_causal_vs_mid
 )
 
-# Print RMSE comparison for each horizon
+# Print RMSE and DM test comparison
 print(rmse_df)
