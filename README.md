@@ -1,12 +1,12 @@
 Draft research proposal, af maandag 14 april af:
-- Data sectie aangepast worden -> Max
-- Intercept in model -> Berend -> Gedaan
+- Data sectie aangepast worden -> Max (graph, citen, nonseasonal (tabel is gedaan))
 - Forecasting programmeren -> Floris
-- Simulation study programmeren -> Imme (laag pittje)
+- Simulation study programmeren -> Imme (laag pittje) --> niet meer doen, ff goed opschrijven --> methodology
 - Methodology:
-    - Lag and Lead selection -> Berend
     - Forecasting -> Floris
     - Simulation Study -> Imme
+    - estimation --> Berend
+ - unit root test --> max
 
 Grid search c, gamma en d ->
 Local minimum -> Floris 
@@ -14,7 +14,7 @@ Local minimum -> Floris
 Begin maken aan de results:
 - Lag and lead selection
 - Compare standard MAR model with an AR model (Moet nog wat testen maar zo goed als af)
-- Extra statistieken toevoegen, vrije denk ruimte -> Floris
-- Compare regime switching (threshold as well as smooth transition) MAR and AR
+- Extra statistieken toevoegen, vrije denk ruimte -> Max
+- Compare regime switching (threshold as well as smooth transition) MAR and AR --> Imme, kijk ff bij MAR
 
 Bij het MART model testen of in verschillende regimes de estimates significant van elkaar verschillen
