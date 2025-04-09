@@ -73,11 +73,9 @@ for(i in 1:(forecasts_size)) {
   forecast_vector[i] <- forecast.marx(y=forecast_data$inflationNonSA, p_C=1, p_NC=11, h=1, M=M, N=1000)
 }
 
-library(pbmcapply)
-library(pbmcapply)
 
 # Parameters
-h <- 12
+h <- 24
 N <- 1000
 M <- 50
 
