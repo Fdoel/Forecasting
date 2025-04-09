@@ -1,5 +1,6 @@
 library(MASS)
 library(parallel)
+install.packages("pbmcapply")
 library(pbmcapply)
 source("MARX_functions.R")
 source("MART.R")
@@ -17,6 +18,7 @@ if (.Platform$OS.type == "windows") {
 }
 
 threshold <- 0.29
+gamma <- 20
 
 param_grid <- expand.grid(i = 0:p_C_max, j = 0:p_NC_max)
 
@@ -24,8 +26,8 @@ run_model_info <- function(params) {
   i <- params$i
   j <- params$j
   
-  model <- MART(inflation_df_monthly$inflationNonSA, NULL, p_C = i, p_NC = j, threshold)
-  info <- information.criteria(type = "MART", model)
+  model <- SMART(inflation_df_monthly$inflationNonSA, NULL, p_C = i, p_NC = j, gamma, threshold)
+  info <- information.criteria(type = "SMART", model)
   
   return(data.frame(i = i, j = j,
                     loglikelihood = info$loglikelihood,

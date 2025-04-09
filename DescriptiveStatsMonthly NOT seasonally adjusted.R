@@ -168,3 +168,42 @@ inflation_df <- inflation_df %>%
 inflation_df_monthly <- inflation_df
 save(inflation_df_monthly, file = "inflation_df_monthly.RData")
 
+
+
+# List of variables of interest
+vars <- c("CPIAUCSL", "UNRATE", "IPFINAL", "CUMFNS", "RPI", "RETAILx", "VIXCLSx", "inflationNonSA")
+
+# Create inflation column and filter CPI-based start date
+inflation_df_monthly <- data %>%
+  select(sasdate, all_of(vars[-length(vars)])) %>%
+  mutate(
+    sasdate = as.Date(sasdate, "%m/%d/%Y"),
+    inflation = log(CPIAUCSL / lag(CPIAUCSL)) * 100
+  ) %>%
+  filter(sasdate >= as.Date("1959-06-01"))
+
+# Filter VIX from its available start date
+inflation_df <- inflation_df %>%
+  mutate(VIXCLSx = ifelse(sasdate < as.Date("1962-07-01"), NA, VIXCLSx))
+
+# Compute summary stats
+summary_stats <- inflation_df %>%
+  select(all_of(vars)) %>%
+  summarise(across(
+    everything(),
+    list(
+      Mean = ~ mean(., na.rm = TRUE),
+      Median = ~ median(., na.rm = TRUE),
+      SD = ~ sd(., na.rm = TRUE),
+      Skewness = ~ skewness(., na.rm = TRUE),
+      Kurtosis = ~ kurtosis(., na.rm = TRUE)
+    ),
+    .names = "{.col}_{.fn}"
+  )) %>%
+  pivot_longer(everything(), names_to = c("Variable", "Statistic"), names_sep = "_") %>%
+  pivot_wider(names_from = Statistic, values_from = value)
+
+summary_stats_rounded <- summary_stats %>%
+  mutate(across(where(is.numeric), ~ sprintf("%.2f", .)))
+
+print(summary_stats_rounded)
