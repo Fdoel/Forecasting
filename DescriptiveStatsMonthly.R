@@ -87,3 +87,6 @@ seastests::seasdum(inflation_df$CPIAUCSL, freq = 12)
 inflation_df_monthly <- inflation_df
 save(inflation_df_monthly, file = "inflation_df_monthly.RData")
 
+
+
+
