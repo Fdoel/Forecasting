@@ -10,6 +10,7 @@ Grid search c, gamma en d ->
 Local minimum -> Floris 
 
 Begin maken aan de results:
+- qqplot
 - Lag and lead selection
 - Compare standard MAR model with an AR model (Moet nog wat testen maar zo goed als af)
 - Extra statistieken toevoegen, vrije denk ruimte -> Max
