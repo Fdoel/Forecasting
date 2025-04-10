@@ -151,8 +151,8 @@ inflation_df %>%
   geom_line(aes(y = CPInonSA, color = "CPI"), size = 1, linetype = "dashed") +  # CPI (dashed)
   geom_line(aes(y = inflationNonSA * 100, color = "Inflation"), size = 0.7) +   # Inflation (scaled again)
   scale_y_continuous(
-    name = "CPI (raw)",
-    sec.axis = sec_axis(~ . / 100, name = "Inflation (%) (raw)")  # Adjust for visual scale
+    name = "CPI",
+    sec.axis = sec_axis(~ . / 100, name = "Inflation (%)")  # Adjust for visual scale
   ) +
   labs(title = "",
        x = "Date",
