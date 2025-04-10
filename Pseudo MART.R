@@ -1,4 +1,11 @@
-# MART
+# MART pseudo function
+
+# Load required libraries
+library(MASS)          # For statistical distributions and matrix functions
+source("MARX_functions.R")  # Custom functions for MAR model estimation
+source("MART.R")            # MART model training and forecasting routines (includes information criteria calculations)
+library(forecast)      # For ARIMA modeling and forecast tools
+library(pbmcapply)     # For parallel processing with progress bar
 
 #' @title The model selection for pseudo-ARX function
 #' @description This function allows you to calculate AIC, BIC, HQ for pseudo-ARX models.
@@ -465,4 +472,33 @@ stats::qqline(U_pseudo)
 selection.lag.lead_results <- selection.lag.lead_T(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,0.7,d=1)
 p_C <- selection.lag.lead_results[[1]]
 p_NC <- selection.lag.lead_results[[2]]
+
+
+# -----------------------------------------------------------------------------
+# Residual diagnostics: test for independence of squared residuals (ARCH test)
+# -----------------------------------------------------------------------------
+
+# Fit a 12-lag AR model to the inflation series
+model_ar2 <- Arima(inflation_df_monthly$inflationNonSA, order = c(p_C + p_NC, 0, 0))
+resids_ar2 <- model_ar$residuals  # Extract residuals
+
+# Step 2: Square the residuals for ARCH effect detection
+resids_sq <- resids_ar2^2
+
+# Step 3: Create lag matrix of squared residuals (lags 1 through m)
+m <- p_C + p_NC
+X <- embed(resids_sq, m + 1)
+y <- X[, 1]            # Current value
+X_lags <- X[, -1]      # Lagged squared residuals
+
+# Step 4: Regress current squared residual on its lags
+model_test <- lm(y ~ X_lags)
+
+# Step 5: Test for joint significance of lag coefficients (H0: no ARCH effect)
+test_statistic <- summary(model_test)$r.squared * length(y)
+p_value <- pchisq(test_statistic, df = m, lower.tail = FALSE)
+
+# Step 6: Output results of the chi-squared test
+cat("Chi-squared test statistic:", test_statistic, "\n")
+cat("p-value:", p_value, "\n")
 
