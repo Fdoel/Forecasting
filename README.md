@@ -20,3 +20,6 @@ Begin maken aan de results:
 Bij het MART model testen of in verschillende regimes de estimates significant van elkaar verschillen
 
 SE -> p-values -> Floris
+
+
+Ljung Box/ serial correlation test toevoegen
