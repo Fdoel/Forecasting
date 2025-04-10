@@ -1,4 +1,5 @@
 # =============================================================================
+
 # Script: US Inflation Data Preparation and Analysis
 # Description: 
 #   This script prepares monthly US inflation data by merging seasonally 
@@ -21,6 +22,7 @@ library(e1071)         # For skewness and kurtosis
 library(ggplot2)       # For additional plotting features (already included in tidyverse)
 library(readxl)        # For reading Excel files
 library(rstudioapi)    # To set working directory to current script location
+library(dplyr)
 
 # Set working directory to the location of the currently opened R script
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
@@ -51,19 +53,18 @@ CPI_US_labour_long <- CPI_US_labour_long %>%
   mutate(inflationNonSA = log(CPInonSA / lag(CPInonSA)) * 100)
 
 # Load the FRED data (seasonally adjusted CPI and other indicators)
-FRED_data <- read.csv("FRED.csv")
+data <- read.csv("FRED.csv")
 
-# Remove metadata/header rows from CSV (only keep raw data)
-FRED_data <- FRED_data[-c(1, 2),]
+# Omit the first two rows as we only require raw data
+data <- data[-c(1, 2),]
 
-# Select relevant columns and convert date to Date format
-inflation_df <- FRED_data %>%
+inflation_df <- data %>%
   select(c("sasdate", "CPIAUCSL", "UNRATE", "IPFINAL", "CUMFNS", "RPI", "RETAILx", "VIXCLSx")) %>%
   mutate(sasdate = as.Date(sasdate, "%m/%d/%Y")) %>%
   
-  # Calculate month-over-month inflation (seasonally adjusted) using log difference in CPI
-  mutate(inflationSA = log(CPIAUCSL / lag(CPIAUCSL)) * 100) %>%
-  filter(sasdate >= as.Date("1959-06-01"))    # Ensure alignment with CPI labor dataset
+  # Calculate inflation by taking the logs of the CPI divided by its lag
+  mutate(inflationSA = log(CPIAUCSL/lag(CPIAUCSL))*100) %>%
+  filter(sasdate >= as.Date("1959-06-01"))
 
 # Join with non-seasonally adjusted CPI and inflation data
 inflation_df <- inflation_df %>%
@@ -244,4 +245,5 @@ print(summary_stats_rounded)
 # Rename the final dataframe for use in forecasting and save
 inflation_df_monthly <- inflation_df
 save(inflation_df_monthly, file = "inflation_df_monthly.RData")
+
 
