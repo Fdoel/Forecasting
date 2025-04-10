@@ -18,3 +18,5 @@ Begin maken aan de results:
 - Compare regime switching (threshold as well as smooth transition) MAR and AR --> Imme, kijk ff bij MAR
 
 Bij het MART model testen of in verschillende regimes de estimates significant van elkaar verschillen
+
+SE -> p-values -> Floris
