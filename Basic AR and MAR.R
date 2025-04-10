@@ -58,11 +58,18 @@ resids_ar12 <- model_ar12$residuals  # Extract residuals
 # Step 2: Square the residuals for use as regressors
 resids_sq <- resids_ar12^2
 
-# Step 3: Create lag matrix of squared residuals (lags 1 through m)
+# Step 3: Create lag matrix manually
 m <- 12
-X <- embed(cbind(resids_ar12, resids_sq), m + 1)
-y <- X[, 1]                     # Current value: raw residual εₜ
-X_lags <- X[, seq(3, m + 2)]    # Lagged squared residuals: εₜ₋₁² to εₜ₋ₘ²
+n <- length(resids_ar12)
+
+# Create the response variable y (residuals from t = m+1 to n)
+y <- resids_ar12[(m + 1):n]
+
+# Create lagged squared residuals matrix
+X_lags <- matrix(NA, nrow = n - m, ncol = m)
+for (i in 1:m) {
+  X_lags[, i] <- resids_sq[(m + 1 - i):(n - i)]
+}
 
 # Step 4: Regress current residual on lagged squared residuals
 model_test <- lm(y ~ X_lags)
