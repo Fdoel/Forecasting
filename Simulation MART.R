@@ -30,7 +30,7 @@ nc_process <- function(psi_1, psi_2, v, T, c = 0.25) {
   y <- rep(0, T + s - 1)  
   for (t in (T - s):1) {
     # Ik vergelijk nu threshold c met gegenereerde data voor v, moet dat bij y? Of moet de threshold c met iets anders vergeleken worden?
-      if (v[t + d] > c) { # plus d en niet min d
+      if (y[t + d] > c) { # plus d en niet min d
         y[t] <- psi_1 * y[t + 1] + v[t]
       }
       else{

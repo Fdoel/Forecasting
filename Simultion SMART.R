@@ -15,7 +15,7 @@ ar_process <- function(phi_1, phi_2, T, c = 0.25) {
   for (t in (r + 1):T) {
     c <- as.numeric(c)
     # Logistic smooth transition function
-    smooth_transition <- 1 / (1 + exp(-gamma * (v[t - d] - theta)))
+    smooth_transition <- 1 / (1 + exp(-gamma * (v[t - d] - c)))
     
     # Weighted sum of phi_1 and phi_2 based on the logistic function
     phi_t <- (1 - smooth_transition) * phi_1 + smooth_transition * phi_2
