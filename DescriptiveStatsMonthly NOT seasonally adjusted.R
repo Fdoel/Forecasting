@@ -23,6 +23,7 @@ library(ggplot2)       # For additional plotting features (already included in t
 library(readxl)        # For reading Excel files
 library(rstudioapi)    # To set working directory to current script location
 library(dplyr)
+library(tseries)
 
 # Set working directory to the location of the currently opened R script
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
@@ -246,4 +247,42 @@ print(summary_stats_rounded)
 inflation_df_monthly <- inflation_df
 save(inflation_df_monthly, file = "inflation_df_monthly.RData")
 
+library(ggplot2)
 
+# Compute ACF with lag.max = 28
+acf_obj <- acf(inflation_df$inflationNonSA, lag.max = 28, plot = FALSE, na.action = na.pass)
+
+# Create data frame for plotting (excluding lag 0)
+acf_df <- data.frame(
+  Lag = 1:28,
+  ACF = acf_obj$acf[2:29]
+)
+
+# Confidence interval (95%)
+conf_level <- 1.96 / sqrt(length(na.omit(inflation_df$inflationNonSA)))
+
+# Plot with x-axis ticks every 4 lags
+ggplot(acf_df, aes(x = Lag, y = ACF)) +
+  geom_col(fill = "steelblue", width = 0.7) +
+  geom_hline(yintercept = 0, color = "black") +
+  geom_hline(yintercept = c(-conf_level, conf_level), linetype = "dashed", color = "red") +
+  scale_x_continuous(breaks = seq(4, 28, 4)) +
+  labs(title = "",
+       x = "Lag (Months)",
+       y = "Autocorrelation") +
+  theme_minimal() +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA, size = 0.5),
+    axis.ticks = element_line(color = "black"),
+    axis.text.x = element_text(size = 10)
+  )
+
+# Ljung-Box test for autocorrelation up to lag 28
+Box.test(
+  inflation_df$inflationNonSA,
+  lag = 28,
+  type = "Ljung-Box"
+)
+
+# ADF test on non-seasonally adjusted inflation
+adf.test(inflation_df$inflationNonSA, alternative = "stationary")
