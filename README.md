@@ -1,5 +1,5 @@
 Draft research proposal, af maandag 14 april af:
-- Data sectie aangepast worden -> Max (graph, citen, nonseasonal (tabel is gedaan))
+- Data sectie aangepast worden -> Max (graph, citen, nonseasonal (tabel is gedaan)) acf, qq plot, dickey fuller unit root
 - Forecasting programmeren -> Floris
 - Simulation study programmeren -> Imme (laag pittje) --> niet meer doen, ff goed opschrijven --> methodology
 - Methodology:
