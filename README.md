@@ -5,7 +5,7 @@ Draft research proposal, af maandag 14 april af:
 - Methodology:
     - Forecasting -> Floris
     - Simulation Study -> Imme
-    - estimation --> Berend
+    - estimation --> Berend (alle tests)
  - unit root test --> max
 
 Grid search c, gamma en d ->
