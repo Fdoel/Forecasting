@@ -1,12 +1,10 @@
 Draft research proposal, af maandag 14 april af:
-- Data sectie aangepast worden -> Max (graph, citen, nonseasonal (tabel is gedaan)) acf, qq plot, dickey fuller unit root
 - Forecasting programmeren -> Floris
 - Simulation study programmeren -> Imme (laag pittje) --> niet meer doen, ff goed opschrijven --> methodology
 - Methodology:
     - Forecasting -> Floris
     - Simulation Study -> Imme
     - estimation --> Berend (alle tests)
- - unit root test --> max
 
 Grid search c, gamma en d ->
 Local minimum -> Floris 
@@ -22,4 +20,3 @@ Bij het MART model testen of in verschillende regimes de estimates significant v
 SE -> p-values -> Floris
 
 
-Ljung Box/ serial correlation test toevoegen
