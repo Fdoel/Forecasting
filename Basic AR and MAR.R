@@ -47,27 +47,27 @@ for (i in 0:p_C_max) {
   }
 }
 
-# -----------------------------------------------------------------------------
-# Residual diagnostics: test for independence of squared residuals (ARCH test)
+## -----------------------------------------------------------------------------
+# Residual diagnostics: test for independence of AR(p) residuals (Hecq et al. 2016)
 # -----------------------------------------------------------------------------
 
 # Fit a 12-lag AR model to the inflation series
 model_ar12 <- Arima(inflation_df_monthly$inflationNonSA, order = c(12, 0, 0))
 resids_ar12 <- model_ar12$residuals  # Extract residuals
 
-# Step 2: Square the residuals for ARCH effect detection
+# Step 2: Square the residuals for use as regressors
 resids_sq <- resids_ar12^2
 
 # Step 3: Create lag matrix of squared residuals (lags 1 through m)
 m <- 12
-X <- embed(resids_sq, m + 1)
-y <- X[, 1]            # Current value
-X_lags <- X[, -1]      # Lagged squared residuals
+X <- embed(cbind(resids_ar12, resids_sq), m + 1)
+y <- X[, 1]                     # Current value: raw residual εₜ
+X_lags <- X[, seq(3, m + 2)]    # Lagged squared residuals: εₜ₋₁² to εₜ₋ₘ²
 
-# Step 4: Regress current squared residual on its lags
+# Step 4: Regress current residual on lagged squared residuals
 model_test <- lm(y ~ X_lags)
 
-# Step 5: Test for joint significance of lag coefficients (H0: no ARCH effect)
+# Step 5: Test for joint significance of lag coefficients (H0: residuals are i.i.d.)
 test_statistic <- summary(model_test)$r.squared * length(y)
 p_value <- pchisq(test_statistic, df = m, lower.tail = FALSE)
 
