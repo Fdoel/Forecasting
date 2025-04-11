@@ -24,9 +24,6 @@ library(pbmcapply)     # For parallel processing with progress bar
 #' selection.lag(data$y,data$x,8)
 
 selection.lag_t <- function(y,x,p_max,c,d=3){
-  c <- c
-  d <- 3
-  
   if (is.null(x)){
     x <- "not"
   }
@@ -83,15 +80,17 @@ selection.lag_t <- function(y,x,p_max,c,d=3){
 #' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
 #' bic(data$y, data$x,8)
 
-bic <- function(y,x,p_max,c,d=3){
+bic <- function(y,x,p_max,c,d=1){
   
   if (is.null(x)){
     x <- "not"
   }
   
   y <- fBasics::vec(y)
-  # y <- y - mean(y)
-  # n <- length(y) - p_max
+  y <- y - mean(y)
+  # Demean c om de threshold consistent te houden
+  c <- c - mean(y)
+  n <- length(y) - max(p_max,d)
   
   if (length(x) > 1){
     numcol <- NCOL(x)
@@ -104,7 +103,7 @@ bic <- function(y,x,p_max,c,d=3){
   
   for (p in 0:p_max){
     
-    arx.ls_T_results <- arx.ls_T(fBasics::vec(y),x,p,c,d=3)
+    arx.ls_T_results <- arx.ls_T(y,x,p,c,d)
     n <- length(arx.ls_T_results[[5]])
     Cov <- arx.ls_T_results[[6]]
     crit[(p+1)] <- -2*Cov/n + ((log(n))/n)*(2*p+1+numcol)
@@ -140,8 +139,10 @@ aic <- function(y,x,p_max,c,d=3){
   }
   
   y <- fBasics::vec(y)
-  # y <- y - mean(y)
-  #n <- length(y) - p_max
+  y <- y - mean(y)
+  # Demean c om de threshold consistent te houden
+  c <- c - mean(y)
+  n <- length(y) - max(p_max,d)
   
   if (length(x) > 1){
     numcol <- NCOL(x)
@@ -154,7 +155,7 @@ aic <- function(y,x,p_max,c,d=3){
   
   for (p in 0:p_max){
     
-    arx.ls_T_results <- arx.ls_T(fBasics::vec(y),x,p,c,d=3)
+    arx.ls_T_results <- arx.ls_T(y,x,p,c,d)
     n <- length(arx.ls_T_results[[5]])
     Cov <- arx.ls_T_results[[6]]
     crit[(p+1)] <- -2*Cov/n + (2/n)*(2*p+1+numcol)
@@ -190,8 +191,10 @@ hq <- function(y,x,p_max,c,d=3){
   }
   
   y <- fBasics::vec(y)
-  # y <- y - mean(y)
-  # n <- length(y) - p_max
+  y <- y - mean(y)
+  # Demean c om de threshold consistent te houden
+  c <- c - mean(y)
+  n <- length(y) - max(p_max,d)
   
   if (length(x) > 1){
     numcol <- NCOL(x)
@@ -204,7 +207,7 @@ hq <- function(y,x,p_max,c,d=3){
   
   for (p in 0:p_max){
     
-    arx.ls_T_results <- arx.ls_T(fBasics::vec(y),x,p,c,d=3)
+    arx.ls_T_results <- arx.ls_T(y,x,p,c,d)
     n <- length(arx.ls_T_results[[5]])
     Cov <- arx.ls_T_results[[6]]
     crit[(p+1)] <- -2*Cov/n + ((2*log(log(n)))/n)*(2*p+1+numcol)
@@ -219,148 +222,57 @@ hq <- function(y,x,p_max,c,d=3){
   
 }
 
-#' @title The ARX estimation by OLS function
-#' @description This function allows you to estimate ARX models by ordinary least squares (OLS).
-#' @param y Data vector of time series observations.
-#' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
-#' @param p Number of autoregressive terms to be included.
-#' @keywords estimation
-#' @keywords pseudo-causal
-#' @return \item{coefficients}{Vector of estimated coefficients.}
-#' @return \item{coef.auto}{Vector of estimated autoregressive parameters.}
-#' @return \item{coef.exo}{Vector of estimated exogenous parameters.}
-#' @return \item{mse}{Mean squared error.}
-#' @return \item{residuals}{Residuals.}
-#' @return \item{loglikelihood}{Value of the loglikelihood.}
-#' @return \item{fitted.values}{Fitted values.}
-#' @return \item{df}{Degrees of freedom.}
-#' @return \item{vcov}{Variance-covariance matrix of residuals.}
-#' @author Sean Telg
-#' @export
-#' @examples
-#' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
-#' arx.ls(data$y,data$x,2)
-
-arx.ls_T <- function(y,x,p,c,d=3){
-  c <- c
-  d <- 1
-  if (is.null(x)){
-    x <- "not"
-  }
-  
-  n <- length(y) - p
-  
-  Y <- y[(p+1):length(y)]
-  int <- rep(1,(length(y)-p))
-  ZT <- regressor.matrix_T(y,x,p,c,d)
-  ZT <- cbind(int,ZT)
-  
-  df <- nrow(ZT) - NCOL(ZT)
-  
-  B <- solve(t(ZT) %*% ZT) %*% (t(ZT) %*% Y)
-  
-  if (p > 0){
-    if (length(x) > 1){
-      rownames(B) <- c('int', paste('lag', 1:(2*p)), paste('exo', 1:(2*NCOL(x))))
-    }
-    else{
-      rownames(B) <- c('int', paste('lag', 1:(2*p)))
-    }
-  }
-  else{
-    if (length(x) > 1){
-      rownames(B) <- c('int', paste('exo', 1:(2*NCOL(x))))
-    }
-    else{
-      rownames(B) <- 'int'
-    }
-  }
-  
-  FV <- ZT %*% B
-  U <- Y - FV
-  
-  sig <- (t(U) %*% U)
-  sig <- as.numeric(sig)
-  
-  Cov <- (1/n)*sig
-  Cov <- as.numeric(Cov)
-  
-  sigma2 <- sum((Y - ZT %*% B)^2)/df
-  qz <- qr(ZT)
-  vcov <- sigma2*chol2inv(qz$qr)
-  colnames(vcov) <- rownames(vcov) <- colnames(ZT)
-  
-  Loglik <- -(n/2)*(1 + log(2*pi)+log(Cov))
-  
-  if (p == 0){
-    B_auto <- 0
-  }
-  else{
-    B_auto <- B[2:(2*p+1)]
-  }
-  
-  if (length(x) > 1){
-    B_x <- B[(2*p+2):length(B)]
-  }
-  else{
-    B_x <- 0
-  }
-  
-  return(list(coefficients = B, coef.auto = B_auto, coef.exo = B_x, mse = Cov, residuals = U, loglikelihood = Loglik, fitted.values = FV, df = df,vcov=vcov))
-}
-
-
-#' @title The lag-lead model selection for MARX function
-#' @description This function allows you to determine the MARX model (for p = r + s) that maximizes the t-log-likelihood.
-#' @param y Data vector of time series observations.
-#' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
-#' @param p_pseudo Number of autoregressive terms to be included in the pseudo-causal model.
-#' @keywords selection
-#' @keywords causal-noncausal
-#' @return \item{p.C}{The number of lags selected.}
-#' @return \item{p.NC}{The number of leads selected.}
-#' @return \item{loglikelihood}{The value of the loglikelihood for all models with p = r + s.}
-#' @author Sean Telg
-#' @export
-#' @examples
-#' data <- sim.marx(c('t',3,1), c('t',3,1),100,0.5,0.4,0.3)
-#' selection.lag.lead(data$y,data$x,2)
-
+#' #' @title The lag-lead model selection for MARX function
+#' #' @description This function allows you to determine the MARX model (for p = r + s) that maximizes the t-log-likelihood.
+#' #' @param y Data vector of time series observations.
+#' #' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' #' @param p_pseudo Number of autoregressive terms to be included in the pseudo-causal model.
+#' #' @keywords selection
+#' #' @keywords causal-noncausal
+#' #' @return \item{p.C}{The number of lags selected.}
+#' #' @return \item{p.NC}{The number of leads selected.}
+#' #' @return \item{loglikelihood}{The value of the loglikelihood for all models with p = r + s.}
+#' #' @author Sean Telg
+#' #' @export
+#' #' @examples
+#' #' data <- sim.marx(c('t',3,1), c('t',3,1),100,0.5,0.4,0.3)
+#' #' selection.lag.lead(data$y,data$x,2)
+#' 
 selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 3) {
   y <- as.numeric(y)
   # Check if x is NULL and set it to 'not' if true
   if (is.null(x)) {
     x <- "not"
   }
-  
+
   P_C <- as.numeric(seq(length = (p_pseudo + 1), from = 0, by = 1))
   P_C <- as.numeric(fBasics::vec(P_C))
   print(P_C)
   P_NC <- as.numeric(rev(P_C))
   P_NC <- as.numeric(fBasics::vec(P_NC))
   print(P_NC)
-  
+
   n <- length(y) - p_pseudo
   loglik <- c()
-  
+
   for (i in 1:(p_pseudo + 1)) {
-    
+
     # Using tryCatch to handle potential errors during the MART call and the subsequent operations
     tryCatch({
       MART_results <- MART(y, x, P_C[i], P_NC[i], c, d = 3)
-      
+
       sig <- as.numeric(MART_results[[8]])
       df  <- as.numeric(MART_results[[9]])
       E   <- MART_results[[10]]
-      
+
       # Check if the components are numeric
       if (!is.numeric(E)) stop("E is not numeric.")
       if (!is.numeric(df)) stop("df is not numeric.")
       if (!is.numeric(sig)) stop("sig is not numeric.")
-      
+
       loglik[i] <- (n*lgamma((df+1)/2) - n*log(sqrt(df*pi*sig^2)) - n*lgamma(df/2) - ((df+1)/2)*log(1+(E/sig)^2/df) %*% matlab::ones(n,1))
-      
-      
+
+
     }, error = function(e) {
       # Catch errors during this iteration and provide informative feedback
       cat("Error in iteration", i, "\n")
@@ -369,30 +281,30 @@ selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 3) {
       loglik[i] <- NA  # Assign NA to loglik in case of error
     })
   }
-  
+
   # After the loop, check for a valid max log-likelihood index
   if (all(is.na(loglik))) {
     stop("All log-likelihoods failed. Cannot proceed.")
   }
-  
+
   maxloglik <- which.max(loglik)
   print(maxloglik)
-  
+
   if (!is.numeric(maxloglik)) stop("maxloglik is not numeric.")
-  
+
   P <- cbind(P_C, P_NC)
   print(P[maxloglik, ])
   P <- fBasics::vec(P[maxloglik, ])
-  
+
   if (!is.numeric(P)) stop("P is not numeric.")
-  
+
   p_C  <- P[1]
   p_NC <- P[2]
-  
+
   if (!is.numeric(p_C)) stop("p_C is not numeric.")
   if (!is.numeric(p_NC)) stop("p_NC is not numeric.")
   if (!is.numeric(rev(loglik))) stop("rev(loglik) is not numeric.")
-  
+
   return(list(p.C = p_C, p.NC = p_NC, loglikelihood = rev(loglik)))
 }
 
