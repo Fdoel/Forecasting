@@ -33,7 +33,7 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
     }
     Z <- Z[(1 + max(p,d)):n, ]
   } else {
-    Z <- matrix(, nrow = n, ncol = 0)
+    Z <- matrix(, nrow = n-d, ncol = 0)
   }
   
   if (identical(x, "not")) {
@@ -537,7 +537,7 @@ regressor.matrix_ST <- function(y, x, p, c, gamma,d=1) {
     }
     Z <- Z[(1 + max(p,d)):n, ]
   } else {
-    Z <- matrix(, nrow = n, ncol = 0)
+    Z <- matrix(, nrow = n-d, ncol = 0)
   }
   
   if (identical(x, "not")) {
