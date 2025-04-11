@@ -24,9 +24,15 @@ selection.lag_st <- function(y,x,p_max,c,gamma,d=1){
   }
   
   bic_results <- bic(y,x,p_max,c,gamma,d=1)
+  aic_results <- aic(y,x,p_max,c,gamma,d=1)
+  hq_results <- hq(y,x,p_max,c,gamma,d=1)
   
   bic_vec <- bic_results[[2]]
   colnames(bic_vec) <- paste('p =', 0:p_max)
+  aic_vec <- aic_results[[2]]
+  colnames(aic_vec) <- paste('p =', 0:p_max)
+  hq_vec <- hq_results[[2]]
+  colnames(hq_vec) <- paste('p =', 0:p_max)
   
   cat('Order Selection Criteria Pseudo Causal Model:', "\n")
   cat(' ', "\n")
@@ -37,8 +43,22 @@ selection.lag_st <- function(y,x,p_max,c,gamma,d=1){
   cat(which.min(bic_vec) -1)
   cat(' ',  "\n")
   cat(' ',  "\n")
+  cat('AKAIKE INFORMATION CRITERION', "\n")
+  print(aic_vec)
+  cat(' ', "\n")
+  cat('Minimum value attained at p = ')
+  cat(which.min(aic_vec) - 1)
+  cat(' ',  "\n")
+  cat(' ',  "\n")
+  cat('HANNAN-QUINN INFORMATION CRITERION', "\n")
+  print(hq_vec)
+  cat(' ', "\n")
+  cat('Minimum value attained at p = ')
+  cat(which.min(hq_vec) - 1)
+  cat(' ', "\n")
+  cat(' ', "\n")
   
-  return(list(bic = bic_vec))
+  return(list(bic = bic_vec,aic=aic_vec,hq=hq_vec))
 }
 
 #' @title The Bayesian/Schwarz information criterion (BIC) function
@@ -88,6 +108,107 @@ bic <- function(y,x,p_max,c,gamma,d=1){
   colnames(crit) <- paste('p =', 0:p_max)
   
   return(list(p = p_bic, values= crit))
+}
+
+
+#' @title The Akaike information criterion (AIC) function
+#' @description This function allows you to calculate the Akaike information criteria (AIC) for ARX models.
+#' @param y Data vector of time series observations.
+#' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' @param p_max Maximum number of autoregressive terms to be included.
+#' @keywords selection
+#' @return \item{p}{Lag order chosen by AIC.}
+#' @return \item{values}{Vector containing values AIC for p = 0 up to p_max.}
+#' @author Sean Telg
+#' @export
+#' @examples
+#' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
+#' aic(data$y, data$x,8)
+
+aic <- function(y,x,p_max,c,gamma,d=1){
+  
+  if (is.null(x)){
+    x <- "not"
+  }
+  
+  y <- fBasics::vec(y)
+  # y <- y - mean(y)
+  #n <- length(y) - p_max
+  
+  if (length(x) > 1){
+    numcol <- NCOL(x)
+  }
+  else{
+    numcol = 0
+  }
+  
+  crit <- matrix(data=NA, nrow=(p_max+1), ncol=1)
+  
+  for (p in 0:p_max){
+    
+    arx.ls_ST_results <- arx.ls_ST(fBasics::vec(y),x,p,c,gamma,d=1)
+    n <- length(arx.ls_ST_results[[5]])
+    Cov <- arx.ls_ST_results[[6]]
+    crit[(p+1)] <- -2*Cov/n + (2/n)*(2*p+1+numcol)
+  }
+  
+  p_aic <- which.min(crit) - 1
+  
+  crit <- t(crit)
+  colnames(crit) <- paste('p =', 0:p_max)
+  
+  return(list(p = p_aic,values = crit))
+  
+}
+
+#' @title The Hannan-Quinn (HQ) information criterion function
+#' @description This function allows you to calculate the Hannan-Quinn (HQ) information criteria for ARX models.
+#' @param y       Data vector of time series observations.
+#' @param x       Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' @param p_max   Maximum number of autoregressive terms to be included.
+#' @keywords selection
+#' @return \item{p}{Lag order chosen by HQ.}
+#' @return \item{values}{Vector containing values HQ for p = 0 up to p_max.}
+#' @author Sean Telg
+#' @export
+#' @examples
+#' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
+#' hq(data$y, data$x,8)
+
+hq <- function(y,x,p_max,c,gamma,d=1){
+  
+  if (is.null(x)){
+    x <- "not"
+  }
+  
+  y <- fBasics::vec(y)
+  # y <- y - mean(y)
+  # n <- length(y) - p_max
+  
+  if (length(x) > 1){
+    numcol <- NCOL(x)
+  }
+  else{
+    numcol = 0
+  }
+  
+  crit <- matrix(data=NA, nrow=(p_max+1), ncol=1)
+  
+  for (p in 0:p_max){
+    
+    arx.ls_ST_results <- arx.ls_ST(fBasics::vec(y),x,p,c,gamma,d=1)
+    n <- length(arx.ls_ST_results[[5]])
+    Cov <- arx.ls_ST_results[[6]]
+    crit[(p+1)] <- -2*Cov/n + ((2*log(log(n)))/n)*(2*p+1+numcol)
+  }
+  
+  p_hq <- which.min(crit) - 1
+  
+  crit <- t(crit)
+  colnames(crit) <- paste('p =', 0:p_max)
+  
+  return(list(p = p_hq, values = crit))
+  
 }
 
 
@@ -268,11 +389,11 @@ selection.lag.lead_ST <- function(y, x, p_pseudo, c, gamma, d = 1) {
 }
 
 
-selection.lag_st(inflation_df_monthly$inflationNonSA,NULL,12, median(inflation_df_monthly$inflationNonSA),gamma=20,d=1)
+selection.lag_st(inflation_df_monthly$inflationNonSA,NULL,12, median(inflation_df_monthly$inflationNonSA),gamma=6,d=1)
 p_pseudo <- readline(prompt = "Choose lag order for pseudo causal model: ")
 p_pseudo <- as.numeric(p_pseudo)
 
-pseudo <- arx.ls_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=20,d=1)
+pseudo <- arx.ls_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=6,d=1)
 Cov_pseudo <- pseudo[[4]]
 U_pseudo <- pseudo[[5]]
 test_cdf_pseudo <- cbind(U_pseudo, stats::pnorm(U_pseudo,0,Cov_pseudo))
@@ -340,7 +461,48 @@ if (jarque_check == 0){
 stats::qqnorm(U_pseudo, main="Normal Probability Plot of Residuals")
 stats::qqline(U_pseudo)
 
-selection.lag.lead_results <- selection.lag.lead_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=20,d=1)
+selection.lag.lead_results <- selection.lag.lead_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=6,d=1)
 p_C <- selection.lag.lead_results[[1]]
 p_NC <- selection.lag.lead_results[[2]]
+
+
+
+## -----------------------------------------------------------------------------
+# Residual diagnostics: test for independence of AR(p) residuals (Hecq et al. 2016) and test for no serial correlation (MARX package paper of HEcq et al.)
+# -----------------------------------------------------------------------------
+
+# Fit a 12-lag AR model to the inflation series
+model_arst2 <- Arima(inflation_df_monthly$inflationNonSA, order = c(12, 0, 0))
+resids_arst2 <- model_arst2$residuals  # Extract residuals
+
+# Step 2: Square the residuals for use as regressors
+resids_sq <- resids_arst2^2
+
+# Step 3: Create lag matrix manually
+m <- 2
+n <- length(resids_arst2)
+
+# Create the response variable y (residuals from t = m+1 to n)
+y <- resids_arst2[(m + 1):n]
+
+# Create lagged squared residuals matrix
+X_lags <- matrix(NA, nrow = n - m, ncol = m)
+for (i in 1:m) {
+  X_lags[, i] <- resids_sq[(m + 1 - i):(n - i)]
+}
+
+# Step 4: Regress current residual on lagged squared residuals
+model_test <- lm(y ~ X_lags)
+
+# Step 5: Test for joint significance of lag coefficients (H0: residuals are i.i.d.)
+test_statistic <- summary(model_test)$r.squared * length(y)
+p_value <- pchisq(test_statistic, df = m, lower.tail = FALSE)
+
+# Step 6: Output results of the chi-squared test
+cat("Chi-squared test statistic:", test_statistic, "\n")
+cat("p-value:", p_value, "\n")
+
+# Step 1: Perfome Ljung-Box test
+Box.test(resids_arst2, lag = 20, type = "Ljung-Box")
+
 

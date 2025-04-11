@@ -48,7 +48,7 @@ for (i in 0:p_C_max) {
 }
 
 ## -----------------------------------------------------------------------------
-# Residual diagnostics: test for independence of AR(p) residuals (Hecq et al. 2016)
+# Residual diagnostics: test for independence of AR(p) residuals (Hecq et al. 2016) and test for no serial correlation (MARX package paper of HEcq et al.)
 # -----------------------------------------------------------------------------
 
 # Fit a 12-lag AR model to the inflation series
@@ -81,6 +81,9 @@ p_value <- pchisq(test_statistic, df = m, lower.tail = FALSE)
 # Step 6: Output results of the chi-squared test
 cat("Chi-squared test statistic:", test_statistic, "\n")
 cat("p-value:", p_value, "\n")
+
+# Step 7: Perfome Ljung-Box test
+Box.test(resids_ar12, lag = 6, type = "Ljung-Box")
 
 # -----------------------------------------------------------------------------
 # Model estimation: compare AR(12) vs mixed MAR(1,11)
