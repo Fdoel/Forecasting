@@ -31,16 +31,16 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
     for (i in 1:p) {
       Z[(1 + i):n, ((i - 1) * k + 1):(i * k)] <- y[1:(n - i)]
     }
-    Z <- Z[(1 + p):n, ]
+    Z <- Z[(1 + max(p,d)):n, ]
   } else {
     Z <- matrix(, nrow = n, ncol = 0)
   }
   
   if (identical(x, "not")) {
   } else if (NCOL(x) == 1) {
-    Z <- cbind(Z, x[(1 + p):n])
+    Z <- cbind(Z, x[(1 + max(p,d)):n])
   } else if (NCOL(x) > 1) {
-    Z <- cbind(Z, x[(1 + p):n, ])
+    Z <- cbind(Z, x[(1 + max(p,d)):n, ])
   }
   
   # Create thresholded ZT matrix
@@ -66,7 +66,7 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
       Z_x <- cbind(Z_x, Z_x)
       mX <- ncol(Z_x)
       for(i in 1:nT) {
-        if(y[p+i-d] > c) {
+        if(y[max(p,d)+i-d] > c) {
           Z_x[i, 1:(mX/2)] <- 0
         } else {
           Z_x[i, (mX/2 + 1):mX] <- 0
@@ -75,7 +75,7 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
     }
     mC <- ncol(Z_c)
     for(i in 1:nT) {
-      if(y[p+i-d] > c) {
+      if(y[max(p,d)+i-d] > c) {
         Z_c[i, 1:(mC/2)] <- 0
       } else {
         Z_c[i, (mC/2 + 1):mC] <- 0
@@ -492,7 +492,7 @@ MART <- function(y, x, p_C, p_NC, c, d=1) {
   }
   
   se <- sqrt(diag(solve(optimization_results$hessian)))
-  se.dist <- se[(length(se)-1):length(se)]
+  se.dist <- se
   se.dist <- rev(se.dist)
   
   return(list(coef.c1 = B_C[1:p_C], coef.c2 = B_C[(p_C+1):(p_CT)], coef.nc1 = B_NC[1:p_NC], coef.nc2 = B_NC[(p_NC+1):(p_NCT)], coef.exo1 = B_x[1:(length(B_x)/2)], coef.exo2 = B_x[(length(B_x)/2 +1): length(B_x)], coef.int = IC, scale = sig,df = df,residuals = E, se.dist = se.dist))
@@ -535,16 +535,16 @@ regressor.matrix_ST <- function(y, x, p, c, gamma,d=1) {
     for (i in 1:p) {
       Z[(1 + i):n, ((i - 1) * k + 1):(i * k)] <- y[1:(n - i)]
     }
-    Z <- Z[(1 + p):n, ]
+    Z <- Z[(1 + max(p,d)):n, ]
   } else {
     Z <- matrix(, nrow = n, ncol = 0)
   }
   
   if (identical(x, "not")) {
   } else if (NCOL(x) == 1) {
-    Z <- cbind(Z, x[(1 + p):n])
+    Z <- cbind(Z, x[(1 + max(p,d)):n])
   } else if (NCOL(x) > 1) {
-    Z <- cbind(Z, x[(1 + p):n, ])
+    Z <- cbind(Z, x[(1 + max(p,d)):n, ])
   }
   
   # Create thresholded ZT matrix
@@ -571,8 +571,8 @@ regressor.matrix_ST <- function(y, x, p, c, gamma,d=1) {
       mX <- ncol(Z_x)
       for(i in 1:nT) {
         Z_x_old <- Z_x[i,]
-        Z_x[i,1:(mX/2)] <- logistic.smooth(y[p+i-d], gamma, c)*Z_x_old[1:(mX/2)]
-        Z_x[i, (mX/2 + 1):mX] <- (1-logistic.smooth(y[p+i-d], gamma, c))*Z_x_old[(mX/2 + 1):mX]
+        Z_x[i,1:(mX/2)] <- logistic.smooth(y[max(p,d)+i-d], gamma, c)*Z_x_old[1:(mX/2)]
+        Z_x[i, (mX/2 + 1):mX] <- (1-logistic.smooth(y[max(p,d)+i-d], gamma, c))*Z_x_old[(mX/2 + 1):mX]
       }
     }
     mC <- ncol(Z_c)
@@ -1204,7 +1204,6 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
     }
     y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
   }
-  
   return(y.for)
 }
 
