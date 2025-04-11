@@ -565,7 +565,7 @@ regressor.matrix_ST <- function(y, x, p, c, gamma,d=1) {
   if(p != 0) {
     Z_c <- cbind(Z_c, Z_c)
     if (!identical(x, "not")) {
-      Z_x <- Z[,(p + 1):ncol(Z)]
+      Z_x <- Z[,(max(p,d) + 1):ncol(Z)]
       Z_x <- cbind(Z_x, Z_x)
       mX <- ncol(Z_x)
       for(i in 1:nT) {
@@ -577,8 +577,8 @@ regressor.matrix_ST <- function(y, x, p, c, gamma,d=1) {
     mC <- ncol(Z_c)
     for(i in 1:nT) {
       Z_c_old <- Z_c[i,]
-      Z_c[i,1:(mC/2)] <- logistic.smooth(y[p+i-d], gamma, c)*Z_c_old[1:(mC/2)]
-      Z_c[i, (mC/2 + 1):mC] <- (1-logistic.smooth(y[p+i-d], gamma, c))*Z_c_old[(mC/2 + 1):mC]
+      Z_c[i,1:(mC/2)] <- logistic.smooth(y[max(p,d)+i-d], gamma, c)*Z_c_old[1:(mC/2)]
+      Z_c[i, (mC/2 + 1):mC] <- (1-logistic.smooth(y[max(p,d)+i-d], gamma, c))*Z_c_old[(mC/2 + 1):mC]
     }
     if (!identical(x, "not")) {
       ZT <- cbind(Z_c, Z_x)
@@ -621,8 +621,8 @@ arx.ls_ST <- function(y,x,p,c, gamma,d=1){
   
   n <- length(y) - p
   
-  Y <- y[(p+1):length(y)]
-  int <- rep(1,(length(y)-p))
+  Y <- y[(max(p,d)+1):length(y)]
+  int <- rep(1,(length(y)-max(p,d)))
   ZT <- regressor.matrix_ST(y,x,p,c,gamma,d)
   ZT <- cbind(int,ZT)
   
@@ -763,7 +763,7 @@ ll.SMART.Z <- function(params,y,x,p_C,p_NC,c,gamma,d=1) {
   U <- rev(V)
   U <- fBasics::vec(U)
   
-  ZNC1 <- U[(p_NC + 1):length(U)]
+  ZNC1 <- U[(mac(p_NC,d) + 1):length(U)]
   ZNC1 <- fBasics::vec(ZNC1)
   ZNC2 <- regressor.matrix_ST(U,"not",p_NC, c, gamma,d)
   if((colnumT) > 1){
@@ -774,9 +774,9 @@ ll.SMART.Z <- function(params,y,x,p_C,p_NC,c,gamma,d=1) {
   }
   if (length(x) > 1){
     if ((colnumT) > 1){
-      ZX <- ZX[(p_NC +1):length(U),]
+      ZX <- ZX[(max(p_NC,d) +1):length(U),]
     } else {
-      ZX <- ZX[(p_NC + 1):length(U)]
+      ZX <- ZX[(max(p_NC,d) + 1):length(U)]
     }
   } else {
     x = "not"
@@ -1123,7 +1123,7 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
     phi2 <- c(1,model$coef.c2)
     
     u <- c()
-    for (i in (r+1):obs){
+    for (i in (max(r,d)+1):obs){
       if(y[i-d] >c) {
         u[i] <- phi1 %*% y[i:(i-r)]
       } else {
@@ -1186,14 +1186,14 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
     exp2[j] = ((1/N)*sum(hve22[,j]))/((1/N)*sum(hve_reg2))
     
     if(y[(obs - d + j)] > c) {
-      p <- length(which(y > c))
+      p <- length(which(y > c))/length(y)
       if(length(model$coef.c1) == 1){
         y.for[j] <- model$coef.c1 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
       } else{
         y.for[j] <-  t(model$coef.c1) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
       }
     } else {
-      p <- length(which(y > c))
+      p <- length(which(y > c))/length(y)
       if(length(model$coef.c1) == 1){
         y.for[j] <- model$coef.c2 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
       } else{
@@ -1305,7 +1305,7 @@ forecast.SMART <- function(y,X,p_C,p_NC,c,gamma,d,X.for,h,M,N,seed=20240402) {
     phi2 <- c(1,model$coef.c2)
     
     u <- c()
-    for (i in (r+1):obs){
+    for (i in (max(r,d)+1):obs){
       if(y[i-d] >c) {
         u[i] <- phi1 %*% y[i:(i-r)]
       } else {
