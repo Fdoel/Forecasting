@@ -763,7 +763,7 @@ ll.SMART.Z <- function(params,y,x,p_C,p_NC,c,gamma,d=1) {
   U <- rev(V)
   U <- fBasics::vec(U)
   
-  ZNC1 <- U[(mac(p_NC,d) + 1):length(U)]
+  ZNC1 <- U[(max(p_NC,d) + 1):length(U)]
   ZNC1 <- fBasics::vec(ZNC1)
   ZNC2 <- regressor.matrix_ST(U,"not",p_NC, c, gamma,d)
   if((colnumT) > 1){
@@ -937,7 +937,7 @@ SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
     }
   }
   
-  ZC1 <- y[(p_C+1):length(y)]
+  ZC1 <- y[(max(p_C,d)+1):length(y)]
   ZC1 <- fBasics::vec(ZC1)
   ZC2 <- regressor.matrix_ST(y,"not",p_C,c, gamma,d)
   
@@ -950,7 +950,7 @@ SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
   U <- rev(V)
   U <- fBasics::vec(U)
   
-  ZNC1 <- U[(p_NC + 1):length(U)]
+  ZNC1 <- U[(max(p_NC,d) + 1):length(U)]
   ZNC1 <- fBasics::vec(ZNC1)
   ZNC2 <- regressor.matrix_ST(U,"not",p_NC,c, gamma,d)
   
@@ -962,10 +962,10 @@ SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
   
   if(length(x) > 1){
     if (numcolT > 1 ){
-      ZX <- ZX[(p_NC +1):length(U),]
+      ZX <- ZX[(max(p_NC,d) +1):length(U),]
     }
     else{
-      ZX <- ZX[(p_NC +1):length(U)]
+      ZX <- ZX[(max(p_NC,d) +1):length(U)]
     }
   } else{
     x <- "not"
