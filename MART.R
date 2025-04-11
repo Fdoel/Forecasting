@@ -122,8 +122,8 @@ arx.ls_T <- function(y,x,p,c,d=1){
   
   n <- length(y) - p
   
-  Y <- y[(p+1):length(y)]
-  int <- rep(1,(length(y)-p))
+  Y <- y[(max(p,d)+1):length(y)]
+  int <- rep(1,(length(y)-max(p,d)))
   ZT <- regressor.matrix_T(y,x,p,c,d)
   ZT <- cbind(int,ZT)
   
@@ -253,9 +253,9 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c,d=1){
     }
   }
   
-  ZC1 <- y[(p_C+1):length(y)]
+  ZC1 <- y[(max(p_C,d)+1):length(y)]
   ZC1 <- fBasics::vec(ZC1)
-  ZC2 <- regressor.matrix_T(y,"not",p_C, c,d)
+  ZC2 <- regressor.matrix_T(y,"not",p_C, c, d)
   
   if (p_C > 0){
     V <- ZC1 - (ZC2 %*% BC1)
@@ -265,7 +265,7 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c,d=1){
   U <- rev(V)
   U <- fBasics::vec(U)
   
-  ZNC1 <- U[(p_NC + 1):length(U)]
+  ZNC1 <- U[(max(p_NC,d) + 1):length(U)]
   ZNC1 <- fBasics::vec(ZNC1)
   ZNC2 <- regressor.matrix_T(U,"not",p_NC, c,d)
   if((colnumT) > 1){
@@ -276,9 +276,9 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c,d=1){
   }
   if (length(x) > 1){
     if ((colnumT) > 1){
-      ZX <- ZX[(p_NC +1):length(U),]
+      ZX <- ZX[(max(p_NC,d) +1):length(U),]
     } else {
-      ZX <- ZX[(p_NC + 1):length(U)]
+      ZX <- ZX[(max(p_NC,d) + 1):length(U)]
     }
   } else {
     x = "not"
@@ -439,7 +439,7 @@ MART <- function(y, x, p_C, p_NC, c, d=1) {
     }
   }
   
-  ZC1 <- y[(p_C+1):length(y)]
+  ZC1 <- y[(max(p_C,d)+1):length(y)]
   ZC1 <- fBasics::vec(ZC1)
   ZC2 <- regressor.matrix_T(y,"not",p_C,c,d)
   
@@ -452,7 +452,7 @@ MART <- function(y, x, p_C, p_NC, c, d=1) {
   U <- rev(V)
   U <- fBasics::vec(U)
   
-  ZNC1 <- U[(p_NC + 1):length(U)]
+  ZNC1 <- U[(max(p_NC,d) + 1):length(U)]
   ZNC1 <- fBasics::vec(ZNC1)
   ZNC2 <- regressor.matrix_T(U,"not",p_NC,c,d)
   
@@ -464,10 +464,10 @@ MART <- function(y, x, p_C, p_NC, c, d=1) {
   
   if(length(x) > 1){
     if (numcolT > 1 ){
-      ZX <- ZX[(p_NC +1):length(U),]
+      ZX <- ZX[(max(p_NC,d) +1):length(U),]
     }
     else{
-      ZX <- ZX[(p_NC +1):length(U)]
+      ZX <- ZX[(max(p_NC,d) +1):length(U)]
     }
   } else{
     x <- "not"
