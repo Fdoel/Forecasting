@@ -238,7 +238,7 @@ hq <- function(y,x,p_max,c,d=3){
 #' #' data <- sim.marx(c('t',3,1), c('t',3,1),100,0.5,0.4,0.3)
 #' #' selection.lag.lead(data$y,data$x,2)
 #' 
-selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 3) {
+selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 1) {
   y <- as.numeric(y)
   # Check if x is NULL and set it to 'not' if true
   if (is.null(x)) {
@@ -252,18 +252,18 @@ selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 3) {
   P_NC <- as.numeric(fBasics::vec(P_NC))
   print(P_NC)
 
-  n <- length(y) - p_pseudo
+  
   loglik <- c()
 
   for (i in 1:(p_pseudo + 1)) {
 
     # Using tryCatch to handle potential errors during the MART call and the subsequent operations
     tryCatch({
-      MART_results <- MART(y, x, P_C[i], P_NC[i], c, d = 3)
-
+      MART_results <- MART(y, x, P_C[i], P_NC[i], c, d)
       sig <- as.numeric(MART_results[[8]])
       df  <- as.numeric(MART_results[[9]])
       E   <- MART_results[[10]]
+      n <- length(E)
 
       # Check if the components are numeric
       if (!is.numeric(E)) stop("E is not numeric.")
