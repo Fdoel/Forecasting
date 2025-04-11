@@ -23,17 +23,17 @@ library(pbmcapply)     # For parallel processing with progress bar
 #' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
 #' selection.lag(data$y,data$x,8)
 
-selection.lag_t <- function(y,x,p_max,c,d=1){
+selection.lag_t <- function(y,x,p_max,c,d=3){
   c <- c
-  d <- 1
+  d <- 3
   
   if (is.null(x)){
     x <- "not"
   }
   
-  bic_results <- bic(y,x,p_max,c,d=1)
-  aic_results <- aic(y,x,p_max,c,d=1)
-  hq_results <- hq(y,x,p_max,c,d=1)
+  bic_results <- bic(y,x,p_max,c,d=3)
+  aic_results <- aic(y,x,p_max,c,d=3)
+  hq_results <- hq(y,x,p_max,c,d=3)
   
   bic_vec <- bic_results[[2]]
   colnames(bic_vec) <- paste('p =', 0:p_max)
@@ -66,7 +66,7 @@ selection.lag_t <- function(y,x,p_max,c,d=1){
   cat(' ', "\n")
   cat(' ', "\n")
   
-  return(list(bic = bic_vec))
+  return(list(bic = bic_vec,aic=aic_vec,hq=hq_vec))
 }
 
 #' @title The Bayesian/Schwarz information criterion (BIC) function
@@ -83,7 +83,7 @@ selection.lag_t <- function(y,x,p_max,c,d=1){
 #' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
 #' bic(data$y, data$x,8)
 
-bic <- function(y,x,p_max,c,d=1){
+bic <- function(y,x,p_max,c,d=3){
   
   if (is.null(x)){
     x <- "not"
@@ -104,7 +104,7 @@ bic <- function(y,x,p_max,c,d=1){
   
   for (p in 0:p_max){
     
-    arx.ls_T_results <- arx.ls_T(fBasics::vec(y),x,p,c,d=1)
+    arx.ls_T_results <- arx.ls_T(fBasics::vec(y),x,p,c,d=3)
     n <- length(arx.ls_T_results[[5]])
     Cov <- arx.ls_T_results[[6]]
     crit[(p+1)] <- -2*Cov/n + ((log(n))/n)*(2*p+1+numcol)
@@ -133,7 +133,7 @@ bic <- function(y,x,p_max,c,d=1){
 #' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
 #' aic(data$y, data$x,8)
 
-aic <- function(y,x,p_max,c,d=1){
+aic <- function(y,x,p_max,c,d=3){
   
   if (is.null(x)){
     x <- "not"
@@ -154,7 +154,7 @@ aic <- function(y,x,p_max,c,d=1){
   
   for (p in 0:p_max){
     
-    arx.ls_T_results <- arx.ls_T(fBasics::vec(y),x,p,c,d=1)
+    arx.ls_T_results <- arx.ls_T(fBasics::vec(y),x,p,c,d=3)
     n <- length(arx.ls_T_results[[5]])
     Cov <- arx.ls_T_results[[6]]
     crit[(p+1)] <- -2*Cov/n + (2/n)*(2*p+1+numcol)
@@ -183,7 +183,7 @@ aic <- function(y,x,p_max,c,d=1){
 #' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
 #' hq(data$y, data$x,8)
 
-hq <- function(y,x,p_max,c,d=1){
+hq <- function(y,x,p_max,c,d=3){
   
   if (is.null(x)){
     x <- "not"
@@ -204,7 +204,7 @@ hq <- function(y,x,p_max,c,d=1){
   
   for (p in 0:p_max){
     
-    arx.ls_T_results <- arx.ls_T(fBasics::vec(y),x,p,c,d=1)
+    arx.ls_T_results <- arx.ls_T(fBasics::vec(y),x,p,c,d=3)
     n <- length(arx.ls_T_results[[5]])
     Cov <- arx.ls_T_results[[6]]
     crit[(p+1)] <- -2*Cov/n + ((2*log(log(n)))/n)*(2*p+1+numcol)
@@ -241,7 +241,7 @@ hq <- function(y,x,p_max,c,d=1){
 #' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
 #' arx.ls(data$y,data$x,2)
 
-arx.ls_T <- function(y,x,p,c,d=1){
+arx.ls_T <- function(y,x,p,c,d=3){
   c <- c
   d <- 1
   if (is.null(x)){
@@ -326,7 +326,7 @@ arx.ls_T <- function(y,x,p,c,d=1){
 #' data <- sim.marx(c('t',3,1), c('t',3,1),100,0.5,0.4,0.3)
 #' selection.lag.lead(data$y,data$x,2)
 
-selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 1) {
+selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 3) {
   y <- as.numeric(y)
   # Check if x is NULL and set it to 'not' if true
   if (is.null(x)) {
@@ -347,7 +347,7 @@ selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 1) {
     
     # Using tryCatch to handle potential errors during the MART call and the subsequent operations
     tryCatch({
-      MART_results <- MART(y, x, P_C[i], P_NC[i], c, d = 1)
+      MART_results <- MART(y, x, P_C[i], P_NC[i], c, d = 3)
       
       sig <- as.numeric(MART_results[[8]])
       df  <- as.numeric(MART_results[[9]])
@@ -397,11 +397,11 @@ selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 1) {
 }
 
 
-selection.lag_t(inflation_df_monthly$inflationNonSA,NULL,12, 0.7,d=1)
+selection.lag_t(inflation_df_monthly$inflationNonSA,NULL,12,median(inflation_df_monthly$inflationNonSA),d=3)
 p_pseudo <- readline(prompt = "Choose lag order for pseudo causal model: ")
 p_pseudo <- as.numeric(p_pseudo)
 
-pseudo <- arx.ls_T(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,0.7,d=1)
+pseudo <- arx.ls_T(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),d=3)
 Cov_pseudo <- pseudo[[4]]
 U_pseudo <- pseudo[[5]]
 test_cdf_pseudo <- cbind(U_pseudo, stats::pnorm(U_pseudo,0,Cov_pseudo))
@@ -469,36 +469,46 @@ if (jarque_check == 0){
 stats::qqnorm(U_pseudo, main="Normal Probability Plot of Residuals")
 stats::qqline(U_pseudo)
 
-selection.lag.lead_results <- selection.lag.lead_T(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,0.7,d=1)
+selection.lag.lead_results <- selection.lag.lead_T(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),d=3)
 p_C <- selection.lag.lead_results[[1]]
 p_NC <- selection.lag.lead_results[[2]]
 
 
-# -----------------------------------------------------------------------------
-# Residual diagnostics: test for independence of squared residuals (ARCH test)
+## -----------------------------------------------------------------------------
+# Residual diagnostics: test for independence of AR(p) residuals (Hecq et al. 2016) and test for no serial correlation (MARX package paper of HEcq et al.)
 # -----------------------------------------------------------------------------
 
 # Fit a 12-lag AR model to the inflation series
-model_ar2 <- Arima(inflation_df_monthly$inflationNonSA, order = c(p_C + p_NC, 0, 0))
-resids_ar2 <- model_ar$residuals  # Extract residuals
+model_ar2 <- Arima(inflation_df_monthly$inflationNonSA, order = c(12, 0, 0))
+resids_ar2 <- model_ar2$residuals  # Extract residuals
 
-# Step 2: Square the residuals for ARCH effect detection
+# Step 2: Square the residuals for use as regressors
 resids_sq <- resids_ar2^2
 
-# Step 3: Create lag matrix of squared residuals (lags 1 through m)
-m <- p_C + p_NC
-X <- embed(resids_sq, m + 1)
-y <- X[, 1]            # Current value
-X_lags <- X[, -1]      # Lagged squared residuals
+# Step 3: Create lag matrix manually
+m <- 2
+n <- length(resids_ar2)
 
-# Step 4: Regress current squared residual on its lags
+# Create the response variable y (residuals from t = m+1 to n)
+y <- resids_ar2[(m + 1):n]
+
+# Create lagged squared residuals matrix
+X_lags <- matrix(NA, nrow = n - m, ncol = m)
+for (i in 1:m) {
+  X_lags[, i] <- resids_sq[(m + 1 - i):(n - i)]
+}
+
+# Step 4: Regress current residual on lagged squared residuals
 model_test <- lm(y ~ X_lags)
 
-# Step 5: Test for joint significance of lag coefficients (H0: no ARCH effect)
+# Step 5: Test for joint significance of lag coefficients (H0: residuals are i.i.d.)
 test_statistic <- summary(model_test)$r.squared * length(y)
 p_value <- pchisq(test_statistic, df = m, lower.tail = FALSE)
 
 # Step 6: Output results of the chi-squared test
 cat("Chi-squared test statistic:", test_statistic, "\n")
 cat("p-value:", p_value, "\n")
+
+# Step 1: Perfome Ljung-Box test
+Box.test(resids_ar2, lag = 20, type = "Ljung-Box")
 
