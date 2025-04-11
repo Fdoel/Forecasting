@@ -305,7 +305,6 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c,d=1){
   return(neg.loglikelihood = loglik_eval)
 }
 
-# DEZE FUNCTIE MOET NOG AANGEPAST WORDEN
 MART <- function(y, x, p_C, p_NC, c, d=1) {
   p_CT <- 2*p_C
   p_NCT <- 2*p_NC
@@ -1225,4 +1224,166 @@ information.criteria <- function(type = c("MARX", "MART", "SMART"), model) {
   hq  <- (-2 * loglikelihood + 2 * log(log(n)) * k) / n
   
   return(list(aic = aic, bic = bic, hq = hq, loglikelihood = loglikelihood, k = k, n = n, df = df, sig = sig))
+}
+
+# Treshold verandert niet fundamenteel de simulatie van toekomstige errors, je moet alleen uitkijken dat dimensies enzo kloppen
+forecast.SMART <- function(y,X,p_C,p_NC,c,gamma,d,X.for,h,M,N,seed=20240402) {
+  
+  set.seed(seed)
+  if (missing(X) == TRUE){
+    X = NULL
+  }
+  
+  if (missing(N) == TRUE){
+    N = 10000
+  }
+  
+  model <- SMART(y, X, p_C, p_NC, c, gamma, d)
+  obs <- length(y)
+  
+  ## Check whether there are exogenous variables and whether truncation M is known
+  
+  if (missing(X.for) == TRUE && missing(M) == TRUE){
+    X.for = NULL
+    M = 50
+  } else if(missing(X.for) == TRUE && missing(M) == FALSE){
+    X.for = NULL
+    M = M
+  } else if(missing(X.for) == FALSE && missing(M) == TRUE){
+    if (NCOL(X.for) == 1){
+      if(is.null(X.for) == TRUE){
+        M = 50
+      } else{
+        M = length(X.for)
+      }
+    } else{
+      M = length(X.for[,1])
+    }
+  } else if(missing(X.for) == FALSE && missing(M) == FALSE){
+    if (NCOL(X.for) == 1){
+      if(is.null(X.for) == TRUE){
+        M = M
+      }
+      else{
+        M = min(length(X.for), M)
+      }
+    }
+    else{
+      M = min(length(X.for[,1]),M)
+    }
+  }
+  
+  r <- length(model$coef.c1)
+  s <- length(model$coef.nc1)
+  ## Simulate future epsilon and use forecasted X
+  hve_reg1 <- c()
+  hve_reg2 <- c()
+  hve21 <- matrix(data=0, nrow=N,ncol=h)
+  hve22 <- matrix(data=0, nrow=N,ncol=h)
+  
+  for (iter in 1:N){
+    
+    eps.sim <- model$scale*stats::rt(M,model$df)
+    z2 <- c()
+    for (i in 1:M){
+      if(is.null(X.for) == TRUE){
+        z2[i] <- eps.sim[i]
+      }
+      else{
+        # Dit op de een of andere manier omzetten naar threshold maar zie niet 123 hoe
+        if(NCOL(X.for) > 1){
+          z2[i] <- eps.sim[i] +  coef.exo %*% t(X.for[i,])
+        }
+        else{
+          z2[i] <- eps.sim[i] + coef.exo * X.for[i]
+        }
+      }
+    }
+    
+    ## Compute filtered values u = phi(L)y and moving average values
+    # split in phi1 en phi2 voor twee regimes.
+    phi1 <- c(1,model$coef.c1)
+    phi2 <- c(1,model$coef.c2)
+    
+    u <- c()
+    for (i in (r+1):obs){
+      if(y[i-d] >c) {
+        u[i] <- phi1 %*% y[i:(i-r)]
+      } else {
+        u[i] <- phi2 %*% y[i:(i-r)]
+      }
+    }
+    w <- c(u[(obs-s+1):obs],z2)
+    # C is a function of the non-causal polynomial. So we need to split it up for now
+    C1 <- matrix(data=0, nrow=(M+s), ncol=(M+s))
+    C2 <- matrix(data=0, nrow=(M+s), ncol=(M+s))
+    C1[1,] <- compute.MA(model$coef.nc1,(M+s-1))
+    C2[1,] <- compute.MA(model$coef.nc2,(M+s-1))
+    
+    if (s > 1){
+      for (i in 2:s){
+        C1[i,] <- c(0, C1[(i-1),1:(length(C1[(i-1),])-1)])
+        C2[i,] <- c(0, C2[(i-1),1:(length(C2[(i-1),])-1)])
+      }
+    }
+    
+    for (i in (s+1):(M+s)){
+      C1[i,] <- c(rep(0,(i-1)),1,rep(0,(M+s-i)))
+      C2[i,] <- c(rep(0,(i-1)),1,rep(0,(M+s-i)))
+    }
+    
+    D1 = solve(C1)
+    D2 = solve(C2)
+    
+    e1 <- D1 %*% w
+    e2 <- D2 %*% w
+    
+    h1 <- c()
+    h2 <- c()
+    
+    for (i in 1:s){
+      h1[i] <- metRology::dt.scaled(e1[i], df=model$df, sd=model$scale)
+      h2[i] <- metRology::dt.scaled(e2[i], df=model$df, sd=model$scale)
+    }
+    
+    hve_reg1[iter] = prod(h1)
+    hve_reg2[iter] = prod(h2)
+    
+    for (j in 1:h){
+      mov.av1 <-  C1[1,1:(M-j+1)] %*% z2[j:M]
+      mov.av2 <- C2[1,1:(M-j+1)] %*% z2[j:M]
+      
+      hve21[iter,j] <- mov.av1 * hve_reg1[iter]
+      hve22[iter,j] <- mov.av2 * hve_reg2[iter]
+      
+    }
+  }
+  
+  y.star <- y[(obs-r+1):obs]
+  y.for <- c()
+  exp1 <- c()
+  exp2 <- c()
+  
+  for (j in 1:h){
+    exp1[j] = ((1/N)*sum(hve21[,j]))/((1/N)*sum(hve_reg1))
+    exp2[j] = ((1/N)*sum(hve22[,j]))/((1/N)*sum(hve_reg2))
+    
+    if(y[(obs - d + j)] > c) {
+      p <- logistic.smooth(mean(y), gamma, c)
+      if(length(model$coef.c1) == 1){
+        y.for[j] <- model$coef.c1 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+      } else{
+        y.for[j] <-  t(model$coef.c1) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+      }
+    } else {
+      p <- logistic.smooth(mean(y), gamma, c)
+      if(length(model$coef.c1) == 1){
+        y.for[j] <- model$coef.c2 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+      } else{
+        y.for[j] <-  t(model$coef.c2) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+      }
+    }
+    y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
+  }
+  return(y.for)
 }
