@@ -1369,21 +1369,13 @@ forecast.SMART <- function(y,X,p_C,p_NC,c,gamma,d,X.for,h,M,N,seed=20240402) {
     exp1[j] = ((1/N)*sum(hve21[,j]))/((1/N)*sum(hve_reg1))
     exp2[j] = ((1/N)*sum(hve22[,j]))/((1/N)*sum(hve_reg2))
     
-    if(y[(obs - d + j)] > c) {
-      p <- logistic.smooth(mean(y), gamma, c)
-      if(length(model$coef.c1) == 1){
-        y.for[j] <- model$coef.c1 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
-      } else{
-        y.for[j] <-  t(model$coef.c1) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
-      }
-    } else {
-      p <- logistic.smooth(mean(y), gamma, c)
-      if(length(model$coef.c1) == 1){
-        y.for[j] <- model$coef.c2 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
-      } else{
-        y.for[j] <-  t(model$coef.c2) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
-      }
+    p <- logistic.smooth(mean(y), gamma, c)
+    if(length(model$coef.c1) == 1){
+      y.for[j] <- logistic.smooth(y[(obs - d + j)], c, gamma) * model$coef.c1 * y.star + (1-logistic.smooth(y[(obs - d + j)], c, gamma)) * model$coef.c2 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+    } else{
+      y.for[j] <-  logistic.smooth(y[(obs - d + j)], c, gamma) * t(model$coef.c1) %*% y.star + (1 - logistic.smooth(y[(obs - d + j)], c, gamma)) * t(model$coef.c2) %*% y.star  + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
     }
+
     y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
   }
   return(y.for)
