@@ -1,4 +1,5 @@
 source("MART.R")
+source("MARX_functions.R")
 load("inflation_df_monthly.RData")
 library(pbmcapply)
 # -----------------------------------------------------------------------------
@@ -10,14 +11,14 @@ h <- 3          # Forecast horizon
 N <- 1000        # Posterior draws
 M <- 50          # MA truncation
 d <- 3
-c <- median(inflation_df_monthly$inflationSA) - mean(inflation_df_monthly$inflationSA, na.rm = T)
+c <- median(inflation_df_monthly$inflationSA)
 
 # Model specifications
-p_C_mart <- 2;  p_NC_mart <- 2    # Mixed MAR(1,1)
-p_C_art <- 2; p_NC_art<- 0   # Purely causal AR(12)
+p_C_mart <- 2;  p_NC_mart <-2    # Mixed MAR(1,1)
+p_C_mar <- 2; p_NC_mar<- 2   # Purely causal AR(12)
 
 # Define forecast evaluation window
-data_series <- inflation_df_monthly$inflationSA - mean(inflation_df_monthly$inflationSA)
+data_series <- inflation_df_monthly$inflationSA
 start_index <- 100
 end_index <- length(data_series) - h
 forecast_indices <- start_index:end_index
@@ -42,12 +43,10 @@ results_list <- pbmclapply(
         M = M,
         N = N
       )
-      forecast_art <-  forecast_art <- forecast.MART(
+      forecast_mar <- forecast.marx(
         y = y_window,
-        p_C = p_C_art,
-        p_NC = p_NC_art,
-        c = c,
-        d = d,
+        p_C = p_C_mar,
+        p_NC = p_NC_mar,
         h = h,
         M = M,
         N = N
@@ -55,7 +54,7 @@ results_list <- pbmclapply(
       
       actual <- data_series[(t + 1):(t + h)]
       
-      return(list(mart = forecast_mart, art = forecast_art, actual = actual))
+      return(list(mart = forecast_mart, art = forecast_mar, actual = actual))
     }, error = function(e) {
       message(sprintf("Error at t = %d: %s", t, e$message))
       return(NULL)
@@ -75,7 +74,7 @@ forecast_mart <- do.call(rbind, lapply(results_list, function(x) {
 }))
 
 forecast_art <- do.call(rbind, lapply(results_list, function(x) {
-  if (!is.null(x) && !is.null(x$art)) return(x$art)
+  if (!is.null(x) && !is.null(x$mar)) return(x$mar)
   return(matrix(NA, nrow = 1, ncol = h))
 }))
 
@@ -85,7 +84,7 @@ actual_matrix <- do.call(rbind, lapply(results_list, function(x) {
 }))
 
 colnames(forecast_mart) <- paste0("h", 1:h)
-colnames(forecast_art) <- paste0("h", 1:h)
+colnames(forecast_mar) <- paste0("h", 1:h)
 colnames(actual_matrix) <- paste0("h", 1:h)
 
 # -----------------------------------------------------------------------------
@@ -97,7 +96,7 @@ rmse <- function(forecast, actual) {
 }
 
 rmse_mart <- rmse(forecast_mart, actual_matrix)
-rmse_art <- rmse(forecast_art, actual_matrix)
+rmse_art <- rmse(forecast_mar, actual_matrix)
 
 
 # -----------------------------------------------------------------------------

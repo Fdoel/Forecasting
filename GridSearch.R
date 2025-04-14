@@ -8,10 +8,9 @@ source("MART.R")
 load("inflation_df_monthly.RData")
 
 # Set model parameters
-thresholds <- median(inflation_df_monthly$inflationNonSA, na.rm = TRUE)
+thresholds <- seq(0,1,by=0.1)
+gammas <- seq(1,30, by=1)
 ds <- seq(1, 12)
-p_C_max <- 4
-p_NC_max <- 4
 
 # Set number of cores based on OS
 if (.Platform$OS.type == "windows") {
@@ -25,21 +24,23 @@ if (.Platform$OS.type == "windows") {
 param_grid <- expand.grid(
   threshold = thresholds,
   d = ds,
-  i = 0:p_C_max,
-  j = 0:p_NC_max
+  gamma = gammas,
+  i = 0,
+  j = 2
 )
 
 # Function to run MART and get BIC value
 run_model <- function(params) {
   t <- params$threshold
   d <- params$d
+  g <- params$gamma
   i <- params$i
   j <- params$j
   
   # Run MART model
-  MART_d <- MART(inflation_df_monthly$inflationNonSA, NULL, i, j, t, d)
-  bic_value <- information.criteria("MART", MART_d)
-  return(data.frame(threshold = t, d=d, i = i, j = j, bic = bic_value))
+  SMART_d <- SMART(inflation_df_monthly$inflationNonSA, NULL, i, j, t, g, d)
+  bic_value <- information.criteria("SMART", SMART_d)
+  return(data.frame(threshold = t, gamma=g, d=d, i = i, j = j, bic = bic_value))
 }
 
 # Use pbmclapply with a progress bar
@@ -50,7 +51,7 @@ bic_results <- pbmclapply(
 )
 
 # Combine all results into one data frame
-bic_mart_d_df <- do.call(rbind, bic_results)
+bic_mart_dcg_df <- do.call(rbind, bic_results)
 
 # Save the results
-save(bic_mart_d_df, file = "bic_mart_d_df.RData")
+save(bic_mart_dcg_df, file = "bic_smart_dcg_df.RData")

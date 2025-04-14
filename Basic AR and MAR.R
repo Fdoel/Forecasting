@@ -6,7 +6,7 @@
 #     - Model selection via information criteria
 #     - Residual diagnostics for AR models
 #     - Forecasting with various model configurations
-#     - Out-of-sample forecast performance evaluation using RMSE
+#     - Out-of-sampl;['pe forecast performance evaluation using RMSE
 # =============================================================================
 
 # Load required libraries
