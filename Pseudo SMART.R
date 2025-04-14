@@ -17,8 +17,6 @@
 #' selection.lag(data$y,data$x,8)
 
 selection.lag_st <- function(y,x,p_max,c,gamma,d=1){
-  c <- c
-  d <- d
   if (is.null(x)){
     x <- "not"
   }
@@ -82,8 +80,8 @@ bic <- function(y,x,p_max,c,gamma,d){
   }
   
   y <- fBasics::vec(y)
-  # y <- y - mean(y)
-  # n <- length(y) - p_max
+  y <- y - mean(y)
+  n <- length(y) - max(p_max,d)
   
   if (length(x) > 1){
     numcol <- NCOL(x)
@@ -96,7 +94,7 @@ bic <- function(y,x,p_max,c,gamma,d){
   
   for (p in 0:p_max){
     
-    arx.ls_ST_results <- arx.ls_ST(fBasics::vec(y),x,p,c,gamma,d)
+    arx.ls_ST_results <- arx.ls_ST(y,x,p,c,gamma,d)
     n <- length(arx.ls_ST_results[[5]])
     Cov <- arx.ls_ST_results[[6]]
     crit[(p+1)] <- -2*Cov/n + ((log(n))/n)*(2*p+1+numcol)
@@ -132,8 +130,7 @@ aic <- function(y,x,p_max,c,gamma,d){
   }
   
   y <- fBasics::vec(y)
-  # y <- y - mean(y)
-  #n <- length(y) - p_max
+  y <- y - mean(y)
   
   if (length(x) > 1){
     numcol <- NCOL(x)
@@ -146,7 +143,7 @@ aic <- function(y,x,p_max,c,gamma,d){
   
   for (p in 0:p_max){
     
-    arx.ls_ST_results <- arx.ls_ST(fBasics::vec(y),x,p,c,gamma,d)
+    arx.ls_ST_results <- arx.ls_ST(y,x,p,c,gamma,d)
     n <- length(arx.ls_ST_results[[5]])
     Cov <- arx.ls_ST_results[[6]]
     crit[(p+1)] <- -2*Cov/n + (2/n)*(2*p+1+numcol)
@@ -182,8 +179,7 @@ hq <- function(y,x,p_max,c,gamma,d){
   }
   
   y <- fBasics::vec(y)
-  # y <- y - mean(y)
-  # n <- length(y) - p_max
+  y <- y - mean(y)
   
   if (length(x) > 1){
     numcol <- NCOL(x)
@@ -196,7 +192,7 @@ hq <- function(y,x,p_max,c,gamma,d){
   
   for (p in 0:p_max){
     
-    arx.ls_ST_results <- arx.ls_ST(fBasics::vec(y),x,p,c,gamma,d)
+    arx.ls_ST_results <- arx.ls_ST(y,x,p,c,gamma,d)
     n <- length(arx.ls_ST_results[[5]])
     Cov <- arx.ls_ST_results[[6]]
     crit[(p+1)] <- -2*Cov/n + ((2*log(log(n)))/n)*(2*p+1+numcol)
@@ -235,16 +231,14 @@ hq <- function(y,x,p_max,c,gamma,d){
 #' arx.ls(data$y,data$x,2)
 
 arx.ls_ST <- function(y,x,p,c,gamma,d){
-  c <- c
-  d <- 1
   if (is.null(x)){
     x <- "not"
   }
   
   n <- length(y) - p
   
-  Y <- y[(p+1):length(y)]
-  int <- rep(1,(length(y)-p))
+  Y <- y[(max(p,d)+1):length(y)]
+  int <- rep(1,(length(y)-max(p,d)))
   ZT <- regressor.matrix_ST(y,x,p,c,gamma,d)
   ZT <- cbind(int,ZT)
   
@@ -333,7 +327,7 @@ selection.lag.lead_ST <- function(y, x, p_pseudo, c, gamma, d) {
   P_NC <- as.numeric(fBasics::vec(P_NC))
   print(P_NC)
   
-  n <- length(y) - p_pseudo
+  n <- length(y) - max(p_pseudo,d)
   loglik <- c()
   
   for (i in 1:(p_pseudo + 1)) {
@@ -345,6 +339,7 @@ selection.lag.lead_ST <- function(y, x, p_pseudo, c, gamma, d) {
       sig <- as.numeric(SMART_results[[8]])
       df  <- as.numeric(SMART_results[[9]])
       E   <- SMART_results[[10]]
+      n <- length(E)
       
       # Check if the components are numeric
       if (!is.numeric(E)) stop("E is not numeric.")
