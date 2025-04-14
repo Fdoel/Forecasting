@@ -85,6 +85,11 @@ bic <- function(y,x,p_max,c,gamma,d){
   # y <- y - mean(y)
   # n <- length(y) - p_max
   
+  y <- y - mean(y)
+  # Demean c om de threshold consistent te houden
+  c <- c - mean(y)
+  n <- length(y) - max(p_max,d)
+  
   if (length(x) > 1){
     numcol <- NCOL(x)
   }
@@ -96,7 +101,7 @@ bic <- function(y,x,p_max,c,gamma,d){
   
   for (p in 0:p_max){
     
-    arx.ls_ST_results <- arx.ls_ST(fBasics::vec(y),x,p,c,gamma,d)
+    arx.ls_ST_results <- arx.ls_ST(y,x,p,c,gamma,d)
     n <- length(arx.ls_ST_results[[5]])
     Cov <- arx.ls_ST_results[[6]]
     crit[(p+1)] <- -2*Cov/n + ((log(n))/n)*(2*p+1+numcol)
@@ -132,8 +137,10 @@ aic <- function(y,x,p_max,c,gamma,d){
   }
   
   y <- fBasics::vec(y)
-  # y <- y - mean(y)
-  #n <- length(y) - p_max
+  y <- y - mean(y)
+  # Demean c om de threshold consistent te houden
+  c <- c - mean(y)
+  n <- length(y) - max(p_max,d)
   
   if (length(x) > 1){
     numcol <- NCOL(x)
@@ -146,7 +153,7 @@ aic <- function(y,x,p_max,c,gamma,d){
   
   for (p in 0:p_max){
     
-    arx.ls_ST_results <- arx.ls_ST(fBasics::vec(y),x,p,c,gamma,d)
+    arx.ls_ST_results <- arx.ls_ST(y,x,p,c,gamma,d)
     n <- length(arx.ls_ST_results[[5]])
     Cov <- arx.ls_ST_results[[6]]
     crit[(p+1)] <- -2*Cov/n + (2/n)*(2*p+1+numcol)
@@ -182,8 +189,10 @@ hq <- function(y,x,p_max,c,gamma,d){
   }
   
   y <- fBasics::vec(y)
-  # y <- y - mean(y)
-  # n <- length(y) - p_max
+  y <- y - mean(y)
+  # Demean c om de threshold consistent te houden
+  c <- c - mean(y)
+  n <- length(y) - max(p_max,d)
   
   if (length(x) > 1){
     numcol <- NCOL(x)
@@ -196,7 +205,7 @@ hq <- function(y,x,p_max,c,gamma,d){
   
   for (p in 0:p_max){
     
-    arx.ls_ST_results <- arx.ls_ST(fBasics::vec(y),x,p,c,gamma,d)
+    arx.ls_ST_results <- arx.ls_ST(y,x,p,c,gamma,d)
     n <- length(arx.ls_ST_results[[5]])
     Cov <- arx.ls_ST_results[[6]]
     crit[(p+1)] <- -2*Cov/n + ((2*log(log(n)))/n)*(2*p+1+numcol)
@@ -209,97 +218,6 @@ hq <- function(y,x,p_max,c,gamma,d){
   
   return(list(p = p_hq, values = crit))
   
-}
-
-
-#' @title The ARX estimation by OLS function
-#' @description This function allows you to estimate ARX models by ordinary least squares (OLS).
-#' @param y Data vector of time series observations.
-#' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
-#' @param p Number of autoregressive terms to be included.
-#' @keywords estimation
-#' @keywords pseudo-causal
-#' @return \item{coefficients}{Vector of estimated coefficients.}
-#' @return \item{coef.auto}{Vector of estimated autoregressive parameters.}
-#' @return \item{coef.exo}{Vector of estimated exogenous parameters.}
-#' @return \item{mse}{Mean squared error.}
-#' @return \item{residuals}{Residuals.}
-#' @return \item{loglikelihood}{Value of the loglikelihood.}
-#' @return \item{fitted.values}{Fitted values.}
-#' @return \item{df}{Degrees of freedom.}
-#' @return \item{vcov}{Variance-covariance matrix of residuals.}
-#' @author Sean Telg
-#' @export
-#' @examples
-#' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
-#' arx.ls(data$y,data$x,2)
-
-arx.ls_ST <- function(y,x,p,c,gamma,d){
-  c <- c
-  d <- 1
-  if (is.null(x)){
-    x <- "not"
-  }
-  
-  n <- length(y) - p
-  
-  Y <- y[(p+1):length(y)]
-  int <- rep(1,(length(y)-p))
-  ZT <- regressor.matrix_ST(y,x,p,c,gamma,d)
-  ZT <- cbind(int,ZT)
-  
-  df <- nrow(ZT) - NCOL(ZT)
-  
-  B <- solve(t(ZT) %*% ZT) %*% (t(ZT) %*% Y)
-  
-  if (p > 0){
-    if (length(x) > 1){
-      rownames(B) <- c('int', paste('lag', 1:(2*p)), paste('exo', 1:(2*NCOL(x))))
-    }
-    else{
-      rownames(B) <- c('int', paste('lag', 1:(2*p)))
-    }
-  }
-  else{
-    if (length(x) > 1){
-      rownames(B) <- c('int', paste('exo', 1:(2*NCOL(x))))
-    }
-    else{
-      rownames(B) <- 'int'
-    }
-  }
-  
-  FV <- ZT %*% B
-  U <- Y - FV
-  
-  sig <- (t(U) %*% U)
-  sig <- as.numeric(sig)
-  
-  Cov <- (1/n)*sig
-  Cov <- as.numeric(Cov)
-  
-  sigma2 <- sum((Y - ZT %*% B)^2)/df
-  qz <- qr(ZT)
-  vcov <- sigma2*chol2inv(qz$qr)
-  colnames(vcov) <- rownames(vcov) <- colnames(ZT)
-  
-  Loglik <- -(n/2)*(1 + log(2*pi)+log(Cov))
-  
-  if (p == 0){
-    B_auto <- 0
-  }
-  else{
-    B_auto <- B[2:(2*p+1)]
-  }
-  
-  if (length(x) > 1){
-    B_x <- B[(2*p+2):length(B)]
-  }
-  else{
-    B_x <- 0
-  }
-  
-  return(list(coefficients = B, coef.auto = B_auto, coef.exo = B_x, mse = Cov, residuals = U, loglikelihood = Loglik, fitted.values = FV, df = df,vcov=vcov))
 }
 
 
@@ -389,11 +307,11 @@ selection.lag.lead_ST <- function(y, x, p_pseudo, c, gamma, d) {
 }
 
 
-selection.lag_st(inflation_df_monthly$inflationNonSA,NULL,12, median(inflation_df_monthly$inflationNonSA),gamma=15,d=7)
+selection.lag_st(inflation_df_monthly$inflationNonSA,NULL,12, median(inflation_df_monthly$inflationNonSA),gamma=15,d=6)
 p_pseudo <- readline(prompt = "Choose lag order for pseudo causal model: ")
 p_pseudo <- as.numeric(p_pseudo)
 
-pseudo <- arx.ls_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=15,d=7)
+pseudo <- arx.ls_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=15,d=6)
 Cov_pseudo <- pseudo[[4]]
 U_pseudo <- pseudo[[5]]
 test_cdf_pseudo <- cbind(U_pseudo, stats::pnorm(U_pseudo,0,Cov_pseudo))
@@ -461,7 +379,7 @@ if (jarque_check == 0){
 stats::qqnorm(U_pseudo, main="Normal Probability Plot of Residuals")
 stats::qqline(U_pseudo)
 
-selection.lag.lead_results <- selection.lag.lead_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=15,d=7)
+selection.lag.lead_results <- selection.lag.lead_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=15,d=6)
 p_C <- selection.lag.lead_results[[1]]
 p_NC <- selection.lag.lead_results[[2]]
 
