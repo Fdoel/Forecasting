@@ -18,14 +18,14 @@
 
 selection.lag_st <- function(y,x,p_max,c,gamma,d=1){
   c <- c
-  d <- 1
+  d <- d
   if (is.null(x)){
     x <- "not"
   }
   
-  bic_results <- bic(y,x,p_max,c,gamma,d=1)
-  aic_results <- aic(y,x,p_max,c,gamma,d=1)
-  hq_results <- hq(y,x,p_max,c,gamma,d=1)
+  bic_results <- bic(y,x,p_max,c,gamma,d)
+  aic_results <- aic(y,x,p_max,c,gamma,d)
+  hq_results <- hq(y,x,p_max,c,gamma,d)
   
   bic_vec <- bic_results[[2]]
   colnames(bic_vec) <- paste('p =', 0:p_max)
@@ -75,7 +75,7 @@ selection.lag_st <- function(y,x,p_max,c,gamma,d=1){
 #' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
 #' bic(data$y, data$x,8)
 
-bic <- function(y,x,p_max,c,gamma,d=1){
+bic <- function(y,x,p_max,c,gamma,d){
   
   if (is.null(x)){
     x <- "not"
@@ -96,7 +96,7 @@ bic <- function(y,x,p_max,c,gamma,d=1){
   
   for (p in 0:p_max){
     
-    arx.ls_ST_results <- arx.ls_ST(fBasics::vec(y),x,p,c,gamma,d=1)
+    arx.ls_ST_results <- arx.ls_ST(fBasics::vec(y),x,p,c,gamma,d)
     n <- length(arx.ls_ST_results[[5]])
     Cov <- arx.ls_ST_results[[6]]
     crit[(p+1)] <- -2*Cov/n + ((log(n))/n)*(2*p+1+numcol)
@@ -125,7 +125,7 @@ bic <- function(y,x,p_max,c,gamma,d=1){
 #' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
 #' aic(data$y, data$x,8)
 
-aic <- function(y,x,p_max,c,gamma,d=1){
+aic <- function(y,x,p_max,c,gamma,d){
   
   if (is.null(x)){
     x <- "not"
@@ -146,7 +146,7 @@ aic <- function(y,x,p_max,c,gamma,d=1){
   
   for (p in 0:p_max){
     
-    arx.ls_ST_results <- arx.ls_ST(fBasics::vec(y),x,p,c,gamma,d=1)
+    arx.ls_ST_results <- arx.ls_ST(fBasics::vec(y),x,p,c,gamma,d)
     n <- length(arx.ls_ST_results[[5]])
     Cov <- arx.ls_ST_results[[6]]
     crit[(p+1)] <- -2*Cov/n + (2/n)*(2*p+1+numcol)
@@ -175,7 +175,7 @@ aic <- function(y,x,p_max,c,gamma,d=1){
 #' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
 #' hq(data$y, data$x,8)
 
-hq <- function(y,x,p_max,c,gamma,d=1){
+hq <- function(y,x,p_max,c,gamma,d){
   
   if (is.null(x)){
     x <- "not"
@@ -196,7 +196,7 @@ hq <- function(y,x,p_max,c,gamma,d=1){
   
   for (p in 0:p_max){
     
-    arx.ls_ST_results <- arx.ls_ST(fBasics::vec(y),x,p,c,gamma,d=1)
+    arx.ls_ST_results <- arx.ls_ST(fBasics::vec(y),x,p,c,gamma,d)
     n <- length(arx.ls_ST_results[[5]])
     Cov <- arx.ls_ST_results[[6]]
     crit[(p+1)] <- -2*Cov/n + ((2*log(log(n)))/n)*(2*p+1+numcol)
@@ -234,7 +234,7 @@ hq <- function(y,x,p_max,c,gamma,d=1){
 #' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
 #' arx.ls(data$y,data$x,2)
 
-arx.ls_ST <- function(y,x,p,c,gamma,d=1){
+arx.ls_ST <- function(y,x,p,c,gamma,d){
   c <- c
   d <- 1
   if (is.null(x)){
@@ -319,7 +319,7 @@ arx.ls_ST <- function(y,x,p,c,gamma,d=1){
 #' data <- sim.marx(c('t',3,1), c('t',3,1),100,0.5,0.4,0.3)
 #' selection.lag.lead(data$y,data$x,2)
 
-selection.lag.lead_ST <- function(y, x, p_pseudo, c, gamma, d = 1) {
+selection.lag.lead_ST <- function(y, x, p_pseudo, c, gamma, d) {
   y <- as.numeric(y)
   # Check if x is NULL and set it to 'not' if true
   if (is.null(x)) {
@@ -340,7 +340,7 @@ selection.lag.lead_ST <- function(y, x, p_pseudo, c, gamma, d = 1) {
     
     # Using tryCatch to handle potential errors during the MART call and the subsequent operations
     tryCatch({
-      SMART_results <- SMART(y, x, P_C[i], P_NC[i], c, gamma, d = 1)
+      SMART_results <- SMART(y, x, P_C[i], P_NC[i], c, gamma, d)
       
       sig <- as.numeric(SMART_results[[8]])
       df  <- as.numeric(SMART_results[[9]])
@@ -389,11 +389,11 @@ selection.lag.lead_ST <- function(y, x, p_pseudo, c, gamma, d = 1) {
 }
 
 
-selection.lag_st(inflation_df_monthly$inflationNonSA,NULL,12, median(inflation_df_monthly$inflationNonSA),gamma=6,d=1)
+selection.lag_st(inflation_df_monthly$inflationNonSA,NULL,12, median(inflation_df_monthly$inflationNonSA),gamma=15,d=7)
 p_pseudo <- readline(prompt = "Choose lag order for pseudo causal model: ")
 p_pseudo <- as.numeric(p_pseudo)
 
-pseudo <- arx.ls_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=6,d=1)
+pseudo <- arx.ls_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=15,d=7)
 Cov_pseudo <- pseudo[[4]]
 U_pseudo <- pseudo[[5]]
 test_cdf_pseudo <- cbind(U_pseudo, stats::pnorm(U_pseudo,0,Cov_pseudo))
@@ -461,7 +461,7 @@ if (jarque_check == 0){
 stats::qqnorm(U_pseudo, main="Normal Probability Plot of Residuals")
 stats::qqline(U_pseudo)
 
-selection.lag.lead_results <- selection.lag.lead_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=6,d=1)
+selection.lag.lead_results <- selection.lag.lead_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=15,d=7)
 p_C <- selection.lag.lead_results[[1]]
 p_NC <- selection.lag.lead_results[[2]]
 
@@ -472,7 +472,7 @@ p_NC <- selection.lag.lead_results[[2]]
 # -----------------------------------------------------------------------------
 
 # Fit a 12-lag AR model to the inflation series
-model_arst2 <- Arima(inflation_df_monthly$inflationNonSA, order = c(12, 0, 0))
+model_arst2 <- Arima(inflation_df_monthly$inflationNonSA, order = c(2, 0, 0))
 resids_arst2 <- model_arst2$residuals  # Extract residuals
 
 # Step 2: Square the residuals for use as regressors
