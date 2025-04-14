@@ -31,16 +31,16 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
     for (i in 1:p) {
       Z[(1 + i):n, ((i - 1) * k + 1):(i * k)] <- y[1:(n - i)]
     }
-    Z <- Z[(1 + p):n, ]
+    Z <- Z[(1 + max(p,d)):n, ]
   } else {
-    Z <- matrix(, nrow = n, ncol = 0)
+    Z <- matrix(, nrow = n-d, ncol = 0)
   }
   
   if (identical(x, "not")) {
   } else if (NCOL(x) == 1) {
-    Z <- cbind(Z, x[(1 + p):n])
+    Z <- cbind(Z, x[(1 + max(p,d)):n])
   } else if (NCOL(x) > 1) {
-    Z <- cbind(Z, x[(1 + p):n, ])
+    Z <- cbind(Z, x[(1 + max(p,d)):n, ])
   }
   
   # Create thresholded ZT matrix
@@ -66,7 +66,7 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
       Z_x <- cbind(Z_x, Z_x)
       mX <- ncol(Z_x)
       for(i in 1:nT) {
-        if(y[p+i-d] > c) {
+        if(y[max(p,d)+i-d] > c) {
           Z_x[i, 1:(mX/2)] <- 0
         } else {
           Z_x[i, (mX/2 + 1):mX] <- 0
@@ -75,7 +75,7 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
     }
     mC <- ncol(Z_c)
     for(i in 1:nT) {
-      if(y[p+i-d] > c) {
+      if(y[max(p,d)+i-d] > c) {
         Z_c[i, 1:(mC/2)] <- 0
       } else {
         Z_c[i, (mC/2 + 1):mC] <- 0
@@ -122,8 +122,8 @@ arx.ls_T <- function(y,x,p,c,d=1){
   
   n <- length(y) - p
   
-  Y <- y[(p+1):length(y)]
-  int <- rep(1,(length(y)-p))
+  Y <- y[(max(p,d)+1):length(y)]
+  int <- rep(1,(length(y)-max(p,d)))
   ZT <- regressor.matrix_T(y,x,p,c,d)
   ZT <- cbind(int,ZT)
   
@@ -253,9 +253,9 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c,d=1){
     }
   }
   
-  ZC1 <- y[(p_C+1):length(y)]
+  ZC1 <- y[(max(p_C,d)+1):length(y)]
   ZC1 <- fBasics::vec(ZC1)
-  ZC2 <- regressor.matrix_T(y,"not",p_C, c,d)
+  ZC2 <- regressor.matrix_T(y,"not",p_C, c, d)
   
   if (p_C > 0){
     V <- ZC1 - (ZC2 %*% BC1)
@@ -265,7 +265,7 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c,d=1){
   U <- rev(V)
   U <- fBasics::vec(U)
   
-  ZNC1 <- U[(p_NC + 1):length(U)]
+  ZNC1 <- U[(max(p_NC,d) + 1):length(U)]
   ZNC1 <- fBasics::vec(ZNC1)
   ZNC2 <- regressor.matrix_T(U,"not",p_NC, c,d)
   if((colnumT) > 1){
@@ -276,9 +276,9 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c,d=1){
   }
   if (length(x) > 1){
     if ((colnumT) > 1){
-      ZX <- ZX[(p_NC +1):length(U),]
+      ZX <- ZX[(max(p_NC,d) +1):length(U),]
     } else {
-      ZX <- ZX[(p_NC + 1):length(U)]
+      ZX <- ZX[(max(p_NC,d) + 1):length(U)]
     }
   } else {
     x = "not"
@@ -439,7 +439,7 @@ MART <- function(y, x, p_C, p_NC, c, d=1) {
     }
   }
   
-  ZC1 <- y[(p_C+1):length(y)]
+  ZC1 <- y[(max(p_C,d)+1):length(y)]
   ZC1 <- fBasics::vec(ZC1)
   ZC2 <- regressor.matrix_T(y,"not",p_C,c,d)
   
@@ -452,7 +452,7 @@ MART <- function(y, x, p_C, p_NC, c, d=1) {
   U <- rev(V)
   U <- fBasics::vec(U)
   
-  ZNC1 <- U[(p_NC + 1):length(U)]
+  ZNC1 <- U[(max(p_NC,d) + 1):length(U)]
   ZNC1 <- fBasics::vec(ZNC1)
   ZNC2 <- regressor.matrix_T(U,"not",p_NC,c,d)
   
@@ -464,10 +464,10 @@ MART <- function(y, x, p_C, p_NC, c, d=1) {
   
   if(length(x) > 1){
     if (numcolT > 1 ){
-      ZX <- ZX[(p_NC +1):length(U),]
+      ZX <- ZX[(max(p_NC,d) +1):length(U),]
     }
     else{
-      ZX <- ZX[(p_NC +1):length(U)]
+      ZX <- ZX[(max(p_NC,d) +1):length(U)]
     }
   } else{
     x <- "not"
@@ -492,10 +492,11 @@ MART <- function(y, x, p_C, p_NC, c, d=1) {
   }
   
   se <- sqrt(diag(solve(optimization_results$hessian)))
-  se.dist <- se[(length(se)-1):length(se)]
-  se.dist <- rev(se.dist)
+  se.dist <- se
+  var.cov <- solve(optimization_results$hessian)
   
-  return(list(coef.c1 = B_C[1:p_C], coef.c2 = B_C[(p_C+1):(p_CT)], coef.nc1 = B_NC[1:p_NC], coef.nc2 = B_NC[(p_NC+1):(p_NCT)], coef.exo1 = B_x[1:(length(B_x)/2)], coef.exo2 = B_x[(length(B_x)/2 +1): length(B_x)], coef.int = IC, scale = sig,df = df,residuals = E, se.dist = se.dist))
+  
+  return(list(coef.c1 = B_C[1:p_C], coef.c2 = B_C[(p_C+1):(p_CT)], coef.nc1 = B_NC[1:p_NC], coef.nc2 = B_NC[(p_NC+1):(p_NCT)], coef.exo1 = B_x[1:(length(B_x)/2)], coef.exo2 = B_x[(length(B_x)/2 +1): length(B_x)], coef.int = IC, scale = sig,df = df,residuals = E, se.dist = se.dist, var.cov = var.cov))
 }
 
 logistic.smooth <- function(y, gamma, c) {
@@ -535,16 +536,16 @@ regressor.matrix_ST <- function(y, x, p, c, gamma,d=1) {
     for (i in 1:p) {
       Z[(1 + i):n, ((i - 1) * k + 1):(i * k)] <- y[1:(n - i)]
     }
-    Z <- Z[(1 + p):n, ]
+    Z <- Z[(1 + max(p,d)):n, ]
   } else {
-    Z <- matrix(, nrow = n, ncol = 0)
+    Z <- matrix(, nrow = n-d, ncol = 0)
   }
   
   if (identical(x, "not")) {
   } else if (NCOL(x) == 1) {
-    Z <- cbind(Z, x[(1 + p):n])
+    Z <- cbind(Z, x[(1 + max(p,d)):n])
   } else if (NCOL(x) > 1) {
-    Z <- cbind(Z, x[(1 + p):n, ])
+    Z <- cbind(Z, x[(1 + max(p,d)):n, ])
   }
   
   # Create thresholded ZT matrix
@@ -566,20 +567,20 @@ regressor.matrix_ST <- function(y, x, p, c, gamma,d=1) {
   if(p != 0) {
     Z_c <- cbind(Z_c, Z_c)
     if (!identical(x, "not")) {
-      Z_x <- Z[,(p + 1):ncol(Z)]
+      Z_x <- Z[,(max(p,d) + 1):ncol(Z)]
       Z_x <- cbind(Z_x, Z_x)
       mX <- ncol(Z_x)
       for(i in 1:nT) {
         Z_x_old <- Z_x[i,]
-        Z_x[i,1:(mX/2)] <- logistic.smooth(y[p+i-d], gamma, c)*Z_x_old[1:(mX/2)]
-        Z_x[i, (mX/2 + 1):mX] <- (1-logistic.smooth(y[p+i-d], gamma, c))*Z_x_old[(mX/2 + 1):mX]
+        Z_x[i,1:(mX/2)] <- logistic.smooth(y[max(p,d)+i-d], gamma, c)*Z_x_old[1:(mX/2)]
+        Z_x[i, (mX/2 + 1):mX] <- (1-logistic.smooth(y[max(p,d)+i-d], gamma, c))*Z_x_old[(mX/2 + 1):mX]
       }
     }
     mC <- ncol(Z_c)
     for(i in 1:nT) {
       Z_c_old <- Z_c[i,]
-      Z_c[i,1:(mC/2)] <- logistic.smooth(y[p+i-d], gamma, c)*Z_c_old[1:(mC/2)]
-      Z_c[i, (mC/2 + 1):mC] <- (1-logistic.smooth(y[p+i-d], gamma, c))*Z_c_old[(mC/2 + 1):mC]
+      Z_c[i,1:(mC/2)] <- logistic.smooth(y[max(p,d)+i-d], gamma, c)*Z_c_old[1:(mC/2)]
+      Z_c[i, (mC/2 + 1):mC] <- (1-logistic.smooth(y[max(p,d)+i-d], gamma, c))*Z_c_old[(mC/2 + 1):mC]
     }
     if (!identical(x, "not")) {
       ZT <- cbind(Z_c, Z_x)
@@ -622,8 +623,8 @@ arx.ls_ST <- function(y,x,p,c, gamma,d=1){
   
   n <- length(y) - p
   
-  Y <- y[(p+1):length(y)]
-  int <- rep(1,(length(y)-p))
+  Y <- y[(max(p,d)+1):length(y)]
+  int <- rep(1,(length(y)-max(p,d)))
   ZT <- regressor.matrix_ST(y,x,p,c,gamma,d)
   ZT <- cbind(int,ZT)
   
@@ -764,7 +765,7 @@ ll.SMART.Z <- function(params,y,x,p_C,p_NC,c,gamma,d=1) {
   U <- rev(V)
   U <- fBasics::vec(U)
   
-  ZNC1 <- U[(p_NC + 1):length(U)]
+  ZNC1 <- U[(max(p_NC,d) + 1):length(U)]
   ZNC1 <- fBasics::vec(ZNC1)
   ZNC2 <- regressor.matrix_ST(U,"not",p_NC, c, gamma,d)
   if((colnumT) > 1){
@@ -775,9 +776,9 @@ ll.SMART.Z <- function(params,y,x,p_C,p_NC,c,gamma,d=1) {
   }
   if (length(x) > 1){
     if ((colnumT) > 1){
-      ZX <- ZX[(p_NC +1):length(U),]
+      ZX <- ZX[(max(p_NC,d) +1):length(U),]
     } else {
-      ZX <- ZX[(p_NC + 1):length(U)]
+      ZX <- ZX[(max(p_NC,d) + 1):length(U)]
     }
   } else {
     x = "not"
@@ -938,7 +939,7 @@ SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
     }
   }
   
-  ZC1 <- y[(p_C+1):length(y)]
+  ZC1 <- y[(max(p_C,d)+1):length(y)]
   ZC1 <- fBasics::vec(ZC1)
   ZC2 <- regressor.matrix_ST(y,"not",p_C,c, gamma,d)
   
@@ -951,7 +952,7 @@ SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
   U <- rev(V)
   U <- fBasics::vec(U)
   
-  ZNC1 <- U[(p_NC + 1):length(U)]
+  ZNC1 <- U[(max(p_NC,d) + 1):length(U)]
   ZNC1 <- fBasics::vec(ZNC1)
   ZNC2 <- regressor.matrix_ST(U,"not",p_NC,c, gamma,d)
   
@@ -963,10 +964,10 @@ SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
   
   if(length(x) > 1){
     if (numcolT > 1 ){
-      ZX <- ZX[(p_NC +1):length(U),]
+      ZX <- ZX[(max(p_NC,d) +1):length(U),]
     }
     else{
-      ZX <- ZX[(p_NC +1):length(U)]
+      ZX <- ZX[(max(p_NC,d) +1):length(U)]
     }
   } else{
     x <- "not"
@@ -991,8 +992,7 @@ SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
   }
   
   se <- sqrt(diag(solve(optimization_results$hessian)))
-  se.dist <- se[(length(se)-1):length(se)]
-  se.dist <- rev(se.dist)
+  se.dist <- se
   
   return(list(coef.c1 = B_C[1:p_C], coef.c2 = B_C[(p_C+1):(p_CT)], coef.nc1 = B_NC[1:p_NC], coef.nc2 = B_NC[(p_NC+1):(p_NCT)], coef.exo1 = B_x[1:(length(B_x)/2)], coef.exo2 = B_x[(length(B_x)/2 +1): length(B_x)], coef.int = IC, scale = sig,df = df,residuals = E, se.dist = se.dist))
 }
@@ -1125,7 +1125,7 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
     phi2 <- c(1,model$coef.c2)
     
     u <- c()
-    for (i in (r+1):obs){
+    for (i in (max(r,d)+1):obs){
       if(y[i-d] >c) {
         u[i] <- phi1 %*% y[i:(i-r)]
       } else {
@@ -1188,14 +1188,14 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
     exp2[j] = ((1/N)*sum(hve22[,j]))/((1/N)*sum(hve_reg2))
     
     if(y[(obs - d + j)] > c) {
-      p <- 0.8
+      p <- length(which(y > c))/length(y)
       if(length(model$coef.c1) == 1){
         y.for[j] <- model$coef.c1 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
       } else{
         y.for[j] <-  t(model$coef.c1) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
       }
     } else {
-      p <- 0.2
+      p <- length(which(y > c))/length(y)
       if(length(model$coef.c1) == 1){
         y.for[j] <- model$coef.c2 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
       } else{
@@ -1204,7 +1204,6 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
     }
     y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
   }
-  
   return(y.for)
 }
 
@@ -1226,4 +1225,158 @@ information.criteria <- function(type = c("MARX", "MART", "SMART"), model) {
   hq  <- (-2 * loglikelihood + 2 * log(log(n)) * k) / n
   
   return(list(aic = aic, bic = bic, hq = hq, loglikelihood = loglikelihood, k = k, n = n, df = df, sig = sig))
+}
+
+# Treshold verandert niet fundamenteel de simulatie van toekomstige errors, je moet alleen uitkijken dat dimensies enzo kloppen
+forecast.SMART <- function(y,X,p_C,p_NC,c,gamma,d,X.for,h,M,N,seed=20240402) {
+  
+  set.seed(seed)
+  if (missing(X) == TRUE){
+    X = NULL
+  }
+  
+  if (missing(N) == TRUE){
+    N = 10000
+  }
+  
+  model <- SMART(y, X, p_C, p_NC, c, gamma, d)
+  obs <- length(y)
+  
+  ## Check whether there are exogenous variables and whether truncation M is known
+  
+  if (missing(X.for) == TRUE && missing(M) == TRUE){
+    X.for = NULL
+    M = 50
+  } else if(missing(X.for) == TRUE && missing(M) == FALSE){
+    X.for = NULL
+    M = M
+  } else if(missing(X.for) == FALSE && missing(M) == TRUE){
+    if (NCOL(X.for) == 1){
+      if(is.null(X.for) == TRUE){
+        M = 50
+      } else{
+        M = length(X.for)
+      }
+    } else{
+      M = length(X.for[,1])
+    }
+  } else if(missing(X.for) == FALSE && missing(M) == FALSE){
+    if (NCOL(X.for) == 1){
+      if(is.null(X.for) == TRUE){
+        M = M
+      }
+      else{
+        M = min(length(X.for), M)
+      }
+    }
+    else{
+      M = min(length(X.for[,1]),M)
+    }
+  }
+  
+  r <- length(model$coef.c1)
+  s <- length(model$coef.nc1)
+  ## Simulate future epsilon and use forecasted X
+  hve_reg1 <- c()
+  hve_reg2 <- c()
+  hve21 <- matrix(data=0, nrow=N,ncol=h)
+  hve22 <- matrix(data=0, nrow=N,ncol=h)
+  
+  for (iter in 1:N){
+    
+    eps.sim <- model$scale*stats::rt(M,model$df)
+    z2 <- c()
+    for (i in 1:M){
+      if(is.null(X.for) == TRUE){
+        z2[i] <- eps.sim[i]
+      }
+      else{
+        # Dit op de een of andere manier omzetten naar threshold maar zie niet 123 hoe
+        if(NCOL(X.for) > 1){
+          z2[i] <- eps.sim[i] +  coef.exo %*% t(X.for[i,])
+        }
+        else{
+          z2[i] <- eps.sim[i] + coef.exo * X.for[i]
+        }
+      }
+    }
+    
+    ## Compute filtered values u = phi(L)y and moving average values
+    # split in phi1 en phi2 voor twee regimes.
+    phi1 <- c(1,model$coef.c1)
+    phi2 <- c(1,model$coef.c2)
+    
+    u <- c()
+    for (i in (max(r,d)+1):obs){
+      if(y[i-d] >c) {
+        u[i] <- phi1 %*% y[i:(i-r)]
+      } else {
+        u[i] <- phi2 %*% y[i:(i-r)]
+      }
+    }
+    w <- c(u[(obs-s+1):obs],z2)
+    # C is a function of the non-causal polynomial. So we need to split it up for now
+    C1 <- matrix(data=0, nrow=(M+s), ncol=(M+s))
+    C2 <- matrix(data=0, nrow=(M+s), ncol=(M+s))
+    C1[1,] <- compute.MA(model$coef.nc1,(M+s-1))
+    C2[1,] <- compute.MA(model$coef.nc2,(M+s-1))
+    
+    if (s > 1){
+      for (i in 2:s){
+        C1[i,] <- c(0, C1[(i-1),1:(length(C1[(i-1),])-1)])
+        C2[i,] <- c(0, C2[(i-1),1:(length(C2[(i-1),])-1)])
+      }
+    }
+    
+    for (i in (s+1):(M+s)){
+      C1[i,] <- c(rep(0,(i-1)),1,rep(0,(M+s-i)))
+      C2[i,] <- c(rep(0,(i-1)),1,rep(0,(M+s-i)))
+    }
+    
+    D1 = solve(C1)
+    D2 = solve(C2)
+    
+    e1 <- D1 %*% w
+    e2 <- D2 %*% w
+    
+    h1 <- c()
+    h2 <- c()
+    
+    for (i in 1:s){
+      h1[i] <- metRology::dt.scaled(e1[i], df=model$df, sd=model$scale)
+      h2[i] <- metRology::dt.scaled(e2[i], df=model$df, sd=model$scale)
+    }
+    
+    hve_reg1[iter] = prod(h1)
+    hve_reg2[iter] = prod(h2)
+    
+    for (j in 1:h){
+      mov.av1 <-  C1[1,1:(M-j+1)] %*% z2[j:M]
+      mov.av2 <- C2[1,1:(M-j+1)] %*% z2[j:M]
+      
+      hve21[iter,j] <- mov.av1 * hve_reg1[iter]
+      hve22[iter,j] <- mov.av2 * hve_reg2[iter]
+      
+    }
+  }
+  
+  y.star <- y[(obs-r+1):obs]
+  y.for <- c()
+  exp1 <- c()
+  exp2 <- c()
+  
+  for (j in 1:h){
+    exp1[j] = ((1/N)*sum(hve21[,j]))/((1/N)*sum(hve_reg1))
+    exp2[j] = ((1/N)*sum(hve22[,j]))/((1/N)*sum(hve_reg2))
+    
+    p <- logistic.smooth(mean(y), gamma, c)
+    if(length(model$coef.c1) == 1){
+      y.for[j] <- logistic.smooth(y[(obs - d + j)], c, gamma) * model$coef.c1 * y.star + (1-logistic.smooth(y[(obs - d + j)], c, gamma)) * model$coef.c2 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+    } else{
+      y.for[j] <-  logistic.smooth(y[(obs - d + j)], c, gamma) * t(model$coef.c1) %*% y.star + (1 - logistic.smooth(y[(obs - d + j)], c, gamma)) * t(model$coef.c2) %*% y.star  + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+    }
+
+    y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
+  }
+  return(y.for)
 }
