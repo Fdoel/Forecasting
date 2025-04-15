@@ -1,5 +1,5 @@
 # Code voor simulatie van model.
-set.seed(64) # Set seed for reproducibility
+set.seed(14042024) # Set seed for reproducibility
 
 # Load required library
 library(MASS)
@@ -16,12 +16,14 @@ ar_process <- function(phi_1, phi_2, T, c = 0.25) {
     c <- as.numeric(c)
     if(v[t-d] > c) { # Hier wel min d en niet plus d
       v[t] <- phi_1 * v[t - 1] + epsilon_t[t]
+      value <- TRUE
     }
     else{
       v[t] <- phi_2 * v[t - 1] + epsilon_t[t]
+      value <- FALSE
     }
   }
-  return(v)
+  return(v,value)
 }
 
 # STEP 2: series from non causal component is generated
@@ -32,12 +34,14 @@ nc_process <- function(psi_1, psi_2, v, T, c = 0.25) {
     # Ik vergelijk nu threshold c met gegenereerde data voor v, moet dat bij y? Of moet de threshold c met iets anders vergeleken worden?
       if (y[t + d] > c) { # plus d en niet min d
         y[t] <- psi_1 * y[t + 1] + v[t]
+        value <- TRUE
       }
       else{
         y[t] <- psi_2 * y[t + 1] + v[t]
+        value <- FALSE
       }
   }
-  return(y)
+  return(y,value)
 }
 
 # estimation mean
@@ -193,5 +197,5 @@ for (T in sample_sizes) {
     i <- i+1
   }
 }
-view(simulation_estimates)
+View(simulation_estimates)
 
