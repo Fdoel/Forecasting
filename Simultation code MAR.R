@@ -130,7 +130,7 @@ df <- 3
 sigma <- 0.1
 
 # Simulation parameters
-n_sim <- 100
+n_sim <- 10000
 sample_sizes <- c(300, 500, 800)
 param_combinations <- list(
   c(0.9, 0.9),
