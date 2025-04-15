@@ -1044,7 +1044,7 @@ computePath <- function(y, p, h, d, c, c1, c2, nc1, nc2, intercept, v1, v2) {
       y_path[i] <- y_part + v1
     } else {
       y_path[i] <- y_part + v2 
-      }
+    }
     # Check if the series is consistent so far
     if (sum(!is.na(x)) > d) {
       checks <- sum(!is.na(x))  - d
@@ -1122,8 +1122,9 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
   ## Simulate future epsilon and use forecasted X
   hve_reg1 <- c()
   hve_reg2 <- c()
-  hve21 <- matrix(data=0, nrow=N,ncol=h)
-  hve22 <- matrix(data=0, nrow=N,ncol=h)
+  hve21 <- matrix(data=0, nrow=N,ncol=(h+d))
+  hve22 <- matrix(data=0, nrow=N,ncol=(h+d))
+  Y <- matrix(nrow = N, ncol = h)
   
   for (iter in 1:N){
     
@@ -1198,8 +1199,10 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
     
     # At this point all necesarry info is there, only regime path needs to be established
     # Take each regime as a bernoulli distribution
-    r <- rbinom((d+h), 1, (1-p)) + 1
-    for (j in 1:h){
+    p <- length(which(y > c))/length(y)
+    path <- rbinom((h+d), 1, p)
+    y_thresh <- y
+    for (j in 1:(h+d)){
       mov.av1 <-  C1[1,1:(M-j+1)] %*% z2[j:M]
       mov.av2 <- C2[1,1:(M-j+1)] %*% z2[j:M]
       
@@ -1207,34 +1210,64 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
       hve22[iter,j] <- mov.av2 * hve_reg2[iter]
       
     }
-    
     y.star <- y[(obs-r+1):obs]
     y.for <- c()
     exp1 <- c()
     exp2 <- c()
     
-    for (j in 1:h){
+    for (j in 1:(h+d)){
       exp1[j] = ((1/N)*sum(hve21[,j]))/((1/N)*sum(hve_reg1))
       exp2[j] = ((1/N)*sum(hve22[,j]))/((1/N)*sum(hve_reg2))
       
-      if(y[(obs - d + j)] > c) {
-        p <- length(which(y > c))/length(y)
+      if(y_thresh[(obs - d + j)] > c) {
         if(length(model$coef.c1) == 1){
-          y.for[j] <- model$coef.c1 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+          if(path[j] == 1) {
+            y.for[j] <- model$coef.c1 * y.star + (model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])
+          } else {
+            y.for[j] <- model$coef.c1 * y.star + (model$coef.int/(1-sum(model$coef.nc2))  + exp2[j])
+          }
         } else{
-          y.for[j] <-  t(model$coef.c1) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+          if(path[j] == 1) {
+            y.for[j] <-  t(model$coef.c1) %*% y.star + (model$coef.int/(1-sum(model$coef.nc1)))  + exp1[j]
+          } else {
+            y.for[j] <-  t(model$coef.c1) %*% y.star + (model$coef.int/(1-sum(model$coef.nc2)))  + exp1[j]
+          }
         }
       } else {
-        p <- length(which(y > c))/length(y)
         if(length(model$coef.c1) == 1){
-          y.for[j] <- model$coef.c2 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+          if(path[j] == 1) {
+            y.for[j] <- model$coef.c2 * y.star + (model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])
+          } else {
+            y.for[j] <- model$coef.c2 * y.star + (model$coef.int/(1-sum(model$coef.nc2))  + exp2[j])
+          }
         } else{
-          y.for[j] <-  t(model$coef.c2) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+          if(path[j] == 1) {
+            y.for[j] <-  t(model$coef.c2) %*% y.star + (model$coef.int/(1-sum(model$coef.nc1)))  + exp1[j]
+          } else {
+            y.for[j] <-  t(model$coef.c2) %*% y.star + (model$coef.int/(1-sum(model$coef.nc2)))  + exp1[j]
+          }
         }
       }
       y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
+      y_thresh <- cbind(y_thresh, y.for[j])
+    }
+    # Check if iteration is regime consistent for the first h forecasts
+    consistent = TRUE
+    for (check in 1:h) {
+      if(y.for[check + d] > c & path[check] == 0) {
+        consistent = FALSE
+        
+      } else if(y.for[check + d] < c & path[check] == 1) {
+        consistent = FALSE
+      }
+    }
+    if(consistent) {
+      Y[iter,] <- y.for[1:h]
+    } else {
+      Y[iter,] <- NA
     }
   }
+  y.for = colMeans(Y, na.rm = TRUE)
   return(list(forecast = y.for, defaulted = FALSE))
 }
 
@@ -1357,7 +1390,7 @@ forecast.SMART <- function(y,X,p_C,p_NC,c,gamma,d,X.for,h,M,N,seed=20240402) {
     #  return(list(forecast = fallback_forecast$forecast, defaulted_to_ar = TRUE))
     #}
     
-  
+    
     if (s > 1){
       for (i in 2:s){
         C1[i,] <- c(0, C1[(i-1),1:(length(C1[(i-1),])-1)])
@@ -1412,7 +1445,7 @@ forecast.SMART <- function(y,X,p_C,p_NC,c,gamma,d,X.for,h,M,N,seed=20240402) {
     } else{
       y.for[j] <-  logistic.smooth(y[(obs - d + j)], c, gamma) * t(model$coef.c1) %*% y.star + (1 - logistic.smooth(y[(obs - d + j)], c, gamma)) * t(model$coef.c2) %*% y.star  + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
     }
-
+    
     y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
   }
   return(list(forecast = y.for, defaulted_to_ar = FALSE))
