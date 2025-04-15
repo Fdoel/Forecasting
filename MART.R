@@ -335,11 +335,10 @@ MART <- function(y, x, p_C, p_NC, c, d=1) {
   if (nargin < 7){
     y    <- fBasics::vec(y)
     z    <- rev(y)
-    # Hier specificeer je startwaardes voor de parameters voor optimalisatie
-    z    <- fBasics::vec(z) # Z hier is basically de toekomst
-    BC0  <- arx.ls_T(y,x,p_C,c,d)[[2]] # Fit een AR model en pak de phi's
-    Bx0  <- arx.ls_T(y,x,p_C,c,d)[[3]] # Fit een AR model en pak de beta's
-    BNC0 <- arx.ls_T(z,x.rev,p_NC,c,d)[[2]] # Fir een AR model op de omgedraaide volgorde, dus basically de toekomst
+    z    <- fBasics::vec(z)
+    BC0  <- arx.ls_T(y,x,p_C,c,d)[[2]] 
+    Bx0  <- arx.ls_T(y,x,p_C,c,d)[[3]]
+    BNC0 <- arx.ls_T(z,x.rev,p_NC,c,d)[[2]]
     IC0  <- 0
     df0  <- 20
     sig0 <- 2
@@ -1035,7 +1034,7 @@ computePath <- function(y, p, h, d, c, c1, c2, nc1, nc2, intercept, v1, v2) {
   s <- length(c2)
   y_path <- rep(NA, h + d)
   for(i in range(1:(h+d))) {
-    path[i] <- binomial(rbinom(1, 1, (1-p))) + 1 # Regime 1 with prob p
+    path[i] <- binomial(rbinom(1, 1, (1-p))) + 1
     if(y[n + i - d] > c) {
       y_part <- intercept + c1 * y[(n + i -1):(n + i - r)] 
     } else {
@@ -1049,8 +1048,6 @@ computePath <- function(y, p, h, d, c, c1, c2, nc1, nc2, intercept, v1, v2) {
     # Check if the series is consistent so far
     if (sum(!is.na(x)) > d) {
       checks <- sum(!is.na(x))  - d
-      
-      
     }
   }
 }
@@ -1082,7 +1079,7 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
   }
   
   if (missing(N) == TRUE){
-    N = 10000
+    N = 1000
   }
   
   model <- MART(y, X, p_C, p_NC, c, d)
@@ -1199,6 +1196,9 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
     hve_reg1[iter] = prod(h1)
     hve_reg2[iter] = prod(h2)
     
+    # At this point all necesarry info is there, only regime path needs to be established
+    # Take each regime as a bernoulli distribution
+    r <- rbinom((d+h), 1, (1-p)) + 1
     for (j in 1:h){
       mov.av1 <-  C1[1,1:(M-j+1)] %*% z2[j:M]
       mov.av2 <- C2[1,1:(M-j+1)] %*% z2[j:M]
@@ -1207,33 +1207,33 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
       hve22[iter,j] <- mov.av2 * hve_reg2[iter]
       
     }
-  }
-  
-  y.star <- y[(obs-r+1):obs]
-  y.for <- c()
-  exp1 <- c()
-  exp2 <- c()
-  
-  for (j in 1:h){
-    exp1[j] = ((1/N)*sum(hve21[,j]))/((1/N)*sum(hve_reg1))
-    exp2[j] = ((1/N)*sum(hve22[,j]))/((1/N)*sum(hve_reg2))
     
-    if(y[(obs - d + j)] > c) {
-      p <- length(which(y > c))/length(y)
-      if(length(model$coef.c1) == 1){
-        y.for[j] <- model$coef.c1 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
-      } else{
-        y.for[j] <-  t(model$coef.c1) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+    y.star <- y[(obs-r+1):obs]
+    y.for <- c()
+    exp1 <- c()
+    exp2 <- c()
+    
+    for (j in 1:h){
+      exp1[j] = ((1/N)*sum(hve21[,j]))/((1/N)*sum(hve_reg1))
+      exp2[j] = ((1/N)*sum(hve22[,j]))/((1/N)*sum(hve_reg2))
+      
+      if(y[(obs - d + j)] > c) {
+        p <- length(which(y > c))/length(y)
+        if(length(model$coef.c1) == 1){
+          y.for[j] <- model$coef.c1 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+        } else{
+          y.for[j] <-  t(model$coef.c1) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+        }
+      } else {
+        p <- length(which(y > c))/length(y)
+        if(length(model$coef.c1) == 1){
+          y.for[j] <- model$coef.c2 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+        } else{
+          y.for[j] <-  t(model$coef.c2) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+        }
       }
-    } else {
-      p <- length(which(y > c))/length(y)
-      if(length(model$coef.c1) == 1){
-        y.for[j] <- model$coef.c2 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
-      } else{
-        y.for[j] <-  t(model$coef.c2) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
-      }
+      y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
     }
-    y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
   }
   return(list(forecast = y.for, defaulted = FALSE))
 }
