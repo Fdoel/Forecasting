@@ -5,15 +5,16 @@
 # -----------------------------------------------------------------------------
 
 # Forecasting parameters
-h <- 1         # Forecast horizon
+h <- 6        # Forecast horizon
 N <- 1000        # Posterior draws
 M <- 50          # MA truncation
-d <- 1
-c <- 0.6  #median(inflation_df_monthly$inflationNonSA)
+d <- 6
+gamma <- 15
+c <- median(inflation_df_monthly$inflationNonSA)
 
 # Model specifications
-p_C_mart <- 1;  p_NC_mart <- 2    # Mixed MAR(1,1)
-p_C_art <- 3; p_NC_art <- 0   # Purely causal AR(12)
+p_C_smart <- 0;  p_NC_smart <- 2    # Mixed MAR(1,1)
+p_C_sart <- 2; p_NC_sart <- 0   # Purely causal AR(12)
 
 # Define forecast evaluation window
 data_series <- inflation_df_monthly$inflationNonSA
@@ -31,11 +32,12 @@ results_list <- pbmclapply(
     tryCatch({
       y_window <- data_series[1:t]
       
-      forecast_mart <- forecast.MART(
+      forecast_mart <- forecast.SMART(
         y = y_window,
         p_C = p_C_mart,
         p_NC = p_NC_mart,
         c = c,
+        gamma = gamma,
         d = d,
         h = h,
         M = M,
@@ -46,6 +48,7 @@ results_list <- pbmclapply(
         p_C = p_C_art,
         p_NC = p_NC_art,
         c = c,
+        gamma = gamma,
         d = d,
         h = h,
         M = M,
@@ -54,7 +57,7 @@ results_list <- pbmclapply(
       
       actual <- data_series[(t + 1):(t + h)]
       
-      return(list(mart = forecast_mart, art = forecast_art, actual = actual))
+      return(list(mart = forecast_smart, art = forecast_sart, actual = actual))
     }, error = function(e) {
       message(sprintf("Error at t = %d: %s", t, e$message))
       return(NULL)
@@ -68,13 +71,13 @@ results_list <- pbmclapply(
 # -----------------------------------------------------------------------------
 
 # Safely extract components and skip NULLs
-forecast_mart <- do.call(rbind, lapply(results_list, function(x) {
-  if (!is.null(x) && !is.null(x$mart)) return(x$mart)
+forecast_smart <- do.call(rbind, lapply(results_list, function(x) {
+  if (!is.null(x) && !is.null(x$smart)) return(x$smart)
   return(matrix(NA, nrow = 1, ncol = h))  # Fallback for failed cases
 }))
 
-forecast_art <- do.call(rbind, lapply(results_list, function(x) {
-  if (!is.null(x) && !is.null(x$art)) return(x$art)
+forecast_sart <- do.call(rbind, lapply(results_list, function(x) {
+  if (!is.null(x) && !is.null(x$sart)) return(x$sart)
   return(matrix(NA, nrow = 1, ncol = h))
 }))
 
@@ -83,8 +86,8 @@ actual_matrix <- do.call(rbind, lapply(results_list, function(x) {
   return(matrix(NA, nrow = 1, ncol = h))
 }))
 
-colnames(forecast_mart) <- paste0("h", 1:h)
-colnames(forecast_art) <- paste0("h", 1:h)
+colnames(forecast_smart) <- paste0("h", 1:h)
+colnames(forecast_sart) <- paste0("h", 1:h)
 colnames(actual_matrix) <- paste0("h", 1:h)
 
 # -----------------------------------------------------------------------------
@@ -95,8 +98,8 @@ rmse <- function(forecast, actual) {
   sqrt(colMeans((forecast - actual)^2, na.rm = TRUE))
 }
 
-rmse_mart <- rmse(forecast_mart, actual_matrix)
-rmse_art <- rmse(forecast_art, actual_matrix)
+rmse_smart <- rmse(forecast_smart, actual_matrix)
+rmse_sart <- rmse(forecast_sart, actual_matrix)
 
 
 # -----------------------------------------------------------------------------
@@ -125,7 +128,7 @@ compute_dm_tests <- function(forecast1, forecast2, actual, h) {
   return(p_values)
 }
 
-dm_mart_vs_causal <- compute_dm_tests(forecast_mart, forecast_art, actual_matrix, h)
+dm_smart_vs_sart <- compute_dm_tests(forecast_smart, forecast_sart, actual_matrix, h)
 
 
 # -----------------------------------------------------------------------------
@@ -134,9 +137,9 @@ dm_mart_vs_causal <- compute_dm_tests(forecast_mart, forecast_art, actual_matrix
 
 rmse_df <- data.frame(
   horizon = 1:h,
-  RMSE_mart = rmse_mart,
-  RMSE_art = rmse_art,
-  DM_mart_vs_art = dm_mart_vs_causal
+  RMSE_smart = rmse_smart,
+  RMSE_sart = rmse_sart,
+  DM_smart_vs_sart = dm_smart_vs_sart
 )
 
 # Print RMSE and DM test comparison

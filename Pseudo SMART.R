@@ -17,8 +17,6 @@
 #' selection.lag(data$y,data$x,8)
 
 selection.lag_st <- function(y,x,p_max,c,gamma,d=1){
-  c <- c
-  d <- d
   if (is.null(x)){
     x <- "not"
   }
@@ -82,8 +80,8 @@ bic <- function(y,x,p_max,c,gamma,d){
   }
   
   y <- fBasics::vec(y)
-  # y <- y - mean(y)
-  # n <- length(y) - p_max
+  y <- y - mean(y)
+  n <- length(y) - max(p_max,d)
   
   y <- y - mean(y)
   # Demean c om de threshold consistent te houden
@@ -138,9 +136,11 @@ aic <- function(y,x,p_max,c,gamma,d){
   
   y <- fBasics::vec(y)
   y <- y - mean(y)
+
   # Demean c om de threshold consistent te houden
   c <- c - mean(y)
   n <- length(y) - max(p_max,d)
+
   
   if (length(x) > 1){
     numcol <- NCOL(x)
@@ -193,6 +193,7 @@ hq <- function(y,x,p_max,c,gamma,d){
   # Demean c om de threshold consistent te houden
   c <- c - mean(y)
   n <- length(y) - max(p_max,d)
+
   
   if (length(x) > 1){
     numcol <- NCOL(x)
@@ -220,6 +221,95 @@ hq <- function(y,x,p_max,c,gamma,d){
   
 }
 
+#' @title The ARX estimation by OLS function
+#' @description This function allows you to estimate ARX models by ordinary least squares (OLS).
+#' @param y Data vector of time series observations.
+#' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' @param p Number of autoregressive terms to be included.
+#' @keywords estimation
+#' @keywords pseudo-causal
+#' @return \item{coefficients}{Vector of estimated coefficients.}
+#' @return \item{coef.auto}{Vector of estimated autoregressive parameters.}
+#' @return \item{coef.exo}{Vector of estimated exogenous parameters.}
+#' @return \item{mse}{Mean squared error.}
+#' @return \item{residuals}{Residuals.}
+#' @return \item{loglikelihood}{Value of the loglikelihood.}
+#' @return \item{fitted.values}{Fitted values.}
+#' @return \item{df}{Degrees of freedom.}
+#' @return \item{vcov}{Variance-covariance matrix of residuals.}
+#' @author Sean Telg
+#' @export
+#' @examples
+#' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
+#' arx.ls(data$y,data$x,2)
+
+arx.ls_ST <- function(y,x,p,c,gamma,d){
+  if (is.null(x)){
+    x <- "not"
+  }
+  
+  n <- length(y) - p
+  
+  Y <- y[(max(p,d)+1):length(y)]
+  int <- rep(1,(length(y)-max(p,d)))
+  ZT <- regressor.matrix_ST(y,x,p,c,gamma,d)
+  ZT <- cbind(int,ZT)
+  
+  df <- nrow(ZT) - NCOL(ZT)
+  
+  B <- solve(t(ZT) %*% ZT) %*% (t(ZT) %*% Y)
+  
+  if (p > 0){
+    if (length(x) > 1){
+      rownames(B) <- c('int', paste('lag', 1:(2*p)), paste('exo', 1:(2*NCOL(x))))
+    }
+    else{
+      rownames(B) <- c('int', paste('lag', 1:(2*p)))
+    }
+  }
+  else{
+    if (length(x) > 1){
+      rownames(B) <- c('int', paste('exo', 1:(2*NCOL(x))))
+    }
+    else{
+      rownames(B) <- 'int'
+    }
+  }
+  
+  FV <- ZT %*% B
+  U <- Y - FV
+  
+  sig <- (t(U) %*% U)
+  sig <- as.numeric(sig)
+  
+  Cov <- (1/n)*sig
+  Cov <- as.numeric(Cov)
+  
+  sigma2 <- sum((Y - ZT %*% B)^2)/df
+  qz <- qr(ZT)
+  vcov <- sigma2*chol2inv(qz$qr)
+  colnames(vcov) <- rownames(vcov) <- colnames(ZT)
+  
+  Loglik <- -(n/2)*(1 + log(2*pi)+log(Cov))
+  
+  if (p == 0){
+    B_auto <- 0
+  }
+  else{
+    B_auto <- B[2:(2*p+1)]
+  }
+  
+  if (length(x) > 1){
+    B_x <- B[(2*p+2):length(B)]
+  }
+  else{
+    B_x <- 0
+  }
+  
+  return(list(coefficients = B, coef.auto = B_auto, coef.exo = B_x, mse = Cov, residuals = U, loglikelihood = Loglik, fitted.values = FV, df = df,vcov=vcov))
+}
+
+
 
 #' @title The lag-lead model selection for MARX function
 #' @description This function allows you to determine the MARX model (for p = r + s) that maximizes the t-log-likelihood.
@@ -239,6 +329,7 @@ hq <- function(y,x,p_max,c,gamma,d){
 
 selection.lag.lead_ST <- function(y, x, p_pseudo, c, gamma, d) {
   y <- as.numeric(y)
+  d <- d
   # Check if x is NULL and set it to 'not' if true
   if (is.null(x)) {
     x <- "not"
@@ -251,7 +342,7 @@ selection.lag.lead_ST <- function(y, x, p_pseudo, c, gamma, d) {
   P_NC <- as.numeric(fBasics::vec(P_NC))
   print(P_NC)
   
-  n <- length(y) - p_pseudo
+  n <- length(y) - max(p_pseudo,d)
   loglik <- c()
   
   for (i in 1:(p_pseudo + 1)) {
@@ -263,6 +354,7 @@ selection.lag.lead_ST <- function(y, x, p_pseudo, c, gamma, d) {
       sig <- as.numeric(SMART_results[[8]])
       df  <- as.numeric(SMART_results[[9]])
       E   <- SMART_results[[10]]
+      n <- length(E)
       
       # Check if the components are numeric
       if (!is.numeric(E)) stop("E is not numeric.")
@@ -421,6 +513,6 @@ cat("Chi-squared test statistic:", test_statistic, "\n")
 cat("p-value:", p_value, "\n")
 
 # Step 1: Perfome Ljung-Box test
-Box.test(resids_arst2, lag = 20, type = "Ljung-Box")
+Box.test(resids_arst2, lag = 6, type = "Ljung-Box")
 
 

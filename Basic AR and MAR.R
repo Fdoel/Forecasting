@@ -102,7 +102,7 @@ mar111_crit <- information.criteria("MARX", mar_final)  # Info criteria for MAR(
 # -----------------------------------------------------------------------------
 
 # Forecasting parameters
-h <- 24          # Forecast horizon
+h <- 12          # Forecast horizon
 N <- 1000        # Posterior draws
 M <- 50          # MA truncation
 
