@@ -1027,6 +1027,34 @@ compute.MA <- function(pol,M){
   return(psi)
 }
 
+computePath <- function(y, p, h, d, c, c1, c2, nc1, nc2, intercept, v1, v2) {
+  path <- rep(NA, h + d)
+  p <- length(which(y > c))/length(c)
+  n <- length(y)
+  r <- length(c1)
+  s <- length(c2)
+  y_path <- rep(NA, h + d)
+  for(i in range(1:(h+d))) {
+    path[i] <- binomial(rbinom(1, 1, (1-p))) + 1 # Regime 1 with prob p
+    if(y[n + i - d] > c) {
+      y_part <- intercept + c1 * y[(n + i -1):(n + i - r)] 
+    } else {
+      y_part <- intercept + c2 * y[(n + i -1):(n + i - r)] 
+    }
+    if(path[i] == 1) {
+      y_path[i] <- y_part + v1
+    } else {
+      y_path[i] <- y_part + v2 
+      }
+    # Check if the series is consistent so far
+    if (sum(!is.na(x)) > d) {
+      checks <- sum(!is.na(x))  - d
+      
+      
+    }
+  }
+}
+
 #' @title Forecasting function for the MART model
 #' @description   This function allows you to forecast with the mixed causal-noncausal model with possibly exogenous regressors.
 #' @param y       Data vector y.
@@ -1138,7 +1166,10 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
     C2 <- matrix(data=0, nrow=(M+s), ncol=(M+s))
     C1[1,] <- compute.MA(model$coef.nc1,(M+s-1))
     C2[1,] <- compute.MA(model$coef.nc2,(M+s-1))
-    
+    if (C1[1,M+s] > 1 | C2[1,M+s] > 1) {
+      fallback_forecast <- forecast.MART(y, X, (p_C + p_NC), 0, c, d, X.for, h, M, N, seed)
+      return(list(forecast = fallback_forecast$forecast, defaulted = TRUE))
+    }
     if (s > 1){
       for (i in 2:s){
         C1[i,] <- c(0, C1[(i-1),1:(length(C1[(i-1),])-1)])
@@ -1204,7 +1235,7 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
     }
     y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
   }
-  return(y.for)
+  return(list(forecast = y.for, defaulted = FALSE))
 }
 
 information.criteria <- function(type = c("MARX", "MART", "SMART"), model) {
@@ -1321,6 +1352,12 @@ forecast.SMART <- function(y,X,p_C,p_NC,c,gamma,d,X.for,h,M,N,seed=20240402) {
     C1[1,] <- compute.MA(model$coef.nc1,(M+s-1))
     C2[1,] <- compute.MA(model$coef.nc2,(M+s-1))
     
+    #if (C1[1,M+s] > 1 | C2[1,M+s] > 1) {
+    #  fallback_forecast <- forecast.MART(y, X, (p_C + p_NC), 0, c, d, X.for, h, M, N, seed)
+    #  return(list(forecast = fallback_forecast$forecast, defaulted_to_ar = TRUE))
+    #}
+    
+  
     if (s > 1){
       for (i in 2:s){
         C1[i,] <- c(0, C1[(i-1),1:(length(C1[(i-1),])-1)])
@@ -1378,5 +1415,6 @@ forecast.SMART <- function(y,X,p_C,p_NC,c,gamma,d,X.for,h,M,N,seed=20240402) {
 
     y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
   }
-  return(y.for)
+  return(list(forecast = y.for, defaulted_to_ar = FALSE))
+  
 }
