@@ -615,7 +615,7 @@ regressor.matrix_ST <- function(y, x, p, c, gamma,d=1) {
 #' arx.ls(data$y,data$x,2)
 
 arx.ls_ST <- function(y,x,p,c, gamma,d=1){
-  
+  d <- d
   if (is.null(x)){
     x <- "not"
   }
@@ -836,9 +836,9 @@ SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
     z    <- rev(y)
     # Hier specificeer je startwaardes voor de parameters voor optimalisatie
     z    <- fBasics::vec(z) # Z hier is basically de toekomst
-    BC0  <- arx.ls_ST(y,x,p_C,c, gamma)[[2]] # Fit een AR model en pak de phi's
-    Bx0  <- arx.ls_ST(y,x,p_C,c, gamma)[[3]] # Fit een AR model en pak de beta's
-    BNC0 <- arx.ls_ST(z,x.rev,p_NC,c, gamma)[[2]] # Fir een AR model op de omgedraaide volgorde, dus basically de toekomst
+    BC0  <- arx.ls_ST(y,x,p_C,c, gamma,d)[[2]] # Fit een AR model en pak de phi's
+    Bx0  <- arx.ls_ST(y,x,p_C,c, gamma,d)[[3]] # Fit een AR model en pak de beta's
+    BNC0 <- arx.ls_ST(z,x.rev,p_NC,c, gamma,d)[[2]] # Fir een AR model op de omgedraaide volgorde, dus basically de toekomst
     IC0  <- 0
     df0  <- 20
     sig0 <- 2

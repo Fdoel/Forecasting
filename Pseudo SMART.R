@@ -83,6 +83,11 @@ bic <- function(y,x,p_max,c,gamma,d){
   y <- y - mean(y)
   n <- length(y) - max(p_max,d)
   
+  y <- y - mean(y)
+  # Demean c om de threshold consistent te houden
+  c <- c - mean(y)
+  n <- length(y) - max(p_max,d)
+  
   if (length(x) > 1){
     numcol <- NCOL(x)
   }
@@ -131,6 +136,11 @@ aic <- function(y,x,p_max,c,gamma,d){
   
   y <- fBasics::vec(y)
   y <- y - mean(y)
+
+  # Demean c om de threshold consistent te houden
+  c <- c - mean(y)
+  n <- length(y) - max(p_max,d)
+
   
   if (length(x) > 1){
     numcol <- NCOL(x)
@@ -180,6 +190,10 @@ hq <- function(y,x,p_max,c,gamma,d){
   
   y <- fBasics::vec(y)
   y <- y - mean(y)
+  # Demean c om de threshold consistent te houden
+  c <- c - mean(y)
+  n <- length(y) - max(p_max,d)
+
   
   if (length(x) > 1){
     numcol <- NCOL(x)
@@ -206,7 +220,6 @@ hq <- function(y,x,p_max,c,gamma,d){
   return(list(p = p_hq, values = crit))
   
 }
-
 
 #' @title The ARX estimation by OLS function
 #' @description This function allows you to estimate ARX models by ordinary least squares (OLS).
@@ -297,6 +310,7 @@ arx.ls_ST <- function(y,x,p,c,gamma,d){
 }
 
 
+
 #' @title The lag-lead model selection for MARX function
 #' @description This function allows you to determine the MARX model (for p = r + s) that maximizes the t-log-likelihood.
 #' @param y Data vector of time series observations.
@@ -315,6 +329,7 @@ arx.ls_ST <- function(y,x,p,c,gamma,d){
 
 selection.lag.lead_ST <- function(y, x, p_pseudo, c, gamma, d) {
   y <- as.numeric(y)
+  d <- d
   # Check if x is NULL and set it to 'not' if true
   if (is.null(x)) {
     x <- "not"
@@ -384,11 +399,11 @@ selection.lag.lead_ST <- function(y, x, p_pseudo, c, gamma, d) {
 }
 
 
-selection.lag_st(inflation_df_monthly$inflationNonSA,NULL,12, median(inflation_df_monthly$inflationNonSA),gamma=15,d=7)
+selection.lag_st(inflation_df_monthly$inflationNonSA,NULL,12, median(inflation_df_monthly$inflationNonSA),gamma=15,d=6)
 p_pseudo <- readline(prompt = "Choose lag order for pseudo causal model: ")
 p_pseudo <- as.numeric(p_pseudo)
 
-pseudo <- arx.ls_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=15,d=7)
+pseudo <- arx.ls_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=15,d=6)
 Cov_pseudo <- pseudo[[4]]
 U_pseudo <- pseudo[[5]]
 test_cdf_pseudo <- cbind(U_pseudo, stats::pnorm(U_pseudo,0,Cov_pseudo))
@@ -456,7 +471,7 @@ if (jarque_check == 0){
 stats::qqnorm(U_pseudo, main="Normal Probability Plot of Residuals")
 stats::qqline(U_pseudo)
 
-selection.lag.lead_results <- selection.lag.lead_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=15,d=7)
+selection.lag.lead_results <- selection.lag.lead_ST(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),gamma=15,d=6)
 p_C <- selection.lag.lead_results[[1]]
 p_NC <- selection.lag.lead_results[[2]]
 
@@ -498,6 +513,6 @@ cat("Chi-squared test statistic:", test_statistic, "\n")
 cat("p-value:", p_value, "\n")
 
 # Step 1: Perfome Ljung-Box test
-Box.test(resids_arst2, lag = 20, type = "Ljung-Box")
+Box.test(resids_arst2, lag = 6, type = "Ljung-Box")
 
 

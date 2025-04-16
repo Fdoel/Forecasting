@@ -116,3 +116,21 @@ cov <- model.ART$var.cov
 ar_wald <- wald_test(b_1, b_2, cov, idx1 = c(1, 2), idx2 = c(3, 4))
 ar_wald
 
+
+## -----------------------------------------------------------------------------
+# Testing if the coefficients differ significantly in the regimes F test
+# -----------------------------------------------------------------------------
+model.MART <- MART(inflation_df_monthly$inflationNonSA,NULL,1,1,median(inflation_df_monthly$inflationNonSA),3)
+model.ART <- MART(inflation_df_monthly$inflationNonSA,NULL,2,0,median(inflation_df_monthly$inflationNonSA),3)
+
+mart_resid_var <- var(model.MART$residuals)
+art_resid_var <- var(model.ART$residuals)
+
+t <- length(mart_resid_var)
+
+F_c <- t * (art_resid_var - mart_resid_var) / mart_resid_var
+
+p_value <- 1 - pchisq(F_c, df = 2 + 1)
+p_value
+
+
