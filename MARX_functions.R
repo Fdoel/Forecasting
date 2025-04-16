@@ -216,8 +216,7 @@ regressor.matrix <- function(y,x,p){
   
   if (p==1){
     k <-1
-  }
-  else{
+  } else{
     k <- NCOL(y)
   }
   
@@ -231,20 +230,18 @@ regressor.matrix <- function(y,x,p){
     
     Z <- Z[(1+p):n,]
     
-  }
-  else{
+  } else{
     Z <- matrix(,nrow=n,ncol=0)
   }
   
-  if (x == "not" && length(x) == 1){
+  if (identical(x, "not") & length(x) == 1){
     Z <- Z
   }
   
   
-  if (NCOL(x) == 1 && x != "not"){
+  if (NCOL(x) == 1 && !identical(x, "not")){
     Z <- cbind(Z,x[(1+p):n])
-  }
-  else if (NCOL(x) > 1 && x != "not"){
+  } else if (NCOL(x) > 1 && x != "not"){
     Z <- cbind(Z,x[(1+p):n,])
   }
   
@@ -375,8 +372,7 @@ marx.t <- function(y,x,p_C,p_NC,params0){
 
   if (length(x) == 1){
     numcol <- 0
-  }
-  else{
+  } else{
     numcol <- NCOL(x)
   }
 
@@ -385,8 +381,7 @@ marx.t <- function(y,x,p_C,p_NC,params0){
     for (i in 1:numcol){
       x.rev[,i] <- rev(x[,i])
     }
-  }
-  else{
+  } else{
     x.rev <- matrix(data=NA,nrow=length(x),ncol=numcol)
     x.rev <- rev(x)
   }
@@ -410,28 +405,21 @@ marx.t <- function(y,x,p_C,p_NC,params0){
   if (length(x) > 1){
       if (p_C > 0 && p_NC > 0){
         params0 <- rbind(BC0,BNC0,Bx0,IC0,sig0,df0)
-      }
-      else if (p_NC > 0 && p_C == 0){
+      } else if (p_NC > 0 && p_C == 0){
         params0 <- rbind(BNC0,Bx0,IC0,sig0,df0)
-      }
-      else if (p_C > 0 && p_NC == 0){
+      } else if (p_C > 0 && p_NC == 0){
         params0 <- rbind(BC0,Bx0,IC0,sig0,df0)
-      }
-      else if (p_C == 0 && p_NC == 0){
+      } else if (p_C == 0 && p_NC == 0){
         params0 <- rbind(Bx0,IC0,sig0,df0)
       }
-  }
-  else{
+  } else{
     if (p_C > 0 && p_NC > 0){
       params0 <- rbind(BC0,BNC0,IC0,sig0,df0)
-    }
-    else if (p_NC > 0 && p_C == 0){
+    } else if (p_NC > 0 && p_C == 0){
       params0 <- rbind(BNC0,IC0,sig0,df0)
-    }
-    else if (p_C > 0 && p_NC == 0){
+    } else if (p_C > 0 && p_NC == 0){
       params0 <- rbind(BC0,IC0,sig0,df0)
-    }
-    else if (p_C == 0 && p_NC == 0){
+    } else if (p_C == 0 && p_NC == 0){
       params0 <- rbind(IC0,sig0,df0)
     }
   }
@@ -450,24 +438,21 @@ marx.t <- function(y,x,p_C,p_NC,params0){
         IC   <- PARAMS[(p_C + p_NC + numcol + 1)]
         sig  <- PARAMS[(p_C + p_NC + numcol + 2)]
         df   <- PARAMS[(p_C + p_NC + numcol + 3)]
-      }
-      else if (p_NC > 0 && p_C == 0){
+      } else if (p_NC > 0 && p_C == 0){
         B_C  <- 0
         B_NC <- PARAMS[1:p_NC]
         B_x  <- PARAMS[(p_NC + 1):(p_NC + numcol)]
         IC   <- PARAMS[(p_NC + numcol + 1)]
         sig  <- PARAMS[(p_NC + numcol + 2)]
         df   <- PARAMS[(p_NC + numcol + 3)]
-      }
-      else if (p_C > 0 && p_NC == 0){
+      } else if (p_C > 0 && p_NC == 0){
         B_NC <- 0
         B_C  <- PARAMS[1:p_C]
         B_x  <- PARAMS[(p_C + 1):(p_C + numcol)]
         IC   <- PARAMS[(p_C + numcol + 1)]
         sig  <- PARAMS[(p_C + numcol + 2)]
         df   <- PARAMS[(p_C + numcol + 3)]
-      }
-      else if (p_C == 0 && p_NC == 0){
+      } else if (p_C == 0 && p_NC == 0){
         B_NC  <- 0
         B_C   <- 0
         B_x   <- PARAMS[(p_C + 3):(p_C + 2 + numcol)]
@@ -475,8 +460,7 @@ marx.t <- function(y,x,p_C,p_NC,params0){
         sig   <- PARAMS[(p_C + numcol + 4)]
         df    <- PARAMS[(p_C + numcol + 5)]
       }
-  }
-  else{
+  } else{
     numcol <- 0
     B_x <- 0
         if (p_C > 0 && p_NC > 0){
@@ -485,22 +469,19 @@ marx.t <- function(y,x,p_C,p_NC,params0){
           IC   <- PARAMS[(p_C + p_NC + 1)]
           sig  <- PARAMS[(p_C + p_NC + 2)]
           df   <- PARAMS[(p_C + p_NC + 3)]
-        }
-        else if (p_NC > 0 && p_C == 0){
+        } else if (p_NC > 0 && p_C == 0){
           B_C  <- 0
           B_NC <- PARAMS[1:p_NC]
           IC   <- PARAMS[(p_NC + 1)]
           sig  <- PARAMS[(p_NC + 2)]
           df   <- PARAMS[(p_NC + 3)]
-        }
-        else if (p_C > 0 && p_NC == 0){
+        } else if (p_C > 0 && p_NC == 0){
           B_NC <- 0
           B_C  <- PARAMS[1:p_C]
           IC   <- PARAMS[(p_C + 1)]
           sig  <- PARAMS[(p_C + 2)]
           df   <- PARAMS[(p_C + 3)]
-        }
-        else if (p_C == 0 && p_NC == 0){
+        } else if (p_C == 0 && p_NC == 0){
           B_NC  <- 0
           B_C   <- 0
           IC    <- PARAMS[1]
@@ -519,8 +500,7 @@ marx.t <- function(y,x,p_C,p_NC,params0){
 
   if (p_C > 0){
     V <- ZC1 - ZC2 %*% B_C
-  }
-  else{
+  } else{
     V <- ZC1
   }
 
@@ -535,21 +515,18 @@ marx.t <- function(y,x,p_C,p_NC,params0){
     for (i in 1:numcol){
       x[,i] <- rev(x[,i])
     }
-  }
-  else{
+  } else{
     x <- rev(x)
   }
 
   if(length(x) > 1){
       if (numcol > 1 ){
         x <- x[(p_NC +1):length(U),]
-      }
-      else{
+      } else{
         x <- x[(p_NC +1):length(U)]
         x <- fBasics::vec(x)
       }
-  }
-  else{
+  } else{
     x <- "not"
   }
 
@@ -561,16 +538,13 @@ marx.t <- function(y,x,p_C,p_NC,params0){
   if (length(x) > 1){
     if (p_NC > 0){
       E <- rev(ZNC1 - (ZNC2 %*% B_NC) - IC - (x %*% B_x))
-    }
-    else{
+    } else{
       E <- rev(ZNC1 - IC - (x %*% B_x))
     }
-  }
-  else{
+  } else{
     if (p_NC > 0){
       E <- rev(ZNC1 - (ZNC2 %*% B_NC) - IC)
-    }
-    else{
+    } else{
       E <- rev(ZNC1 - IC)
     }
 
@@ -1417,7 +1391,7 @@ forecast.marx <- function(y,X,p_C,p_NC,X.for,h,M,N){
 
   ## Check whether there are exogenous variables and whether truncation M is known
 
-  if (missing(X.for) == TRUE && missing(M) == TRUE){
+  if (missing(X.for) == TRUE & missing(M) == TRUE){
     X.for = NULL
     M = 50
   }

@@ -7,18 +7,18 @@ library(pbmcapply)
 
 # Forecasting parameters
 h <- 3          # Forecast horizon
-N <- 1000        # Posterior draws
+N <- 1000      # Posterior draws
 M <- 50          # MA truncation
-d <- 3
+d <- 2
 c <- median(inflation_df_monthly$inflationNonSA)
 
 # Model specifications
-p_C_mart <- 2;  p_NC_mart <- 2    # Mixed MAR(1,1)
+p_C_mart <- 1;  p_NC_mart <- 1    # Mixed MAR(1,1)
 p_C_art <- 2; p_NC_art<- 0   # Purely causal AR(12)
 
 # Define forecast evaluation window
 data_series <- inflation_df_monthly$inflationNonSA
-start_index <- 100
+start_index <- 500
 end_index <- length(data_series) - h
 forecast_indices <- start_index:end_index
 
