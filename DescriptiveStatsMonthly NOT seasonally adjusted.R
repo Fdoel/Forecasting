@@ -60,11 +60,16 @@ data <- read.csv("FRED.csv")
 data <- data[-c(1, 2),]
 
 inflation_df <- data %>%
-  select(c("sasdate", "CPIAUCSL", "UNRATE", "IPFINAL", "CUMFNS", "RPI", "RETAILx", "VIXCLSx")) %>%
+  select(c("sasdate", "CPIAUCSL", "UNRATE", "IPFINAL", "CUMFNS", "RPI", "RETAILx", "VIXCLSx","GS1")) %>%
   mutate(sasdate = as.Date(sasdate, "%m/%d/%Y")) %>%
   
   # Calculate inflation by taking the logs of the CPI divided by its lag
   mutate(inflationSA = log(CPIAUCSL/lag(CPIAUCSL))*100) %>%
+  mutate(
+    ldGS1 = log(GS1) - log(lag(GS1)),
+    dCUMFNS = c(NA,diff(CUMFNS)),
+    dIPFINAL = c(NA,diff(IPFINAL))
+  ) %>%
   filter(sasdate >= as.Date("1959-06-01"))
 
 # Join with non-seasonally adjusted CPI and inflation data
@@ -335,21 +340,7 @@ high_corr_vars <- cor_with_inflationNonSA[abs(cor_with_inflationNonSA) > 0.85 & 
 cat("\nCorrelations with inflationNonSA above 0.85 or below -0.85:\n")
 print(round(high_corr_vars, 3))
 
-GS1 <- as.matrix(inflation_df_cor["GS1"])
-CUMFNS <- as.matrix(inflation_df_cor["CUMFNS"])
-IPFINAL <- as.matrix(inflation_df_cor["IPFINAL"])
-
-inflation_df <- cbind(inflation_df,GS1)
-
 # Rename the final dataframe for use in forecasting and save
 inflation_df_monthly <- inflation_df
-
-# Add tranformed variables
-inflation_df_monthly <- inflation_df_monthly %>%
-  mutate(
-    ldGS1 = log(GS1) - log(lag(GS1)),
-    dCUMFNS = c(NA,diff(CUMFNS)),
-    dIPFINAL = c(NA,diff(IPFINAL))
-  )
 save(inflation_df_monthly, file = "inflation_df_monthly.RData")
 
