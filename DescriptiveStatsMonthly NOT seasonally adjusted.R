@@ -243,10 +243,6 @@ summary_stats_rounded <- summary_stats %>%
 
 print(summary_stats_rounded)
 
-# Rename the final dataframe for use in forecasting and save
-inflation_df_monthly <- inflation_df
-save(inflation_df_monthly, file = "inflation_df_monthly.RData")
-
 library(ggplot2)
 
 # Compute ACF with lag.max = 28
@@ -345,6 +341,7 @@ IPFINAL <- as.matrix(inflation_df_cor["IPFINAL"])
 
 inflation_df <- cbind(inflation_df,GS1, CUMFNS, IPFINAL) 
 
-
-save(inflation_df, file = "inflation_df_monthly.RData")
+# Rename the final dataframe for use in forecasting and save
+inflation_df_monthly <- inflation_df
+save(inflation_df_monthly, file = "inflation_df_monthly.RData")
 
