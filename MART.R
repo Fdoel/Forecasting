@@ -61,6 +61,7 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
   }
   if(p != 0) {
     Z_c <- cbind(Z_c, Z_c)
+  }
     if (!identical(x, "not")) {
       Z_x <- Z[,(p + 1):ncol(Z)]
       Z_x <- cbind(Z_x, Z_x)
@@ -73,6 +74,7 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
         }
       }
     }
+  if(p!=0) {
     mC <- ncol(Z_c)
     for(i in 1:nT) {
       if(y[max(p,d)+i-d] > c) {
@@ -87,7 +89,7 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
       ZT <- Z_c
     }
   } else {
-    ZT <- Z
+    ZT <- Z_x
   }
   return(matrix = ZT)
 }
