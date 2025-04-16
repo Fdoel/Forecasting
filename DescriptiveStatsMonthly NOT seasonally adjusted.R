@@ -343,5 +343,7 @@ GS1 <- as.matrix(inflation_df_cor["GS1"])
 CUMFNS <- as.matrix(inflation_df_cor["CUMFNS"])
 IPFINAL <- as.matrix(inflation_df_cor["IPFINAL"])
 
-exo_regres <- cbind(GS1,CUMFNS,IPFINAL)
+inflation_df <- cbind(inflation_df,inflation_df_cor["GS1"]) 
+
+save(inflation_df, file = "inflation_df_monthly.RData")
 
