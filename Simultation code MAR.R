@@ -3,6 +3,7 @@ set.seed(321) # Set seed for reproducibility
 
 # Load required library
 library(MASS)
+library(pbmcapply)
 source("MARX_functions.R")
 source("MART.R")
 
@@ -108,7 +109,6 @@ get_final_estimates <- function(simulation) {
   means <- apply(sim_matrix, 2, mean)
   sds <- apply(sim_matrix, 2, sd)
   
-  
   mean_estimates <- c(means[1] ,means[2])
   sd_estimates <- c(sds[1], sds[2])
   df_estimates <- means[6]
@@ -137,38 +137,42 @@ param_combinations <- list(
   c(0.9, 0.1),
   c(0.1, 0.1)
 )
+# >>> CHANGED >>>
+# Create parameter grid
+param_grid <- expand.grid(
+  T = sample_sizes,
+  phi_psi = param_combinations,
+  stringsAsFactors = FALSE
+)
 
-#hier ff mooie loop maken met sample sizes and param combinations
-simulation_estimates <- matrix(NA, nrow = length(sample_sizes) * length(param_combinations), ncol = 9)
+# Run the simulation loop with progress bar
+results_list <- pbmclapply(1:nrow(param_grid), mc.cores = parallel::detectCores() - 1, FUN = function(i) {
+  T <- param_grid$T[i]
+  phi <- param_grid$phi_psi[[i]][1]
+  psi <- param_grid$phi_psi[[i]][2]
+  
+  simulation <- monte_carlo_simulation(T, phi, psi, n_sim)
+  estimates <- get_final_estimates(simulation)
+  
+  result_row <- numeric(9)
+  result_row[1] <- T
+  result_row[2] <- phi
+  result_row[3] <- psi
+  result_row[4] <- as.numeric(estimates$mean[1])
+  result_row[5] <- as.numeric(estimates$sd[1])
+  result_row[6] <- as.numeric(estimates$mean[2])
+  result_row[7] <- as.numeric(estimates$sd[2])
+  result_row[8] <- as.numeric(estimates$df)
+  result_row[9] <- as.numeric(estimates$scale)
+  
+  return(result_row)
+})
+# <<< CHANGED <<<
 
-if (!is.matrix(simulation_estimates) || ncol(simulation_estimates) != 9) {
-  stop("Matrix is niet van verwachte vorm")
-}
-
+# >>> CHANGED >>>
+# Bind result matrix
+simulation_estimates <- do.call(rbind, results_list)
 colnames(simulation_estimates) <- c("Sample_size", "phi", "psi", "lag_est", "lag_sd", "lead_est", "lead_sd", "df", "scale")
-i <- 1
-
-for (T in sample_sizes) {
-  for (params in param_combinations) {
-    phi <- params[1]
-    psi <- params[2]
-    
-    simulation <- monte_carlo_simulation(T, phi, psi, n_sim)
-    estimates <- get_final_estimates(simulation)
-    
-    simulation_estimates[i,1] = T
-    simulation_estimates[i,2] = phi
-    simulation_estimates[i,3] = psi
-    simulation_estimates[i,4] = as.numeric(estimates$mean[1]) # Lag estimate regime 1
-    simulation_estimates[i,5] = as.numeric(estimates$sd[1])  # Lag standard deviation regime 1
-    simulation_estimates[i,6] = as.numeric(estimates$mean[2])  # Lead estimate regime 1
-    simulation_estimates[i,7] = as.numeric(estimates$sd[2])  # Lead standard deviation regime 1
-    simulation_estimates[i,8] = as.numeric(estimates$df)  # df value
-    simulation_estimates[i,9] = as.numeric(estimates$scale)  # scale value
-    
-    i <- i+1
-  }
-}
+# <<< CHANGED <<<
 
 print(dim(simulation_estimates))
-
