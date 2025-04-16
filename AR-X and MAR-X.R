@@ -112,7 +112,6 @@ M <- 50          # MA truncation
 # Model specifications
 p_C_mixed <- 1;  p_NC_mixed <- 11    # Mixed MAR(1,11)
 p_C_causal <- 12; p_NC_causal <- 0   # Purely causal AR(12)
-p_C_mid <- 11; p_NC_mid <- 1         # Asymmetric MAR(11,1)
 
 # Define forecast evaluation window
 data_series <- inflation_df_monthly$inflationNonSA
@@ -146,22 +145,12 @@ results_list <- pbmclapply(
       M = M,
       N = N
     )
-    
-    forecast_mid <- forecast.marx(
-      y = y_window,
-      p_C = p_C_mid,
-      p_NC = p_NC_mid,
-      h = h,
-      M = M,
-      N = N
-    )
-    
+
     actual <- data_series[(t + 1):(t + h)]  # Future observed values
     
     return(list(
       mixed = forecast_mixed,
       causal = forecast_causal,
-      mid = forecast_mid,
       actual = actual
     ))
   },
@@ -174,12 +163,10 @@ results_list <- pbmclapply(
 
 forecast_mixed <- do.call(rbind, lapply(results_list, `[[`, "mixed"))
 forecast_causal <- do.call(rbind, lapply(results_list, `[[`, "causal"))
-forecast_mid <- do.call(rbind, lapply(results_list, `[[`, "mid"))
 actual_matrix <- do.call(rbind, lapply(results_list, `[[`, "actual"))
 
 colnames(forecast_mixed) <- paste0("h", 1:h)
 colnames(forecast_causal) <- paste0("h", 1:h)
-colnames(forecast_mid) <- paste0("h", 1:h)
 colnames(actual_matrix) <- paste0("h", 1:h)
 
 # -----------------------------------------------------------------------------
@@ -192,7 +179,6 @@ rmse <- function(forecast, actual) {
 
 rmse_mixed <- rmse(forecast_mixed, actual_matrix)
 rmse_causal <- rmse(forecast_causal, actual_matrix)
-rmse_mid <- rmse(forecast_mid, actual_matrix)
 
 # -----------------------------------------------------------------------------
 # Compute Diebold-Mariano test p-values
@@ -222,7 +208,6 @@ compute_dm_tests <- function(forecast1, forecast2, actual, h) {
 
 dm_mixed_vs_causal <- compute_dm_tests(forecast_mixed, forecast_causal, actual_matrix, h)
 dm_mixed_vs_mid    <- compute_dm_tests(forecast_mixed, forecast_mid, actual_matrix, h)
-dm_causal_vs_mid   <- compute_dm_tests(forecast_causal, forecast_mid, actual_matrix, h)
 
 # -----------------------------------------------------------------------------
 # Combine RMSEs and DM p-values into a tidy data frame
@@ -232,10 +217,7 @@ rmse_df <- data.frame(
   horizon = 1:h,
   RMSE_mixed = rmse_mixed,
   RMSE_causal = rmse_causal,
-  RMSE_mid = rmse_mid,
   DM_mixed_vs_causal = dm_mixed_vs_causal,
-  DM_mixed_vs_mid = dm_mixed_vs_mid,
-  DM_causal_vs_mid = dm_causal_vs_mid
 )
 
 # Print RMSE and DM test comparison
