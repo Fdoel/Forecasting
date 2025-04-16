@@ -10,8 +10,8 @@ load("inflation_df_monthly.RData")
 thresholds <- seq(0.1, 0.6, by = 0.1) #0.6 # median(inflation_df_monthly$inflationNonSA, na.rm = TRUE)
 ds <- seq(1, 12)
 gammas <- seq(1,10)
-p_C_max <- 12
-p_NC_max <- 12
+p_C_max <- 2
+p_NC_max <- 2
 
 # Set number of cores based on OS
 if (.Platform$OS.type == "windows") {
@@ -37,7 +37,7 @@ run_model <- function(params) {
   j <- params$j
   
   # Run MART model
-  MART_d <- MART(inflation_df_monthly$inflationNonSA, NULL, i, j, median(inflation_df_monthly$inflationNonSA), d)
+  MART_d <- MART(inflation_df_monthly$inflationNonSA, NULL, i, j, t, d)
   bic_value <- information.criteria("MART", MART_d)
   return(data.frame(threshold = t, d = d, i = i, j = j, bic = bic_value))
 }
@@ -56,4 +56,5 @@ bic_mart_d_df <- do.call(rbind, bic_results)
 save(bic_mart_d_df, file = "bic_mart_t_d_i_j_.RData")
 
 View(bic_mart_d_df)
+
 

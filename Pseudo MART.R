@@ -309,11 +309,11 @@ selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 1) {
 }
 
 
-selection.lag_t(inflation_df_monthly$inflationNonSA,NULL,12,median(inflation_df_monthly$inflationNonSA),d=3)
+selection.lag_t(inflation_df_monthly$inflationNonSA,GS1,12,median(inflation_df_monthly$inflationNonSA),d=3)
 p_pseudo <- readline(prompt = "Choose lag order for pseudo causal model: ")
 p_pseudo <- as.numeric(p_pseudo)
 
-pseudo <- arx.ls_T(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),d=3)
+pseudo <- arx.ls_T(inflation_df_monthly$inflationNonSA,GS1,p_pseudo,median(inflation_df_monthly$inflationNonSA),d=3)
 Cov_pseudo <- pseudo[[4]]
 U_pseudo <- pseudo[[5]]
 test_cdf_pseudo <- cbind(U_pseudo, stats::pnorm(U_pseudo,0,Cov_pseudo))
@@ -381,7 +381,7 @@ if (jarque_check == 0){
 stats::qqnorm(U_pseudo, main="Normal Probability Plot of Residuals")
 stats::qqline(U_pseudo)
 
-selection.lag.lead_results <- selection.lag.lead_T(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,median(inflation_df_monthly$inflationNonSA),d=3)
+selection.lag.lead_results <- selection.lag.lead_T(inflation_df_monthly$inflationNonSA,GS1,p_pseudo,median(inflation_df_monthly$inflationNonSA),d=3)
 p_C <- selection.lag.lead_results[[1]]
 p_NC <- selection.lag.lead_results[[2]]
 
