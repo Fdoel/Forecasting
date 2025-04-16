@@ -141,7 +141,7 @@ arx.ls_T <- function(y,x,p,c,d=1){
   }
   else{
     if (length(x) > 1){
-      rownames(B) <- c('int', paste('exo', 1:(2*NCOL(x))))
+      rownames(B) <- c('int', paste('exo', 1:(NCOL(x))))
     }
     else{
       rownames(B) <- 'int'
@@ -335,11 +335,10 @@ MART <- function(y, x, p_C, p_NC, c, d=1) {
   if (nargin < 7){
     y    <- fBasics::vec(y)
     z    <- rev(y)
-    # Hier specificeer je startwaardes voor de parameters voor optimalisatie
-    z    <- fBasics::vec(z) # Z hier is basically de toekomst
-    BC0  <- arx.ls_T(y,x,p_C,c,d)[[2]] # Fit een AR model en pak de phi's
-    Bx0  <- arx.ls_T(y,x,p_C,c,d)[[3]] # Fit een AR model en pak de beta's
-    BNC0 <- arx.ls_T(z,x.rev,p_NC,c,d)[[2]] # Fir een AR model op de omgedraaide volgorde, dus basically de toekomst
+    z    <- fBasics::vec(z)
+    BC0  <- arx.ls_T(y,x,p_C,c,d)[[2]] 
+    Bx0  <- arx.ls_T(y,x,p_C,c,d)[[3]]
+    BNC0 <- arx.ls_T(z,x.rev,p_NC,c,d)[[2]]
     IC0  <- 0
     df0  <- 20
     sig0 <- 2
@@ -383,7 +382,7 @@ MART <- function(y, x, p_C, p_NC, c, d=1) {
       B_x  <- PARAMS[(p_CT + p_NCT + 1):(p_CT + p_NCT + numcolT)]
       IC   <- PARAMS[(p_CT + p_NCT + numcolT + 1)]
       sig  <- PARAMS[(p_CT + p_NCT + numcolT + 2)]
-      df   <- PARAMS[(p_CT + p_NCT + numcol + 3)]
+      df   <- PARAMS[(p_CT + p_NCT + numcolT + 3)]
     }
     else if (p_NC > 0 && p_C == 0){
       B_C  <- 0
@@ -883,7 +882,7 @@ SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
       B_x  <- PARAMS[(p_CT + p_NCT + 1):(p_CT + p_NCT + numcolT)]
       IC   <- PARAMS[(p_CT + p_NCT + numcolT + 1)]
       sig  <- PARAMS[(p_CT + p_NCT + numcolT + 2)]
-      df   <- PARAMS[(p_CT + p_NCT + numcol + 3)]
+      df   <- PARAMS[(p_CT + p_NCT + numcolT + 3)]
     }
     else if (p_NC > 0 && p_C == 0){
       B_C  <- 0
@@ -921,9 +920,9 @@ SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
     } else if (p_NC > 0 && p_C == 0){
       B_C  <- 0
       B_NC <- PARAMS[1:(p_NCT)]
-      IC   <- PARAMS[(2*(p_NC) + 1)]
-      sig  <- PARAMS[(2*(p_NC) + 2)]
-      df   <- PARAMS[(2*(p_NC) + 3)]
+      IC   <- PARAMS[(p_NCT + 1)]
+      sig  <- PARAMS[(p_NCT + 2)]
+      df   <- PARAMS[(p_NCT + 3)]
     } else if (p_C > 0 && p_NC == 0){
       B_NC <- 0
       B_C  <- PARAMS[1:(p_CT)]
@@ -1044,8 +1043,6 @@ compute.MA <- function(pol,M){
 #' @export
 #' @examples
 
-
-# Treshold verandert niet fundamenteel de simulatie van toekomstige errors, je moet alleen uitkijken dat dimensies enzo kloppen
 forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
   
   set.seed(seed)
@@ -1054,7 +1051,7 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
   }
   
   if (missing(N) == TRUE){
-    N = 10000
+    N = 1000
   }
   
   model <- MART(y, X, p_C, p_NC, c, d)
@@ -1097,30 +1094,35 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
   ## Simulate future epsilon and use forecasted X
   hve_reg1 <- c()
   hve_reg2 <- c()
-  hve21 <- matrix(data=0, nrow=N,ncol=h)
-  hve22 <- matrix(data=0, nrow=N,ncol=h)
+  hve21 <- matrix(data=0, nrow=N,ncol=(h+d))
+  hve22 <- matrix(data=0, nrow=N,ncol=(h+d))
+  Y <- matrix(nrow = N, ncol = h)
   
   for (iter in 1:N){
-    
+    p <- length(which(y > c))/length(y)
+    path <- rbinom((h+d), 1, p)
     eps.sim <- model$scale*stats::rt(M,model$df)
-    z2 <- c()
+    z21 <- c()
+    z22 <- c()
     for (i in 1:M){
       if(is.null(X.for) == TRUE){
-        z2[i] <- eps.sim[i]
+        z21[i] <- eps.sim[i]
+        z22[i] <- eps.sim[i]
       }
       else{
-        # Dit op de een of andere manier omzetten naar threshold maar zie niet 123 hoe
+  
         if(NCOL(X.for) > 1){
-          z2[i] <- eps.sim[i] +  coef.exo %*% t(X.for[i,])
+          z21[i] <- eps.sim[i] +  model$coef.exo1 %*% t(X.for[i,])
+          z22[i] <- eps.sim[i] + model$coef.exo2 %*% t(X.for[i,])
         }
         else{
-          z2[i] <- eps.sim[i] + coef.exo * X.for[i]
+          z21[i] <- eps.sim[i] + model$coef.exo1 * X.for[i]
+          z22[i] <- eps.sim[i] + model$coef.exo2 * X.for[i]
         }
       }
     }
     
     ## Compute filtered values u = phi(L)y and moving average values
-    # split in phi1 en phi2 voor twee regimes.
     phi1 <- c(1,model$coef.c1)
     phi2 <- c(1,model$coef.c2)
     
@@ -1132,13 +1134,17 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
         u[i] <- phi2 %*% y[i:(i-r)]
       }
     }
-    w <- c(u[(obs-s+1):obs],z2)
-    # C is a function of the non-causal polynomial. So we need to split it up for now
+    w1 <- c(u[(obs-s+1):obs],z21)
+    w2 <- c(u[(obs-s+1):obs],z22)
     C1 <- matrix(data=0, nrow=(M+s), ncol=(M+s))
     C2 <- matrix(data=0, nrow=(M+s), ncol=(M+s))
     C1[1,] <- compute.MA(model$coef.nc1,(M+s-1))
     C2[1,] <- compute.MA(model$coef.nc2,(M+s-1))
     
+    if (C1[1,M+s] > 1 | C2[1,M+s] > 1) {
+      fallback_forecast <- forecast.MART(y, X, (p_C + p_NC), 0, c, d, X.for, h, M, N, seed)
+      return(list(forecast = fallback_forecast$forecast, defaulted = TRUE))
+    }
     if (s > 1){
       for (i in 2:s){
         C1[i,] <- c(0, C1[(i-1),1:(length(C1[(i-1),])-1)])
@@ -1154,8 +1160,8 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
     D1 = solve(C1)
     D2 = solve(C2)
     
-    e1 <- D1 %*% w
-    e2 <- D2 %*% w
+    e1 <- D1 %*% w1
+    e2 <- D2 %*% w2
     
     h1 <- c()
     h2 <- c()
@@ -1168,43 +1174,74 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
     hve_reg1[iter] = prod(h1)
     hve_reg2[iter] = prod(h2)
     
-    for (j in 1:h){
-      mov.av1 <-  C1[1,1:(M-j+1)] %*% z2[j:M]
-      mov.av2 <- C2[1,1:(M-j+1)] %*% z2[j:M]
+    y_thresh <- y
+    for (j in 1:(h+d)){
+      mov.av1 <-  C1[1,1:(M-j+1)] %*% z21[j:M]
+      mov.av2 <- C2[1,1:(M-j+1)] %*% z22[j:M]
       
       hve21[iter,j] <- mov.av1 * hve_reg1[iter]
       hve22[iter,j] <- mov.av2 * hve_reg2[iter]
       
     }
-  }
-  
-  y.star <- y[(obs-r+1):obs]
-  y.for <- c()
-  exp1 <- c()
-  exp2 <- c()
-  
-  for (j in 1:h){
-    exp1[j] = ((1/N)*sum(hve21[,j]))/((1/N)*sum(hve_reg1))
-    exp2[j] = ((1/N)*sum(hve22[,j]))/((1/N)*sum(hve_reg2))
+    y.star <- y[(obs-r+1):obs]
+    y.for <- c()
+    exp1 <- c()
+    exp2 <- c()
     
-    if(y[(obs - d + j)] > c) {
-      p <- length(which(y > c))/length(y)
-      if(length(model$coef.c1) == 1){
-        y.for[j] <- model$coef.c1 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
-      } else{
-        y.for[j] <-  t(model$coef.c1) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+    for (j in 1:(h+d)){
+      exp1[j] = (hve21[iter,j])/(hve_reg1[iter])
+      exp2[j] = (hve22[iter,j])/(hve_reg2[iter])
+      
+      if(y_thresh[(obs - d + j)] > c) {
+        if(length(model$coef.c1) == 1){
+          if(path[j] == 1) {
+            y.for[j] <- model$coef.c1 * y.star + (model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])
+          } else {
+            y.for[j] <- model$coef.c1 * y.star + (model$coef.int/(1-sum(model$coef.nc2))  + exp2[j])
+          }
+        } else{
+          if(path[j] == 1) {
+            y.for[j] <-  t(model$coef.c1) %*% y.star + (model$coef.int/(1-sum(model$coef.nc1)))  + exp1[j]
+          } else {
+            y.for[j] <-  t(model$coef.c1) %*% y.star + (model$coef.int/(1-sum(model$coef.nc2)))  + exp1[j]
+          }
+        }
+      } else {
+        if(length(model$coef.c1) == 1){
+          if(path[j] == 1) {
+            y.for[j] <- model$coef.c2 * y.star + (model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])
+          } else {
+            y.for[j] <- model$coef.c2 * y.star + (model$coef.int/(1-sum(model$coef.nc2))  + exp2[j])
+          }
+        } else{
+          if(path[j] == 1) {
+            y.for[j] <-  t(model$coef.c2) %*% y.star + (model$coef.int/(1-sum(model$coef.nc1)))  + exp1[j]
+          } else {
+            y.for[j] <-  t(model$coef.c2) %*% y.star + (model$coef.int/(1-sum(model$coef.nc2)))  + exp1[j]
+          }
+        }
       }
-    } else {
-      p <- length(which(y > c))/length(y)
-      if(length(model$coef.c1) == 1){
-        y.for[j] <- model$coef.c2 * y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
-      } else{
-        y.for[j] <-  t(model$coef.c2) %*% y.star + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
+      y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
+      y_thresh <- c(y_thresh, y.for[j])
+    }
+    # Check if iteration is regime consistent for the first h forecasts
+    consistent = TRUE
+    for (check in 1:h) {
+      if(y.for[check + d] > c & path[check] == 0) {
+        consistent = FALSE
+        
+      } else if(y.for[check + d] < c & path[check] == 1) {
+        consistent = FALSE
       }
     }
-    y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
+    if(consistent) {
+      Y[iter,] <- y.for[1:h]
+    } else {
+      Y[iter,] <- NA
+    }
   }
-  return(y.for)
+  y.for = colMeans(Y, na.rm = TRUE)
+  return(list(forecast = y.for, defaulted = FALSE))
 }
 
 information.criteria <- function(type = c("MARX", "MART", "SMART"), model) {
@@ -1291,9 +1328,8 @@ forecast.SMART <- function(y,X,p_C,p_NC,c,gamma,d,X.for,h,M,N,seed=20240402) {
         z2[i] <- eps.sim[i]
       }
       else{
-        # Dit op de een of andere manier omzetten naar threshold maar zie niet 123 hoe
         if(NCOL(X.for) > 1){
-          z2[i] <- eps.sim[i] +  coef.exo %*% t(X.for[i,])
+          z2[i] <- eps.sim[i] +  model$coef.exo %*% t(X.for[i,])
         }
         else{
           z2[i] <- eps.sim[i] + coef.exo * X.for[i]
@@ -1320,6 +1356,12 @@ forecast.SMART <- function(y,X,p_C,p_NC,c,gamma,d,X.for,h,M,N,seed=20240402) {
     C2 <- matrix(data=0, nrow=(M+s), ncol=(M+s))
     C1[1,] <- compute.MA(model$coef.nc1,(M+s-1))
     C2[1,] <- compute.MA(model$coef.nc2,(M+s-1))
+    
+    #if (C1[1,M+s] > 1 | C2[1,M+s] > 1) {
+    #  fallback_forecast <- forecast.MART(y, X, (p_C + p_NC), 0, c, d, X.for, h, M, N, seed)
+    #  return(list(forecast = fallback_forecast$forecast, defaulted_to_ar = TRUE))
+    #}
+    
     
     if (s > 1){
       for (i in 2:s){
@@ -1375,8 +1417,9 @@ forecast.SMART <- function(y,X,p_C,p_NC,c,gamma,d,X.for,h,M,N,seed=20240402) {
     } else{
       y.for[j] <-  logistic.smooth(y[(obs - d + j)], c, gamma) * t(model$coef.c1) %*% y.star + (1 - logistic.smooth(y[(obs - d + j)], c, gamma)) * t(model$coef.c2) %*% y.star  + p *((model$coef.int/(1-sum(model$coef.nc1))  + exp1[j])) + (1-p)*((model$coef.int/(1-sum(model$coef.nc2))  + exp2[j]))
     }
-
+    
     y.star <- c(y.for[j], y.star[1:(length(y.star)-1)])
   }
-  return(y.for)
+  return(list(forecast = y.for, defaulted_to_ar = FALSE))
+  
 }

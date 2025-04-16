@@ -286,3 +286,62 @@ Box.test(
 
 # ADF test on non-seasonally adjusted inflation
 adf.test(inflation_df$inflationNonSA, alternative = "stationary")
+
+# -----------------------------------------------------------------------------
+# Test for correlation 
+# -----------------------------------------------------------------------------
+
+
+# Load the FRED data (seasonally adjusted CPI and other indicators)
+data <- read.csv("FRED.csv")
+
+# Omit the first two rows as we only require raw data
+data <- data[-c(1, 2),]
+
+inflation_df_cor <- data %>%
+  mutate(sasdate = as.Date(sasdate, "%m/%d/%Y")) %>%
+  
+  # Calculate inflation by taking the logs of the CPI divided by its lag
+  mutate(inflationSA = log(CPIAUCSL/lag(CPIAUCSL))*100) %>%
+  filter(sasdate >= as.Date("1959-06-01"))
+
+# Join with non-seasonally adjusted CPI and inflation data
+inflation_df_cor <- inflation_df_cor %>%
+  left_join(
+    CPI_US_labour_long %>% 
+      filter(Date >= as.Date("1959-06-01")) %>% 
+      select(Date, CPInonSA, inflationNonSA),
+    by = c("sasdate" = "Date")
+  )
+
+# Ensure only historical data is included (exclude future observations)
+inflation_df_cor <- inflation_df_cor %>%
+  filter(sasdate < as.Date("2025-01-01"))
+
+
+# Compute correlation matrix for numeric variables (excluding date)
+cor_matrix <- inflation_df_cor %>%
+  select(c("inflationNonSA","UNRATE","IPFINAL","CUMFNS","RPI","RETAILx","GS1","USGOVT","INDPRO")) %>%
+  select_if(is.numeric) %>%
+  cor(use = "pairwise.complete.obs")
+
+# Extract correlations with inflationNonSA
+cor_with_inflationNonSA <- cor_matrix["inflationNonSA", ]
+
+# Display all correlations with inflationNonSA
+cat("All correlations with inflationNonSA:\n")
+print(round(cor_with_inflationNonSA, 3))
+
+# Filter for absolute correlation > 0.85 (excluding inflationNonSA itself)
+high_corr_vars <- cor_with_inflationNonSA[abs(cor_with_inflationNonSA) > 0.85 & names(cor_with_inflationNonSA) != "inflationNonSA"]
+
+# Display strong correlations
+cat("\nCorrelations with inflationNonSA above 0.85 or below -0.85:\n")
+print(round(high_corr_vars, 3))
+
+GS1 <- as.matrix(inflation_df_cor["GS1"])
+CUMFNS <- as.matrix(inflation_df_cor["CUMFNS"])
+IPFINAL <- as.matrix(inflation_df_cor["IPFINAL"])
+
+exo_regres <- cbind(GS1,CUMFNS,IPFINAL)
+
