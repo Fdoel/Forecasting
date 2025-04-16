@@ -106,7 +106,7 @@ bic <- function(y,x,p_max,c,d=1){
     arx.ls_T_results <- arx.ls_T(y,x,p,c,d)
     n <- length(arx.ls_T_results[[5]])
     Cov <- arx.ls_T_results[[6]]
-    crit[(p+1)] <- -2*Cov/n + ((log(n))/n)*(2*p+1+numcol)
+    crit[(p+1)] <- -2*Cov/n + ((log(n))/n)*(2*p+1+2*numcol)
   }
   
   p_bic <- which.min(crit) - 1
@@ -158,7 +158,7 @@ aic <- function(y,x,p_max,c,d=3){
     arx.ls_T_results <- arx.ls_T(y,x,p,c,d)
     n <- length(arx.ls_T_results[[5]])
     Cov <- arx.ls_T_results[[6]]
-    crit[(p+1)] <- -2*Cov/n + (2/n)*(2*p+1+numcol)
+    crit[(p+1)] <- -2*Cov/n + (2/n)*(2*p+1+2*numcol)
   }
   
   p_aic <- which.min(crit) - 1
@@ -210,7 +210,7 @@ hq <- function(y,x,p_max,c,d=3){
     arx.ls_T_results <- arx.ls_T(y,x,p,c,d)
     n <- length(arx.ls_T_results[[5]])
     Cov <- arx.ls_T_results[[6]]
-    crit[(p+1)] <- -2*Cov/n + ((2*log(log(n)))/n)*(2*p+1+numcol)
+    crit[(p+1)] <- -2*Cov/n + ((2*log(log(n)))/n)*(2*p+1+2*numcol)
   }
   
   p_hq <- which.min(crit) - 1
@@ -309,7 +309,8 @@ selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 1) {
 }
 
 
-selection.lag_t(inflation_df_monthly$inflationNonSA,GS1,12,median(inflation_df_monthly$inflationNonSA),d=3)
+selection.lag_t(inflation_df_monthly$inflationNonSA,inflation_df_monthly$UNRATE,12,median(inflation_df_monthly$inflationNonSA),d=3)
+
 p_pseudo <- readline(prompt = "Choose lag order for pseudo causal model: ")
 p_pseudo <- as.numeric(p_pseudo)
 
