@@ -1,7 +1,7 @@
 # =============================================================================
-# Script: MAR Model Estimation and Forecast Evaluation with External regressors
+# Script: MARX Model Estimation and Forecast Evaluation with External regressors
 # Description:
-#   This script estimates and compares Mixed Causal-Noncausal Autoregressive (MAR)
+#   This script estimates and compares Mixed Causal-Noncausal Autoregressive with external regressors (MARX)
 #   models for US inflation using non-seasonally adjusted data. It includes:
 #     - Model selection via information criteria
 #     - Residual diagnostics for AR models
@@ -18,11 +18,11 @@ library(pbmcapply)     # For parallel processing with progress bar
 library(stats)
 
 # -----------------------------------------------------------------------------
-# Model order selection for MAR model using information criteria
+# Model order selection for MARX model using information criteria
 # -----------------------------------------------------------------------------
 
 # Initial model diagnostic: scan up to lag 18 with 10% significance level
-#marx(inflation_df_monthly$inflationNonSA, NULL, p_max = 18, sig_level = 0.1)
+marx(inflation_df_monthly$inflationNonSA, NULL, p_max = 18, sig_level = 0.1)
 
 # Define maximum lag orders for causal (p_C) and noncausal (p_NC) components
 p_C_max <- 12
