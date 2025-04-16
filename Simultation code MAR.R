@@ -135,7 +135,7 @@ sample_sizes <- c(300, 500, 800)
 param_combinations <- list(
   c(0.9, 0.9),
   c(0.9, 0.1),
-  c(0.1, 0.1)
+  c(0.1, 0.9)
 )
 # >>> CHANGED >>>
 # Create parameter grid
