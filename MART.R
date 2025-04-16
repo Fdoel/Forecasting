@@ -133,22 +133,6 @@ arx.ls_T <- function(y,x,p,c,d=1){
   
   B <- solve(t(ZT) %*% ZT) %*% (t(ZT) %*% Y)
   
-  if (p > 0){
-    if (length(x) > 1){
-      rownames(B) <- c('int', paste('lag', 1:(2*p)), paste('exo', 1:(2*NCOL(x))))
-    }
-    else{
-      rownames(B) <- c('int', paste('lag', 1:(2*p)))
-    }
-  }
-  else{
-    if (length(x) > 1){
-      rownames(B) <- c('int', paste('exo', 1:(NCOL(x))))
-    }
-    else{
-      rownames(B) <- 'int'
-    }
-  }
   
   FV <- ZT %*% B
   U <- Y - FV
