@@ -21,7 +21,7 @@ library(pbmcapply)     # For parallel processing with progress bar
 # -----------------------------------------------------------------------------
 
 # Initial model diagnostic: scan up to lag 18 with 10% significance level
-marx(inflation_df_monthly$inflationNonSA, NULL, p_max = 18, sig_level = 0.1)
+#marx(inflation_df_monthly$inflationNonSA, NULL, p_max = 18, sig_level = 0.1)
 
 # Define maximum lag orders for causal (p_C) and noncausal (p_NC) components
 p_C_max <- 12
