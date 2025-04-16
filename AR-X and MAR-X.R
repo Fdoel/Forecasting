@@ -1,5 +1,5 @@
 # =============================================================================
-# Script: MAR Model Estimation and Forecast Evaluation
+# Script: MAR Model Estimation and Forecast Evaluation with External regressors
 # Description:
 #   This script estimates and compares Mixed Causal-Noncausal Autoregressive (MAR)
 #   models for US inflation using non-seasonally adjusted data. It includes:
