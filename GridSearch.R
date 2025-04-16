@@ -1,5 +1,3 @@
-# Install pbmcapply if not already installed
-install.packages("pbmcapply")
 library(pbmcapply)
 
 # Load your scripts and data
@@ -23,25 +21,23 @@ if (.Platform$OS.type == "windows") {
 
 # Create a parameter grid of all combinations
 param_grid <- expand.grid(
-  y = inflation_df_monthly$inflationNonSA,
-  x <- exo_regres,
+  x = exo_regres,
   threshold = thresholds,
   d = ds,
-  i = 0:p_C_max,
+  i = 0:p_C_max, 
   j = 0:p_NC_max
 )
 
 # Function to run MART and get BIC value
 run_model <- function(params) {
-  y <- params$y
-  x <- params$x
   t <- params$threshold
+  x <- params$x
   d <- params$d
   i <- params$i
   j <- params$j
   
   # Run MART model
-  MART_d <- MART(y, x, i, j, t, d)
+  MART_d <- MART(inflation_df_monthly$inflationNonSA,x, i, j, t, d)
   bic_value <- information.criteria("MART", MART_d)
   return(data.frame(threshold = t, d = d, i = i, j = j, bic = bic_value))
 }
