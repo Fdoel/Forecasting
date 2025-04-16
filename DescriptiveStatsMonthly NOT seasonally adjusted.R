@@ -348,8 +348,8 @@ inflation_df_monthly <- inflation_df
 inflation_df_monthly <- inflation_df_monthly %>%
   mutate(
     ldGS1 = log(GS1) - log(lag(GS1)),
-    dCUMFNS = diff(CUMFNS),
-    dIPFINAL = diff(IPFINAL)
+    dCUMFNS = c(NA,diff(CUMFNS)),
+    dIPFINAL = c(NA,diff(IPFINAL))
   )
 save(inflation_df_monthly, file = "inflation_df_monthly.RData")
 
