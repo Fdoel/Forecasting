@@ -339,8 +339,9 @@ high_corr_vars <- cor_with_inflationNonSA[abs(cor_with_inflationNonSA) > 0.85 & 
 cat("\nCorrelations with inflationNonSA above 0.85 or below -0.85:\n")
 print(round(high_corr_vars, 3))
 
-GS1 <- inflation_df_cor["GS1"]
-CUMFNS <- inflation_df_cor["CUMFNS"]
-IPFINAL <- inflation_df_cor["IPFINAL"]
+GS1 <- as.matrix(inflation_df_cor["GS1"])
+CUMFNS <- as.matrix(inflation_df_cor["CUMFNS"])
+IPFINAL <- as.matrix(inflation_df_cor["IPFINAL"])
 
 exo_regres <- cbind(GS1,CUMFNS,IPFINAL)
+
