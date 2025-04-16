@@ -239,9 +239,9 @@ regressor.matrix <- function(y,x,p){
   }
   
   
-  if (NCOL(x) == 1 && !identical(x, "not")){
+  if (NCOL(x) == 1 & !identical(x, "not")){
     Z <- cbind(Z,x[(1+p):n])
-  } else if (NCOL(x) > 1 && x != "not"){
+  } else if (NCOL(x) > 1 & !identical(x, "not")){
     Z <- cbind(Z,x[(1+p):n,])
   }
   
