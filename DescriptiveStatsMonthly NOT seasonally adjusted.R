@@ -339,9 +339,17 @@ GS1 <- as.matrix(inflation_df_cor["GS1"])
 CUMFNS <- as.matrix(inflation_df_cor["CUMFNS"])
 IPFINAL <- as.matrix(inflation_df_cor["IPFINAL"])
 
-inflation_df <- cbind(inflation_df,GS1, CUMFNS, IPFINAL) 
+inflation_df <- cbind(inflation_df,GS1)
 
 # Rename the final dataframe for use in forecasting and save
 inflation_df_monthly <- inflation_df
+
+# Add tranformed variables
+inflation_df_monthly <- inflation_df_monthly %>%
+  mutate(
+    ldGS1 = log(GS1) - log(lag(GS1)),
+    dCUMFNS = diff(CUMFNS),
+    dIPFINAL = diff(IPFINAL)
+  )
 save(inflation_df_monthly, file = "inflation_df_monthly.RData")
 
