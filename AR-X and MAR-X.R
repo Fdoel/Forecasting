@@ -1,7 +1,7 @@
 # =============================================================================
-# Script: MAR Model Estimation and Forecast Evaluation
+# Script: MARX Model Estimation and Forecast Evaluation with External regressors
 # Description:
-#   This script estimates and compares Mixed Causal-Noncausal Autoregressive (MAR)
+#   This script estimates and compares Mixed Causal-Noncausal Autoregressive with external regressors (MARX)
 #   models for US inflation using non-seasonally adjusted data. It includes:
 #     - Model selection via information criteria
 #     - Residual diagnostics for AR models
@@ -18,11 +18,13 @@ library(pbmcapply)     # For parallel processing with progress bar
 library(stats)
 
 # -----------------------------------------------------------------------------
-# Model order selection for MAR model using information criteria
+# Model order selection for MARX model using information criteria
 # -----------------------------------------------------------------------------
 
+external_reg <- cbind(inflation_df_monthly$GS1, inflation_df_monthly$IPFINAL, inflation_df_monthly$CUMFNS)
+
 # Initial model diagnostic: scan up to lag 18 with 10% significance level
-#marx(inflation_df_monthly$inflationNonSA, NULL, p_max = 18, sig_level = 0.1)
+#marx(inflation_df_monthly$inflationNonSA, external_reg, p_max = 18, sig_level = 0.1)
 
 # Define maximum lag orders for causal (p_C) and noncausal (p_NC) components
 p_C_max <- 12
@@ -38,7 +40,7 @@ N <- matrix(NA, nrow = p_C_max + 1, ncol = p_NC_max + 1)
 # Loop over all possible (p_C, p_NC) combinations and compute info criteria
 for (i in 0:p_C_max) {
   for (j in 0:p_NC_max) {
-    marx_loop <- marx.t(inflation_df_monthly$inflationNonSA, NULL, p_C = i, p_NC = j)
+    marx_loop <- marx.t(inflation_df_monthly$inflationNonSA, external_reg, p_C = i, p_NC = j)
     information <- information.criteria(type = "MARX", marx_loop)
     LL[(i+1),(j+1)] <- information$loglikelihood
     AIC[(i+1),(j+1)] <- information$aic
