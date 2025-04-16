@@ -141,7 +141,7 @@ arx.ls_T <- function(y,x,p,c,d=1){
   }
   else{
     if (length(x) > 1){
-      rownames(B) <- c('int', paste('exo', 1:(2*NCOL(x))))
+      rownames(B) <- c('int', paste('exo', 1:(NCOL(x))))
     }
     else{
       rownames(B) <- 'int'

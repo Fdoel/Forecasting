@@ -35,6 +35,7 @@ results_list <- pbmclapply(
       # Call forecast.MART with correct parameters
       forecast_mart <- forecast.MART(
         y = y_window,
+        
         p_C = p_C_mart,
         p_NC = p_NC_mart,
         c = c,
