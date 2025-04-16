@@ -61,6 +61,7 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
   }
   if(p != 0) {
     Z_c <- cbind(Z_c, Z_c)
+  }
     if (!identical(x, "not")) {
       Z_x <- Z[,(p + 1):ncol(Z)]
       Z_x <- cbind(Z_x, Z_x)
@@ -73,6 +74,7 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
         }
       }
     }
+  if(p!=0) {
     mC <- ncol(Z_c)
     for(i in 1:nT) {
       if(y[max(p,d)+i-d] > c) {
@@ -87,7 +89,7 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
       ZT <- Z_c
     }
   } else {
-    ZT <- Z
+    ZT <- Z_x
   }
   return(matrix = ZT)
 }
@@ -131,22 +133,6 @@ arx.ls_T <- function(y,x,p,c,d=1){
   
   B <- solve(t(ZT) %*% ZT) %*% (t(ZT) %*% Y)
   
-  if (p > 0){
-    if (length(x) > 1){
-      rownames(B) <- c('int', paste('lag', 1:(2*p)), paste('exo', 1:(2*NCOL(x))))
-    }
-    else{
-      rownames(B) <- c('int', paste('lag', 1:(2*p)))
-    }
-  }
-  else{
-    if (length(x) > 1){
-      rownames(B) <- c('int', paste('exo', 1:(NCOL(x))))
-    }
-    else{
-      rownames(B) <- 'int'
-    }
-  }
   
   FV <- ZT %*% B
   U <- Y - FV
