@@ -89,7 +89,11 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
       ZT <- Z_c
     }
   } else {
-    ZT <- Z_x
+    if (!identical(x, "not")) {
+      ZT <- Z_x
+    } else {
+      ZT <- Z
+    }
   }
   return(matrix = ZT)
 }
