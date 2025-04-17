@@ -55,7 +55,7 @@ for (i in 0:p_C_max) {
 # -----------------------------------------------------------------------------
 
 # Fit a 12-lag AR model to the inflation series
-model_ar12 <- Arima(inflation_df_monthly$inflationNonSA, order = c(12, 0, 0))
+model_ar12 <- marx.t(inflation_df_monthly$inflationNonSA, external_reg, p_C=12, p_NC=0)
 resids_ar12 <- model_ar12$residuals  # Extract residuals
 
 # Step 2: Square the residuals for use as regressors
@@ -86,7 +86,7 @@ cat("Chi-squared test statistic:", test_statistic, "\n")
 cat("p-value:", p_value, "\n")
 
 # Step 7: Perfome Ljung-Box test
-Box.test(resids_ar12, lag = 6, type = "Ljung-Box")
+Box.test(resids_ar12, lag = 12, type = "Ljung-Box")
 
 # -----------------------------------------------------------------------------
 # Model estimation: compare AR(12) vs mixed MAR(1,11)
