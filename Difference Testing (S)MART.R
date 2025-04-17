@@ -7,7 +7,7 @@
 # Final model is MART(1,1) with median as threshold and d = 3
 
 model.MART <- MART(inflation_df_monthly$inflationNonSA,NULL,1,1,median(inflation_df_monthly$inflationNonSA),3)
-model.ART <- MART(inflation_df_monthly$inflationNonSA,NULL,2,0,median(inflation_df_monthly$inflationNonSA),3)
+model.ART <- MART(inflation_df_monthly$inflationNonSA,NULL,2,0,0.6,1)
 # Define the function for the MART(1,1)
 calculate_z_p_values <- function(model.MART) {
   # Calculate z-values
