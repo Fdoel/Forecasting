@@ -393,10 +393,10 @@ MART <- function(y, x, p_C, p_NC, c, d=1) {
     else if(p_C == 0 && p_NC == 0){
       B_NC  <- 0
       B_C   <- 0
-      B_x   <- PARAMS[(p_CT + 3):(p_CT + 2 + numcolT)]
-      IC    <- PARAMS[(p_CT + numcolT + 3)]
-      sig   <- PARAMS[(p_CT + numcolT + 4)]
-      df    <- PARAMS[(p_CT + numcolT + 5)]
+      B_x   <- PARAMS[1:numcolT]
+      IC    <- PARAMS[(numcolT + 1)]
+      sig   <- PARAMS[(numcolT + 2)]
+      df    <- PARAMS[(numcolT + 3)]
     }
   } else{
     numcol <- 0
