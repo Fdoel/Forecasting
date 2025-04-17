@@ -93,16 +93,36 @@ Box.test(resids_ar12, lag = 12, type = "Ljung-Box")
 # -----------------------------------------------------------------------------
 
 # Estimate AR(12) in MAR framework (purely causal)
-ar12 <- marx.t(inflation_df_monthly$inflationNonSA, NULL, p_C = 12, p_NC = 0)
+ar12 <- marx.t(inflation_df_monthly$inflationNonSA, external_reg, p_C = 12, p_NC = 0)
 ar12_crit <- information.criteria("MARX", ar12)  # Info criteria for AR(12)
 
 # Estimate MAR(1,11): mixed causal-noncausal model
-mar_final <- marx.t(inflation_df_monthly$inflationNonSA, NULL, p_C = 1, p_NC = 11)
+mar_final <- marx.t(inflation_df_monthly$inflationNonSA, external_reg, p_C = 1, p_NC = 11)
 mar111_crit <- information.criteria("MARX", mar_final)  # Info criteria for MAR(1,11)
 
 # -----------------------------------------------------------------------------
 # Multi-horizon out-of-sample forecast evaluation
 # -----------------------------------------------------------------------------
+
+#function to forecast exogenous regressors
+forecast_ar1_matrix <- function(ts_matrix, h = 12) {
+  n_series <- ncol(ts_matrix)
+  forecasts <- matrix(NA, nrow = n_series, ncol = h)
+  
+  for (i in 1:n_series) {
+    model <- arima(ts_matrix[, i], order = c(1, 0, 0))
+    pred <- predict(model, n.ahead = h)$pred
+    forecasts[i, ] <- pred
+  }
+  
+  # Transpose so that columns are series, rows are forecast horizons
+  forecasts <- t(forecasts)
+  
+  colnames(forecasts) <- colnames(ts_matrix) %||% paste0("Series_", 1:n_series)
+  rownames(forecasts) <- paste0("h=", 1:h)
+  
+  return(forecasts)
+}
 
 # Forecasting parameters
 h <- 12          # Forecast horizon
@@ -110,8 +130,7 @@ N <- 15000        # Posterior draws
 M <- 50          # MA truncation
 
 # Model specifications
-p_C_mixed <- 1;  p_NC_mixed <- 11    # Mixed MAR(1,11)
-p_C_causal <- 12; p_NC_causal <- 0   # Purely causal AR(12)
+p_C_causal <- 12; p_NC_causal <- 0   # Purely causal MAR(12,0)
 
 # Define forecast evaluation window
 data_series <- inflation_df_monthly$inflationNonSA
@@ -127,20 +146,17 @@ results_list <- pbmclapply(
   X = forecast_indices,
   FUN = function(t) {
     y_window <- data_series[1:t]  # Expanding window up to time t
+    x_window <- external_reg[1:t,]
     
-    forecast_mixed <- forecast.marx(
-      y = y_window,
-      p_C = p_C_mixed,
-      p_NC = p_NC_mixed,
-      h = h,
-      M = M,
-      N = N
-    )
+    #forecast x using AR(1)
+    ar1_forecasts <- forecast_ar1_matrix(x_window)
     
     forecast_causal <- forecast.marx(
       y = y_window,
+      X = x_window,
       p_C = p_C_causal,
       p_NC = p_NC_causal,
+      X.for = ar1_forecasts,
       h = h,
       M = M,
       N = N
@@ -149,7 +165,6 @@ results_list <- pbmclapply(
     actual <- data_series[(t + 1):(t + h)]  # Future observed values
     
     return(list(
-      mixed = forecast_mixed,
       causal = forecast_causal,
       actual = actual
     ))
@@ -161,11 +176,9 @@ results_list <- pbmclapply(
 # Organize forecast results into matrices
 # -----------------------------------------------------------------------------
 
-forecast_mixed <- do.call(rbind, lapply(results_list, `[[`, "mixed"))
 forecast_causal <- do.call(rbind, lapply(results_list, `[[`, "causal"))
 actual_matrix <- do.call(rbind, lapply(results_list, `[[`, "actual"))
 
-colnames(forecast_mixed) <- paste0("h", 1:h)
 colnames(forecast_causal) <- paste0("h", 1:h)
 colnames(actual_matrix) <- paste0("h", 1:h)
 
@@ -177,7 +190,6 @@ rmse <- function(forecast, actual) {
   sqrt(colMeans((forecast - actual)^2, na.rm = TRUE))
 }
 
-rmse_mixed <- rmse(forecast_mixed, actual_matrix)
 rmse_causal <- rmse(forecast_causal, actual_matrix)
 
 # -----------------------------------------------------------------------------
@@ -206,18 +218,13 @@ compute_dm_tests <- function(forecast1, forecast2, actual, h) {
   return(p_values)
 }
 
-dm_mixed_vs_causal <- compute_dm_tests(forecast_mixed, forecast_causal, actual_matrix, h)
-dm_mixed_vs_mid    <- compute_dm_tests(forecast_mixed, forecast_mid, actual_matrix, h)
-
 # -----------------------------------------------------------------------------
 # Combine RMSEs and DM p-values into a tidy data frame
 # -----------------------------------------------------------------------------
 
 rmse_df <- data.frame(
   horizon = 1:h,
-  RMSE_mixed = rmse_mixed,
-  RMSE_causal = rmse_causal,
-  DM_mixed_vs_causal = dm_mixed_vs_causal,
+  RMSE_causal = rmse_causal
 )
 
 # Print RMSE and DM test comparison
