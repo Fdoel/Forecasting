@@ -16,7 +16,6 @@ c <- 0.6
 p_C_mart <- 1;  p_NC_mart <- 3    # Mixed MAR(1,1)
 p_C_art <- 2; p_NC_art<- 0   # Purely causal AR(12)
 
-
 # Define forecast evaluation window
 data_series <- inflation_df_monthly$inflationNonSA
 start_index <- 250
