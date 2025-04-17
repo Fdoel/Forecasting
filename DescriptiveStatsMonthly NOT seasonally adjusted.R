@@ -26,7 +26,7 @@ library(dplyr)
 library(tseries)
 
 # Set working directory to the location of the currently opened R script
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+#setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Load the non-seasonally adjusted CPI data from Excel
 CPI_US_labour_dataset <- read_excel("CPI US labour dataset.xlsx", 

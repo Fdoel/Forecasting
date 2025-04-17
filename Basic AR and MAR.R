@@ -84,7 +84,7 @@ cat("Chi-squared test statistic:", test_statistic, "\n")
 cat("p-value:", p_value, "\n")
 
 # Step 7: Perfome Ljung-Box test
-Box.test(resids_ar12, lag = 6, type = "Ljung-Box")
+Box.test(resids_ar12, lag = 12, type = "Ljung-Box")
 
 # -----------------------------------------------------------------------------
 # Model estimation: compare AR(12) vs mixed MAR(1,11)
