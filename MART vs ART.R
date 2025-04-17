@@ -7,27 +7,25 @@ library(pbmcapply)
 
 # Forecasting parameters
 
-=======
-h <- 1         # Forecast horizon
-N <- 1000        # Posterior draws
+h <- 12        # Forecast horizon
+N <- 15000        # Posterior draws
 M <- 50          # MA truncation
-d <- 1
-c <- 0.6  #median(inflation_df_monthly$inflationNonSA)
+start_index <- 250
 
-# Model specifications
-p_C_mart <- 1;  p_NC_mart <- 2    # Mixed MAR(1,1)
-p_C_art <- 3; p_NC_art <- 0   # Purely causal AR(12)
 d <- 3
+d_art <- 1
+d_gs <-4
 c <- median(inflation_df_monthly$inflationSA) - mean(inflation_df_monthly$inflationSA, na.rm = T)
+c_gs <- 0.6
 
 # Model specifications
 p_C_mart <- 1;  p_NC_mart <- 1    # Mixed MAR(1,1)
 p_C_art <- 2; p_NC_art<- 0   # Purely causal AR(12)
+p_C_gs_mart <- 1;  p_NC_gs_mart <- 1    # Mixed MAR(1,1)
 
 
 # Define forecast evaluation window
 data_series <- inflation_df_monthly$inflationNonSA
-start_index <- 500
 end_index <- length(data_series) - h
 forecast_indices <- start_index:end_index
 
@@ -44,7 +42,6 @@ results_list <- pbmclapply(
       # Call forecast.MART with correct parameters
       forecast_mart <- forecast.MART(
         y = y_window,
-        
         p_C = p_C_mart,
         p_NC = p_NC_mart,
         c = c,
@@ -62,8 +59,8 @@ results_list <- pbmclapply(
         y = y_window,
         p_C = p_C_art,
         p_NC = p_NC_art,
-        c = c,
-        d = d,
+        c = c_gs,
+        d = d_art,
         h = h,
         M = M,
         N = N
@@ -73,6 +70,22 @@ results_list <- pbmclapply(
       art_forecast <- forecast_art$forecast
       art_defaulted <- forecast_art$defaulted
       
+      # Call forecast.MART with correct parameters
+      forecast_gs_mart <- forecast.MART(
+        y = y_window,
+        p_C = p_C_gs_mart,
+        p_NC = p_NC_gs_mart,
+        c = c_gs,
+        d = d_gs,
+        h = h,
+        M = M,
+        N = N
+      )
+      
+      # Make sure we get only the forecast component
+      mart_gs_forecast <- forecast_gs_mart$forecast
+      mart_gs_defaulted <- forecast_gs_mart$defaulted
+      
       actual <- data_series[(t + 1):(t + h)]
       
       return(list(
@@ -80,6 +93,8 @@ results_list <- pbmclapply(
         mart_defaulted = mart_defaulted, # Use mart_defaulted directly here
         art = art_forecast,           # Use art_forecast directly here
         art_defaulted = art_defaulted,   # Use art_defaulted directly here
+        gs_mart = gs_mart_forecast,           # Use art_forecast directly here
+        gs_mart_defaulted = gs_mart_defaulted,   # Use art_defaulted directly here
         actual = actual
       ))
     }, error = function(e) {
@@ -87,7 +102,7 @@ results_list <- pbmclapply(
       return(NULL)
     })
   },
-  mc.cores = parallel::detectCores() - 1
+  mc.cores = parallel::detectCores()
 )
 # -----------------------------------------------------------------------------
 # Organize forecast results into matrices
@@ -96,10 +111,12 @@ results_list <- pbmclapply(
 # Extract default flags
 mart_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$mart_defaulted else NA)
 art_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$art_defaulted else NA)
+gs_mart_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$gs_mart_defaulted else NA)
 
 # Compute default percentages
 pct_default_mart <- mean(mart_default_flags, na.rm = TRUE) * 100
 pct_default_art <- mean(art_default_flags, na.rm = TRUE) * 100
+pct_default_gs_mart <- mean(gs_mart_default_flags, na.rm = TRUE) * 100
 
 # Safely extract components and skip NULLs
 forecast_mart <- do.call(rbind, lapply(results_list, function(x) {
@@ -112,6 +129,10 @@ forecast_art <- do.call(rbind, lapply(results_list, function(x) {
   return(matrix(NA, nrow = 1, ncol = h))
 }))
 
+forecast_gs_mart <- do.call(rbind, lapply(results_list, function(x) {
+  if (!is.null(x) && !is.null(x$gs_mart)) return(x$gs_mart)
+  return(matrix(NA, nrow = 1, ncol = h))  # Fallback for failed cases
+}))
 actual_matrix <- do.call(rbind, lapply(results_list, function(x) {
   if (!is.null(x) && !is.null(x$actual)) return(matrix(x$actual, nrow = 1))
   return(matrix(NA, nrow = 1, ncol = h))
@@ -119,6 +140,7 @@ actual_matrix <- do.call(rbind, lapply(results_list, function(x) {
 
 colnames(forecast_mart) <- paste0("h", 1:h)
 colnames(forecast_art) <- paste0("h", 1:h)
+colnames(forecast_gs_mart) <- paste0("h", 1:h)
 colnames(actual_matrix) <- paste0("h", 1:h)
 
 # -----------------------------------------------------------------------------
@@ -131,6 +153,7 @@ rmse <- function(forecast, actual) {
 
 rmse_mart <- rmse(forecast_mart, actual_matrix)
 rmse_art <- rmse(forecast_art, actual_matrix)
+rmse_gsmart <- rmse(forecast_gs_mart, actual_matrix)
 
 
 # -----------------------------------------------------------------------------
@@ -159,7 +182,9 @@ compute_dm_tests <- function(forecast1, forecast2, actual, h) {
   return(p_values)
 }
 
-dm_mart_vs_causal <- compute_dm_tests(forecast_mart, forecast_art, actual_matrix, h)
+dm_mart_vs_art <- compute_dm_tests(forecast_mart, forecast_art, actual_matrix, h)
+dm_gsmart_vs_mart <- compute_dm_tests(forecast_gs_mart, forecast_mart, actual_matrix, h)
+dm_gsmart_vs_art <- compute_dm_tests(forecast_gs_mart, forecast_art, actual_matrix, h)
 
 
 # -----------------------------------------------------------------------------
@@ -170,8 +195,19 @@ rmse_df <- data.frame(
   horizon = 1:h,
   RMSE_mart = rmse_mart,
   RMSE_art = rmse_art,
-  DM_mart_vs_art = dm_mart_vs_causal
+  RMSE_gs_mart = rmse_gsmart,
+  DM_mart_vs_art = dm_mart_vs_art,
+  DM_mart_vs_gs_mart = dm_gsmart_vs_mart,
+  DM_gs_mart_vs_art = dm_gsmart_vs_art
 )
 
 # Print RMSE and DM test comparison
 print(rmse_df)
+
+save(forecast_mart, file = "forecast_mart.Rdata")
+save(forecast_art, file = "forecast_art.Rdata")
+save(forecast_gs_mart, file = "forecast_gs_mart.Rdata")
+
+forecast_mart
+forecast_art
+View(forecast_mart.Rdata)

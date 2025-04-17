@@ -23,49 +23,40 @@ library(pbmcapply)     # For parallel processing with progress bar
 #' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
 #' selection.lag(data$y,data$x,8)
 
-selection.lag_t <- function(y,x,p_max,c,d=3){
-  if (is.null(x)){
-    x <- "not"
-  }
-  
-  bic_results <- bic(y,x,p_max,c,d=3)
-  aic_results <- aic(y,x,p_max,c,d=3)
-  hq_results <- hq(y,x,p_max,c,d=3)
-  
-  bic_vec <- bic_results[[2]]
-  colnames(bic_vec) <- paste('p =', 0:p_max)
-  aic_vec <- aic_results[[2]]
-  colnames(aic_vec) <- paste('p =', 0:p_max)
-  hq_vec <- hq_results[[2]]
-  colnames(hq_vec) <- paste('p =', 0:p_max)
-  
-  cat('Order Selection Criteria Pseudo Causal Model:', "\n")
-  cat(' ', "\n")
-  cat('BAYESIAN INFORMATION CRITERION', "\n")
-  print(bic_vec)
-  cat(' ', "\n")
-  cat('Minimum value attained at p = ')
-  cat(which.min(bic_vec) -1)
-  cat(' ',  "\n")
-  cat(' ',  "\n")
-  cat('AKAIKE INFORMATION CRITERION', "\n")
-  print(aic_vec)
-  cat(' ', "\n")
-  cat('Minimum value attained at p = ')
-  cat(which.min(aic_vec) - 1)
-  cat(' ',  "\n")
-  cat(' ',  "\n")
-  cat('HANNAN-QUINN INFORMATION CRITERION', "\n")
-  print(hq_vec)
-  cat(' ', "\n")
-  cat('Minimum value attained at p = ')
-  cat(which.min(hq_vec) - 1)
-  cat(' ', "\n")
-  cat(' ', "\n")
-  
-  return(list(bic = bic_vec,aic=aic_vec,hq=hq_vec))
+selection.lag_t <- function(y, x, p_max, c, d = 3) {
+  tryCatch({
+    if (is.null(x)) x <- "not"
+    
+    bic_results <- bic(y, x, p_max, c, d)
+    aic_results <- aic(y, x, p_max, c, d)
+    hq_results <- hq(y, x, p_max, c, d)
+    
+    bic_vec <- bic_results[[2]]
+    colnames(bic_vec) <- paste('p =', 0:p_max)
+    aic_vec <- aic_results[[2]]
+    colnames(aic_vec) <- paste('p =', 0:p_max)
+    hq_vec <- hq_results[[2]]
+    colnames(hq_vec) <- paste('p =', 0:p_max)
+    
+    cat('Order Selection Criteria Pseudo Causal Model:\n\n')
+    cat('BAYESIAN INFORMATION CRITERION\n')
+    print(bic_vec)
+    cat('Minimum value attained at p =', which.min(bic_vec) - 1, "\n\n")
+    
+    cat('AKAIKE INFORMATION CRITERION\n')
+    print(aic_vec)
+    cat('Minimum value attained at p =', which.min(aic_vec) - 1, "\n\n")
+    
+    cat('HANNAN-QUINN INFORMATION CRITERION\n')
+    print(hq_vec)
+    cat('Minimum value attained at p =', which.min(hq_vec) - 1, "\n\n")
+    
+    return(list(bic = bic_vec, aic = aic_vec, hq = hq_vec))
+  }, error = function(e) {
+    cat("Error in selection.lag_t:\n", e$message, "\n")
+    return(NULL)
+  })
 }
-
 #' @title The Bayesian/Schwarz information criterion (BIC) function
 #' @description This function allows you to calculate the Bayesian/Schwarz information criteria (BIC) for ARX models.
 #' @param y Data vector of time series observations.
@@ -80,41 +71,31 @@ selection.lag_t <- function(y,x,p_max,c,d=3){
 #' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
 #' bic(data$y, data$x,8)
 
-bic <- function(y,x,p_max,c,d=1){
-  
-  if (is.null(x)){
-    x <- "not"
-  }
-  
-  y <- fBasics::vec(y)
-  y <- y - mean(y)
-  # Demean c om de threshold consistent te houden
-  c <- c - mean(y)
-  n <- length(y) - max(p_max,d)
-  
-  if (length(x) > 1){
-    numcol <- NCOL(x)
-  }
-  else{
-    numcol = 0
-  }
-  
-  crit <- matrix(data=NA, nrow=(p_max+1), ncol=1)
-  
-  for (p in 0:p_max){
+bic <- function(y, x, p_max, c, d = 1) {
+  tryCatch({
+    if (is.null(x)) x <- "not"
+    y <- fBasics::vec(y)
+    y <- y - mean(y)
+    c <- c - mean(y)
+    n <- length(y) - max(p_max, d)
+    numcol <- if (length(x) > 1) NCOL(x) else 0
+    crit <- matrix(NA, nrow = (p_max + 1), ncol = 1)
     
-    arx.ls_T_results <- arx.ls_T(y,x,p,c,d)
-    n <- length(arx.ls_T_results[[5]])
-    Cov <- arx.ls_T_results[[6]]
-    crit[(p+1)] <- -2*Cov/n + ((log(n))/n)*(2*p+1+2*numcol)
-  }
-  
-  p_bic <- which.min(crit) - 1
-  
-  crit <- t(crit)
-  colnames(crit) <- paste('p =', 0:p_max)
-  
-  return(list(p = p_bic, values= crit))
+    for (p in 0:p_max) {
+      arx.ls_T_results <- arx.ls_T(y, x, p, c, d)
+      n <- length(arx.ls_T_results[[5]])
+      Cov <- arx.ls_T_results[[6]]
+      crit[p + 1] <- -2 * Cov / n + (log(n) / n) * (2 * p + 1 + 2 * numcol)
+    }
+    
+    p_bic <- which.min(crit) - 1
+    crit <- t(crit)
+    colnames(crit) <- paste('p =', 0:p_max)
+    return(list(p = p_bic, values = crit))
+  }, error = function(e) {
+    cat("Error in bic:\n", e$message, "\n")
+    return(NULL)
+  })
 }
 
 
@@ -132,42 +113,31 @@ bic <- function(y,x,p_max,c,d=1){
 #' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
 #' aic(data$y, data$x,8)
 
-aic <- function(y,x,p_max,c,d=3){
-  
-  if (is.null(x)){
-    x <- "not"
-  }
-  
-  y <- fBasics::vec(y)
-  y <- y - mean(y)
-  # Demean c om de threshold consistent te houden
-  c <- c - mean(y)
-  n <- length(y) - max(p_max,d)
-  
-  if (length(x) > 1){
-    numcol <- NCOL(x)
-  }
-  else{
-    numcol = 0
-  }
-  
-  crit <- matrix(data=NA, nrow=(p_max+1), ncol=1)
-  
-  for (p in 0:p_max){
+aic <- function(y, x, p_max, c, d = 3) {
+  tryCatch({
+    if (is.null(x)) x <- "not"
+    y <- fBasics::vec(y)
+    y <- y - mean(y)
+    c <- c - mean(y)
+    n <- length(y) - max(p_max, d)
+    numcol <- if (length(x) > 1) NCOL(x) else 0
+    crit <- matrix(NA, nrow = (p_max + 1), ncol = 1)
     
-    arx.ls_T_results <- arx.ls_T(y,x,p,c,d)
-    n <- length(arx.ls_T_results[[5]])
-    Cov <- arx.ls_T_results[[6]]
-    crit[(p+1)] <- -2*Cov/n + (2/n)*(2*p+1+2*numcol)
-  }
-  
-  p_aic <- which.min(crit) - 1
-  
-  crit <- t(crit)
-  colnames(crit) <- paste('p =', 0:p_max)
-  
-  return(list(p = p_aic,values = crit))
-  
+    for (p in 0:p_max) {
+      arx.ls_T_results <- arx.ls_T(y, x, p, c, d)
+      n <- length(arx.ls_T_results[[5]])
+      Cov <- arx.ls_T_results[[6]]
+      crit[p + 1] <- -2 * Cov / n + (2 / n) * (2 * p + 1 + 2 * numcol)
+    }
+    
+    p_aic <- which.min(crit) - 1
+    crit <- t(crit)
+    colnames(crit) <- paste('p =', 0:p_max)
+    return(list(p = p_aic, values = crit))
+  }, error = function(e) {
+    cat("Error in aic:\n", e$message, "\n")
+    return(NULL)
+  })
 }
 
 #' @title The Hannan-Quinn (HQ) information criterion function
@@ -184,42 +154,31 @@ aic <- function(y,x,p_max,c,d=3){
 #' data <- sim.marx(c('t',1,1), c('t',1,1),100,0.5,0.4,0.3)
 #' hq(data$y, data$x,8)
 
-hq <- function(y,x,p_max,c,d=3){
-  
-  if (is.null(x)){
-    x <- "not"
-  }
-  
-  y <- fBasics::vec(y)
-  y <- y - mean(y)
-  # Demean c om de threshold consistent te houden
-  c <- c - mean(y)
-  n <- length(y) - max(p_max,d)
-  
-  if (length(x) > 1){
-    numcol <- NCOL(x)
-  }
-  else{
-    numcol = 0
-  }
-  
-  crit <- matrix(data=NA, nrow=(p_max+1), ncol=1)
-  
-  for (p in 0:p_max){
+hq <- function(y, x, p_max, c, d = 3) {
+  tryCatch({
+    if (is.null(x)) x <- "not"
+    y <- fBasics::vec(y)
+    y <- y - mean(y)
+    c <- c - mean(y)
+    n <- length(y) - max(p_max, d)
+    numcol <- if (length(x) > 1) NCOL(x) else 0
+    crit <- matrix(NA, nrow = (p_max + 1), ncol = 1)
     
-    arx.ls_T_results <- arx.ls_T(y,x,p,c,d)
-    n <- length(arx.ls_T_results[[5]])
-    Cov <- arx.ls_T_results[[6]]
-    crit[(p+1)] <- -2*Cov/n + ((2*log(log(n)))/n)*(2*p+1+2*numcol)
-  }
-  
-  p_hq <- which.min(crit) - 1
-  
-  crit <- t(crit)
-  colnames(crit) <- paste('p =', 0:p_max)
-  
-  return(list(p = p_hq, values = crit))
-  
+    for (p in 0:p_max) {
+      arx.ls_T_results <- arx.ls_T(y, x, p, c, d)
+      n <- length(arx.ls_T_results[[5]])
+      Cov <- arx.ls_T_results[[6]]
+      crit[p + 1] <- -2 * Cov / n + ((2 * log(log(n))) / n) * (2 * p + 1 + 2 * numcol)
+    }
+    
+    p_hq <- which.min(crit) - 1
+    crit <- t(crit)
+    colnames(crit) <- paste('p =', 0:p_max)
+    return(list(p = p_hq, values = crit))
+  }, error = function(e) {
+    cat("Error in hq:\n", e$message, "\n")
+    return(NULL)
+  })
 }
 
 #' #' @title The lag-lead model selection for MARX function
