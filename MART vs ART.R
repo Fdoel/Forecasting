@@ -9,12 +9,13 @@ library(pbmcapply)
 h <- 12         # Forecast horizon
 N <- 15000        # Posterior draws
 M <- 50          # MA truncation
-d <- 1
+d_mart <- 4
+d_art <-1
 c <- 0.6
 
 # Model specifications
-p_C_mart <- 1;  p_NC_mart <- 3    # Mixed MAR(1,1)
-p_C_art <- 2; p_NC_art<- 0   # Purely causal AR(12)
+p_C_mart <- 1;  p_NC_mart <- 1    # Mixed MART(1,1)
+p_C_art <- 2; p_NC_art<- 0   # Purely causal ART(2)
 
 # Define forecast evaluation window
 data_series <- inflation_df_monthly$inflationNonSA
@@ -39,7 +40,7 @@ results_list <- pbmclapply(
         p_C = p_C_mart,
         p_NC = p_NC_mart,
         c = c,
-        d = d,
+        d = d_mart,
         h = h,
         M = M,
         N = N
@@ -54,7 +55,7 @@ results_list <- pbmclapply(
         p_C = p_C_art,
         p_NC = p_NC_art,
         c = c,
-        d = d,
+        d = d_art,
         h = h,
         M = M,
         N = N
