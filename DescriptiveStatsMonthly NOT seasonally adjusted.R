@@ -26,7 +26,7 @@ library(dplyr)
 library(tseries)
 
 # Set working directory to the location of the currently opened R script
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+#setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Load the non-seasonally adjusted CPI data from Excel
 CPI_US_labour_dataset <- read_excel("CPI US labour dataset.xlsx", 
@@ -60,11 +60,21 @@ data <- read.csv("FRED.csv")
 data <- data[-c(1, 2),]
 
 inflation_df <- data %>%
-  select(c("sasdate", "CPIAUCSL", "UNRATE", "IPFINAL", "CUMFNS", "RPI", "RETAILx", "VIXCLSx")) %>%
+  select(c("sasdate", "CPIAUCSL", "UNRATE", "IPFINAL", "CUMFNS", "RPI", "RETAILx", "VIXCLSx","GS1","USGOVT","INDPRO")) %>%
   mutate(sasdate = as.Date(sasdate, "%m/%d/%Y")) %>%
   
   # Calculate inflation by taking the logs of the CPI divided by its lag
   mutate(inflationSA = log(CPIAUCSL/lag(CPIAUCSL))*100) %>%
+  mutate(
+    ldGS1 = log(GS1) - log(lag(GS1)),
+    dCUMFNS = c(NA,diff(CUMFNS)),
+    dIPFINAL = c(NA,diff(IPFINAL)),
+    dUNRATE = c(NA, diff(UNRATE)),
+    dINDPRO = log(INDPRO) - log(lag(INDPRO)),
+    dUSGOVT = log(USGOVT) - log(lag(USGOVT)),
+    dRETAIL = log(RETAILx) - log(lag(RETAILx)),
+    dRPI = log(RPI) - log(lag(RPI))
+  ) %>%
   filter(sasdate >= as.Date("1959-06-01"))
 
 # Join with non-seasonally adjusted CPI and inflation data
@@ -329,19 +339,22 @@ cat("All correlations with inflationNonSA:\n")
 print(round(cor_with_inflationNonSA, 3))
 
 # Filter for absolute correlation > 0.85 (excluding inflationNonSA itself)
-high_corr_vars <- cor_with_inflationNonSA[abs(cor_with_inflationNonSA) > 0.85 & names(cor_with_inflationNonSA) != "inflationNonSA"]
+high_corr_vars <- cor_with_inflationNonSA[abs(cor_with_inflationNonSA) > abs(0.170) & names(cor_with_inflationNonSA) != "inflationNonSA"]
 
 # Display strong correlations
 cat("\nCorrelations with inflationNonSA above 0.85 or below -0.85:\n")
 print(round(high_corr_vars, 3))
 
-GS1 <- as.matrix(inflation_df_cor["GS1"])
-CUMFNS <- as.matrix(inflation_df_cor["CUMFNS"])
-IPFINAL <- as.matrix(inflation_df_cor["IPFINAL"])
-
-inflation_df <- cbind(inflation_df,GS1, CUMFNS, IPFINAL) 
-
 # Rename the final dataframe for use in forecasting and save
 inflation_df_monthly <- inflation_df
 save(inflation_df_monthly, file = "inflation_df_monthly.RData")
 
+
+cor(inflation_df_monthly$ldGS1, inflation_df_monthly$inflationNonSA)
+cor(inflation_df_monthly$dCUMFNS, inflation_df_monthly$inflationNonSA)
+cor(inflation_df_monthly$dIPFINAL, inflation_df_monthly$inflationNonSA)
+cor(inflation_df_monthly$dUNRATE, inflation_df_monthly$inflationNonSA)
+cor(inflation_df_monthly$dINDPRO, inflation_df_monthly$inflationNonSA)
+cor(inflation_df_monthly$dRETAIL, inflation_df_monthly$inflationNonSA)
+cor(inflation_df_monthly$dUSGOVT, inflation_df_monthly$inflationNonSA)
+cor(inflation_df_monthly$dRPI, inflation_df_monthly$inflationNonSA)
