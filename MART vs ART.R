@@ -1,6 +1,7 @@
 source("MART.R")
 load("inflation_df_monthly.RData")
 library(pbmcapply)
+library(forecast)
 # -----------------------------------------------------------------------------
 # Multi-horizon out-of-sample forecast evaluation
 # -----------------------------------------------------------------------------
@@ -9,12 +10,18 @@ library(pbmcapply)
 h <- 12         # Forecast horizon
 N <- 15000        # Posterior draws
 M <- 50          # MA truncation
-d <- 1
-c <- 0.6
 
 # Model specifications
 p_C_mart <- 1;  p_NC_mart <- 3    # Mixed MAR(1,1)
-p_C_art <- 2; p_NC_art<- 0   # Purely causal AR(12)
+p_C_art <- 2; p_NC_art<- 0   # Purely causal SETAR(2,0)
+c_mart <- 0.3
+c_setar <- 0.6
+d_mart <- 1
+d_setar <- 1
+
+# Define exogenous regressors
+exo <- cbind(inflation_df_monthly$ldGS1, inflation_df_monthly$dRPI, inflation_df_monthly$dRETAIL)
+
 
 
 # Define forecast evaluation window
@@ -32,15 +39,25 @@ results_list <- pbmclapply(
   FUN = function(t) {
     tryCatch({
       y_window <- data_series[1:t]
+      # Get the proper X and X.for
+      x_window <- exo[1:t,]
+      GS1_model <- arima(exo[1:t, 1], order = c(1,0,0))
+      dRPI_model <- arima(exo[1:t, 2], order = c(1,0,0))
+      dRETAIL_model <- arima(exo[1:t, 3], order = c(1,0,0))
+      GS1_for <- predict(GS1_model, n.ahead = M)$pred
+      dRPI_for <- predict(dRPI_model, n.ahead = M)$pred
+      dRETAIL_for <- predict(dRETAIL_model, n.ahead = M)$pred
+      
       
       # Call forecast.MART with correct parameters
       forecast_mart <- forecast.MART(
         y = y_window,
-        
+        X = x_window,
         p_C = p_C_mart,
         p_NC = p_NC_mart,
-        c = c,
-        d = d,
+        c = c_mart,
+        d = d_mart,
+        X.for = cbind(GS1_for, dRPI_for, dRETAIL_for),
         h = h,
         M = M,
         N = N
@@ -52,10 +69,12 @@ results_list <- pbmclapply(
       
       forecast_art <- forecast.MART(
         y = y_window,
+        X = x_window,
         p_C = p_C_art,
         p_NC = p_NC_art,
-        c = c,
-        d = d,
+        c = c_setar,
+        d = d_setar,
+        X.for = cbind(GS1_for, dRPI_for, dRETAIL_for),
         h = h,
         M = M,
         N = N
@@ -86,20 +105,20 @@ results_list <- pbmclapply(
 # -----------------------------------------------------------------------------
 
 # Extract default flags
-mart_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$mart_defaulted else NA)
-art_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$art_defaulted else NA)
+mart_x_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$mart_defaulted else NA)
+art_x_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$art_defaulted else NA)
 
 # Compute default percentages
-pct_default_mart <- mean(mart_default_flags, na.rm = TRUE) * 100
-pct_default_art <- mean(art_default_flags, na.rm = TRUE) * 100
+pct_default_mart_x <- mean(mart_x_default_flags, na.rm = TRUE) * 100
+pct_default_art_x <- mean(art_x_default_flags, na.rm = TRUE) * 100
 
 # Safely extract components and skip NULLs
-forecast_mart <- do.call(rbind, lapply(results_list, function(x) {
+forecast_mart_x <- do.call(rbind, lapply(results_list, function(x) {
   if (!is.null(x) && !is.null(x$mart)) return(x$mart)
   return(matrix(NA, nrow = 1, ncol = h))  # Fallback for failed cases
 }))
 
-forecast_art <- do.call(rbind, lapply(results_list, function(x) {
+forecast_art_x <- do.call(rbind, lapply(results_list, function(x) {
   if (!is.null(x) && !is.null(x$art)) return(x$art)
   return(matrix(NA, nrow = 1, ncol = h))
 }))
@@ -109,9 +128,11 @@ actual_matrix <- do.call(rbind, lapply(results_list, function(x) {
   return(matrix(NA, nrow = 1, ncol = h))
 }))
 
-colnames(forecast_mart) <- paste0("h", 1:h)
-colnames(forecast_art) <- paste0("h", 1:h)
+colnames(forecast_mart_x) <- paste0("h", 1:h)
+colnames(forecast_art_x) <- paste0("h", 1:h)
 colnames(actual_matrix) <- paste0("h", 1:h)
+
+save(forecast_mart_x, forecast_art_x, actual_matrix, file = "forecast_x_results.RData")
 
 # -----------------------------------------------------------------------------
 # Compute RMSE for each model across horizons
@@ -164,6 +185,8 @@ rmse_df <- data.frame(
   RMSE_art = rmse_art,
   DM_mart_vs_art = dm_mart_vs_causal
 )
+
+
 
 # Print RMSE and DM test comparison
 print(rmse_df)
