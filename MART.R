@@ -1193,7 +1193,7 @@ forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
           if(path[j] == 1) {
             y.for[j] <-  t(model$coef.c1) %*% y.star + (model$coef.int/(1-sum(model$coef.nc1)))  + exp1[j]
           } else {
-            y.for[j] <-  t(model$coef.c1) %*% y.star + (model$coef.int/(1-sum(model$coef.nc2)))  + exp1[j]
+            y.for[j] <-  t(model$coef.c1) %*% y.star + (model$coef.int/(1-sum(model$coef.nc2)))  + exp2[j]
           }
         }
       } else {
