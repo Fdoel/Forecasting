@@ -7,8 +7,8 @@ source("MART.R")
 
 load("inflation_df_monthly.RData")
 
-p_C_max <- 12
-p_NC_max <- 12
+p_C_max <- 6
+p_NC_max <- 0
 
 if (.Platform$OS.type == "windows") {
   n_cores <- 1
@@ -17,8 +17,8 @@ if (.Platform$OS.type == "windows") {
   RNGkind("L'Ecuyer-CMRG")
 }
 
-threshold <- 0.29
-gamma <- 20
+threshold <- 0.3
+gamma <- 15
 
 param_grid <- expand.grid(i = 0:p_C_max, j = 0:p_NC_max)
 
@@ -26,8 +26,8 @@ run_model_info <- function(params) {
   i <- params$i
   j <- params$j
   
-  model <- SMART(inflation_df_monthly$inflationNonSA, NULL, p_C = i, p_NC = j, gamma, threshold)
-  info <- information.criteria(type = "SMART", model)
+  model <- MARX(inflation_df_monthly$inflationNonSA, NULL, p_C = i, p_NC = j)
+  info <- information.criteria(type = "MARX", model)
   
   return(data.frame(i = i, j = j,
                     loglikelihood = info$loglikelihood,
