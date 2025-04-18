@@ -6,8 +6,8 @@ load("inflation_df_monthly.RData")
 thresholds <- seq(0.1, 0.6, by = 0.1) 
 ds <- seq(1,6)
 gammas <- seq(1,10)
-p_C_max <- 6
-p_NC_max <- 6
+p_C_max <- 0
+p_NC_max <- 0
 
 # Set number of cores based on OS
 if (.Platform$OS.type == "windows") {
@@ -35,8 +35,8 @@ run_model <- function(params) {
   j <- params$j
   
   # Run MART model
-  SMART_d <- SMART(inflation_df_monthly$inflationNonSA, NULL, i, j, t, gamma, d)
-  bic_value <- information.criteria("SMART", SMART_d)
+  MART_d <- MART(inflation_df_monthly$inflationNonSA, cbind(inflation_df_monthly$ldGS1, inflation_df_monthly$dRPI, inflation_df_monthly$dRETAIL), i, j, t, d)
+  bic_value <- information.criteria("MART", MART_d)
   return(data.frame(threshold = t, gamma = gamma, d = d, i = i, j = j, bic = bic_value))
 }
 
@@ -48,10 +48,10 @@ bic_results <- pbmclapply(
 )
 
 # Combine all results into one data frame
-bic_smart_tdig_df <- do.call(rbind, bic_results)
+bic_mart_transformed0_df <- do.call(rbind, bic_results)
 
 # Save the results
-save(bic_smart_tdig_df, file = "GridSearch_SMART.RData")
+save(bic_mart_transformed0_df, file = "bic_mart_transformed0_df.RData")
 
 View(bic_smart_tdig_df)
 
