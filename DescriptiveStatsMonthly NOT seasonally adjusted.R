@@ -134,11 +134,30 @@ vix_summary_df <- VIX_summary[-1] %>%
 # -----------------------------------------------------------------------------
 inflation_df %>%
   ggplot(aes(x = sasdate)) +
-  geom_line(aes(y = CPIAUCSL, color = "CPI"), size = 1, linetype = "dashed") +  # CPI (dashed)
-  geom_line(aes(y = inflationSA * 100, color = "Inflation"), size = 0.7) +     # Inflation (scaled again)
+  
+  # Volcker Disinflation (1979–1987)
+  geom_rect(aes(xmin = as.Date("1979-01-01"), xmax = as.Date("1987-12-01"),
+                ymin = -Inf, ymax = Inf),
+            fill = "grey70", alpha = 0.2, inherit.aes = FALSE) +
+  
+  # 2008 Financial Crisis (Sept 2008–June 2009)
+  geom_rect(aes(xmin = as.Date("2008-09-01"), xmax = as.Date("2009-06-01"),
+                ymin = -Inf, ymax = Inf),
+            fill = "grey70", alpha = 0.2, inherit.aes = FALSE) +
+  
+  # COVID/Post-COVID (March 2020–Dec 2023)
+  geom_rect(aes(xmin = as.Date("2020-03-01"), xmax = as.Date("2023-12-01"),
+                ymin = -Inf, ymax = Inf),
+            fill = "grey70", alpha = 0.2, inherit.aes = FALSE) +
+  
+  # Time series lines
+  geom_line(aes(y = CPIAUCSL, color = "CPI"), size = 1, linetype = "dashed") +
+  geom_line(aes(y = inflationSA * 100, color = "Inflation"), size = 0.7) +
+  
+  # Axis and labels
   scale_y_continuous(
-    name = "CPI (Seasonally Adjusted)",
-    sec.axis = sec_axis(~ . / 100, name = "Inflation (%) (Seasonally Adjusted)")  # Adjust for visual scale
+    name = "CPI",
+    sec.axis = sec_axis(~ . / 100, name = "Inflation (%)")
   ) +
   labs(title = "",
        x = "Date",
@@ -151,8 +170,9 @@ inflation_df %>%
     panel.border = element_rect(color = "black", fill = NA, size = 0.5),
     axis.line = element_blank(),
     axis.ticks = element_line(color = "black"), 
-    axis.ticks.length = unit(5, "pt") 
+    axis.ticks.length = unit(5, "pt")
   )
+
 
 # -----------------------------------------------------------------------------
 # Plot 2: Non-Seasonally Adjusted CPI and Inflation over time
