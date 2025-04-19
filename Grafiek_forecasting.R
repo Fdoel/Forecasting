@@ -16,23 +16,27 @@ library(lubridate)
 load("~/Documents/GitHub/Forecasting/AR and MAR forecasting with many draws.RData")
 Forecast_AR <-  forecast_causal
 Forecast_MAR <- forecast_mixed
+RMSE_AR <- rmse_causal
+RMSE_MAR <- rmse_mixed
 
 load("~/Documents/GitHub/Forecasting/AR-X and MAR-X forecasting.RData")
-Forecast_AR_X <- forecast_causal
 Forecast_MAR_X <- forecast_mixed
+RMSE_MAR_X <- rmse_mixed
 
 load("~/Documents/GitHub/Forecasting/MART vs ART gerund door max.RData")
 forecast_MART_GS <- forecast_mart[,1]
 forecast_ART <- forecast_art[,1]
+RMSE_MART_GS <- rmse_mart
+RMSE_ART <- rmse_art
 
 load("~/Documents/GitHub/Forecasting/forecast_x_results.RData")
 forecast_ART_X <- forecast_art_x[,1]
 forecast_MART_X_GS <- forecast_mart_x[,1]
+RMSE_ART_X <- 
 
-load("~/Documents/GitHub/Forecasting/forecast_x_pseudo_results.RData")
+load("~/Documents/GitHub/Forecasting/forecast_x_pseudo2_results.RData")
 forecast_MART_X_GS <- forecast_mart_x_pseudo[,1]
 forecast_MART <- forecast_mart_pseudo[,1]
-
 
 # Set time index
 start_year <- 1959
