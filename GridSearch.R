@@ -50,6 +50,10 @@ bic_results <- pbmclapply(
 # Combine all results into one data frame
 bic_smart_tdig_df <- do.call(rbind, bic_results)
 
+# Voeg de gamma-kolom toe aan het uiteindelijke data frame
+bic_smart_tdig_df$gamma <- param_grid$g
+
+
 # Save the results
 save(bic_smart_tdig_df, file = "GridSearch_Smart.RData")
 
