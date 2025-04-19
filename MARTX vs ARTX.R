@@ -2,27 +2,28 @@ source("MART.R")
 load("inflation_df_monthly.RData")
 library(pbmcapply)
 library(forecast)
+library(tidyverse)
+library(ggplot2)
+
 # -----------------------------------------------------------------------------
 # Multi-horizon out-of-sample forecast evaluation
 # -----------------------------------------------------------------------------
 
 # Forecasting parameters
 h <- 12         # Forecast horizon
-N <- 15000        # Posterior draws
-M <- 50          # MA truncation
+N <- 15000      # Posterior draws
+M <- 50         # MA truncation
 
 # Model specifications
-p_C_mart <- 1;  p_NC_mart <- 3    # Mixed MAR(1,1)
-p_C_art <- 2; p_NC_art<- 0   # Purely causal SETAR(2,0)
-c_mart <- 0.3
-c_setar <- 0.6
-d_mart <- 1
-d_setar <- 1
+p_C_mart_x_grid <- 1; p_NC_mart_x_grid <- 3       # Purely causal mart_pseudo(2,0)
+p_C_mart_x_pseudo <- 1; p_NC_mart_x_pseudo <- 4      # Purely causal mart_pseudo(2,0)
+c_mart_x_pseudo <- median(inflation_df_monthly$inflationNonSA)
+c_mart_x_grid <- 0.6
+d_mart_x_pseudo <- 1
+d_mart_x_grid <- 1
 
 # Define exogenous regressors
 exo <- cbind(inflation_df_monthly$ldGS1, inflation_df_monthly$dRPI, inflation_df_monthly$dRETAIL)
-
-
 
 # Define forecast evaluation window
 data_series <- inflation_df_monthly$inflationNonSA
@@ -31,7 +32,7 @@ end_index <- length(data_series) - h
 forecast_indices <- start_index:end_index
 
 # -----------------------------------------------------------------------------
-# Forecasting loop using all 3 model configurations
+# Forecasting loop using both model configurations
 # -----------------------------------------------------------------------------
 
 results_list <- pbmclapply(
@@ -39,58 +40,49 @@ results_list <- pbmclapply(
   FUN = function(t) {
     tryCatch({
       y_window <- data_series[1:t]
-      # Get the proper X and X.for
-      x_window <- exo[1:t,]
+      
+
+      x_window <- exo[1:t,1:3]
+      # Fit AR(1) models to each regressor
       GS1_model <- arima(exo[1:t, 1], order = c(1,0,0))
       dRPI_model <- arima(exo[1:t, 2], order = c(1,0,0))
       dRETAIL_model <- arima(exo[1:t, 3], order = c(1,0,0))
       GS1_for <- predict(GS1_model, n.ahead = M)$pred
       dRPI_for <- predict(dRPI_model, n.ahead = M)$pred
       dRETAIL_for <- predict(dRETAIL_model, n.ahead = M)$pred
-      
-      
-      # Call forecast.MART with correct parameters
-      forecast_mart <- forecast.MART(
+
+      forecast_mart_x_pseudo <- forecast.MART(
         y = y_window,
         X = x_window,
-        p_C = p_C_mart,
-        p_NC = p_NC_mart,
-        c = c_mart,
-        d = d_mart,
+        p_C = p_C_mart_x_pseudo,
+        p_NC = p_NC_mart_x_pseudo,
+        c = c_mart_x_pseudo,
+        d = d_mart_x_pseudo,
         X.for = cbind(GS1_for, dRPI_for, dRETAIL_for),
         h = h,
         M = M,
         N = N
       )
       
-      # Make sure we get only the forecast component
-      mart_forecast <- forecast_mart$forecast
-      mart_defaulted <- forecast_mart$defaulted
-      
-      forecast_art <- forecast.MART(
+      forecast_mart_x_grid <- forecast.MART(
         y = y_window,
         X = x_window,
-        p_C = p_C_art,
-        p_NC = p_NC_art,
-        c = c_setar,
-        d = d_setar,
+        p_C = p_C_mart_x_grid,
+        p_NC = p_NC_mart_x_grid,
+        c = c_mart_x_grid,
+        d = d_mart_x_grid,
         X.for = cbind(GS1_for, dRPI_for, dRETAIL_for),
         h = h,
         M = M,
         N = N
       )
-      
-      # Make sure we get only the forecast component
-      art_forecast <- forecast_art$forecast
-      art_defaulted <- forecast_art$defaulted
-      
       actual <- data_series[(t + 1):(t + h)]
       
       return(list(
-        mart = mart_forecast,         # Use mart_forecast directly here
-        mart_defaulted = mart_defaulted, # Use mart_defaulted directly here
-        art = art_forecast,           # Use art_forecast directly here
-        art_defaulted = art_defaulted,   # Use art_defaulted directly here
+        mart_x_pseudo = forecast_mart_x_pseudo$forecast,       
+        mart_x_pseudo_defaulted = forecast_mart_x_pseudo$defaulted,
+        mart_grid = forecast_mart_x_grid$forecast,
+        mart_grid_defaulted = forecast_mart_x_grid$defaulted,
         actual = actual
       ))
     }, error = function(e) {
@@ -100,26 +92,26 @@ results_list <- pbmclapply(
   },
   mc.cores = parallel::detectCores() - 1
 )
+
 # -----------------------------------------------------------------------------
 # Organize forecast results into matrices
 # -----------------------------------------------------------------------------
 
-# Extract default flags
-mart_x_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$mart_defaulted else NA)
-art_x_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$art_defaulted else NA)
+mart_x_pseudo_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$mart_x_pseudo_defaulted else NA)
 
-# Compute default percentages
-pct_default_mart_x <- mean(mart_x_default_flags, na.rm = TRUE) * 100
-pct_default_art_x <- mean(art_x_default_flags, na.rm = TRUE) * 100
+pct_default_mart_x_pseudo <- mean(mart_x_pseudo_default_flags, na.rm = TRUE) * 100
 
-# Safely extract components and skip NULLs
-forecast_mart_x <- do.call(rbind, lapply(results_list, function(x) {
-  if (!is.null(x) && !is.null(x$mart)) return(x$mart)
-  return(matrix(NA, nrow = 1, ncol = h))  # Fallback for failed cases
+forecast_mart_x_pseudo <- do.call(rbind, lapply(results_list, function(x) {
+  if (!is.null(x) && !is.null(x$mart_x_pseudo)) return(x$mart_x_pseudo)
+  return(matrix(NA, nrow = 1, ncol = h))
 }))
 
-forecast_art_x <- do.call(rbind, lapply(results_list, function(x) {
-  if (!is.null(x) && !is.null(x$art)) return(x$art)
+mart_grid_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$mart_grid_defaulted else NA)
+
+pct_default_mart_x_grid <- mean(mart_grid_default_flags, na.rm = TRUE) * 100
+
+forecast_mart_x_grid <- do.call(rbind, lapply(results_list, function(x) {
+  if (!is.null(x) && !is.null(x$mart_grid)) return(x$mart_grid)
   return(matrix(NA, nrow = 1, ncol = h))
 }))
 
@@ -128,11 +120,13 @@ actual_matrix <- do.call(rbind, lapply(results_list, function(x) {
   return(matrix(NA, nrow = 1, ncol = h))
 }))
 
-colnames(forecast_mart_x) <- paste0("h", 1:h)
-colnames(forecast_art_x) <- paste0("h", 1:h)
+colnames(forecast_mart_x_pseudo) <- paste0("h", 1:h)
+colnames(forecast_mart_x_grid) <- paste0("h", 1:h)
 colnames(actual_matrix) <- paste0("h", 1:h)
 
-save(forecast_mart_x, forecast_art_x, actual_matrix, file = "forecast_x_results.RData")
+
+save(forecast_mart_x_pseudo, forecast_mart_x_grid, actual_matrix, file = "forecast_x_pseudo3_results.RData")
+save(pct_default_mart_x_pseudo, pct_default_mart_x_grid, file = "pct_default_MART_X.RData")
 
 # -----------------------------------------------------------------------------
 # Compute RMSE for each model across horizons
@@ -142,9 +136,8 @@ rmse <- function(forecast, actual) {
   sqrt(colMeans((forecast - actual)^2, na.rm = TRUE))
 }
 
-rmse_mart <- rmse(forecast_mart, actual_matrix)
-rmse_art <- rmse(forecast_art, actual_matrix)
-
+rmse_mart_pseudo <- rmse(forecast_mart_pseudo, actual_matrix)
+rmse_mart_grid <- rmse(forecast_mart_grid, actual_matrix)
 
 # -----------------------------------------------------------------------------
 # Compute Diebold-Mariano test p-values
@@ -172,8 +165,7 @@ compute_dm_tests <- function(forecast1, forecast2, actual, h) {
   return(p_values)
 }
 
-dm_mart_vs_causal <- compute_dm_tests(forecast_mart, forecast_art, actual_matrix, h)
-
+dm_test_results <- compute_dm_tests(forecast_mart_pseudo, forecast_mart_grid, actual_matrix, h)
 
 # -----------------------------------------------------------------------------
 # Combine RMSEs and DM p-values into a tidy data frame
@@ -181,12 +173,10 @@ dm_mart_vs_causal <- compute_dm_tests(forecast_mart, forecast_art, actual_matrix
 
 rmse_df <- data.frame(
   horizon = 1:h,
-  RMSE_mart = rmse_mart,
-  RMSE_art = rmse_art,
-  DM_mart_vs_art = dm_mart_vs_causal
+  RMSE_mart_pseudo = rmse_mart_pseudo,
+  RMSE_mart_grid = rmse_mart_grid,
+  DM_p_value = dm_test_results
 )
-
-
 
 # Print RMSE and DM test comparison
 print(rmse_df)
