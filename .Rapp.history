@@ -1,1 +1,3 @@
 load("/Users/Max/Documents/GitHub/Forecasting/Dataframes.RData")
+load("/Users/immeschraag/Documents/GitHub/Forecasting/AR-X and MAR-X forecasting.RData")
+View(AR-X and MAR-X forecasting.RData)
