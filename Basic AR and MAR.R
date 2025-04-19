@@ -56,6 +56,28 @@ for (i in 0:p_C_max) {
 model_ar12 <- Arima(inflation_df_monthly$inflationNonSA, order = c(12, 0, 0))
 resids_ar12 <- model_ar12$residuals  # Extract residuals
 
+## - short intermezzo for residuals plotting
+# Extract numeric values
+resids_vals <- as.numeric(resids_ar12)
+
+# Calculate mean and standard deviation
+mu <- mean(resids_vals)
+sigma <- sd(resids_vals)
+
+# Create histogram with density
+hist(resids_vals, breaks = 30, probability = TRUE,
+     col = "lightblue", border = "white",
+     main = "",
+     xlab = "Residuals")
+
+# Overlay normal distribution using sample mean and sd
+curve(dnorm(x, mean = mu, sd = sigma),
+      col = "red", lwd = 2, add = TRUE)
+
+# Optionally, add legend
+legend("topright", legend = c("Normal Density"), col = "red", lwd = 2, cex = 0.8)
+## ----------------
+
 # Step 2: Square the residuals for use as regressors
 resids_sq <- resids_ar12^2
 
