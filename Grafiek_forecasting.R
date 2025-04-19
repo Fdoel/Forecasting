@@ -5,19 +5,34 @@ library(dplyr)
 library(tidyr)
 library(lubridate)
 
-
 # Ik heb nodig:
 # Forecasting AR, MAR ???
 # Forecasting ART, MART en gs MART
 # Forecasting AR-X, MAR-X
 # Forecasting ART-X, MART-X en gs MART-X
 
+# Pakken nu wel de goede vraag ik me af, ik denk aaleen als 
+
+load("~/Documents/GitHub/Forecasting/AR and MAR forecasting with many draws.RData")
+Forecast_AR <-  forecast_causal
+Forecast_MAR <- forecast_mixed
+
+load("~/Documents/GitHub/Forecasting/AR-X and MAR-X forecasting.RData")
+Forecast_AR_X <- forecast_causal
+Forecast_MAR_X <- forecast_mixed
+
+load("~/Documents/GitHub/Forecasting/MART vs ART gerund door max.RData")
 forecast_MART_GS <- forecast_mart[,1]
 forecast_ART <- forecast_art[,1]
+
+load("~/Documents/GitHub/Forecasting/forecast_x_results.RData")
 forecast_ART_X <- forecast_art_x[,1]
 forecast_MART_X_GS <- forecast_mart_x[,1]
-forecast_MAR <- forecast_mixed[,1]
-forecast_AR <- forecast_causal[,1]
+
+load("~/Documents/GitHub/Forecasting/forecast_x_pseudo_results.RData")
+forecast_MART_X_GS <- forecast_mart_x_pseudo[,1]
+forecast_MART <- forecast_mart_pseudo[,1]
+
 
 # Set time index
 start_year <- 1959
