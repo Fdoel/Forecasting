@@ -551,7 +551,6 @@ marx.t <- function(y,x,p_C,p_NC,params0){
   }
 
   se <- sqrt(diag(solve(optimization_results$hessian)))
-  se.dist <- se[(length(se)-1):length(se)]
   se.dist <- rev(se.dist)
 
   return(list(coef.c = B_C, coef.nc = B_NC, coef.exo = B_x, coef.int = IC, scale = sig,df = df,residuals = E, se.dist = se.dist))
