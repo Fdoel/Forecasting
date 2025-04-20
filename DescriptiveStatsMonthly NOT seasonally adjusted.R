@@ -378,3 +378,28 @@ cor(inflation_df_monthly$dINDPRO, inflation_df_monthly$inflationNonSA)
 cor(inflation_df_monthly$dRETAIL, inflation_df_monthly$inflationNonSA)
 cor(inflation_df_monthly$dUSGOVT, inflation_df_monthly$inflationNonSA)
 cor(inflation_df_monthly$dRPI, inflation_df_monthly$inflationNonSA)
+
+# -----------------------------------------------------------------------------
+# Plot the distribution of non-SA inflation
+# -----------------------------------------------------------------------------
+
+# Compute mean and sd for the normal curve
+mean_val <- mean(inflation_df_monthly$inflationNonSA, na.rm = TRUE)
+sd_val <- sd(inflation_df_monthly$inflationNonSA, na.rm = TRUE)
+
+# Plot using ggplot2
+ggplot(df, aes(x = inflation)) +
+  geom_histogram(aes(y = ..density..), 
+                 bins = 30, 
+                 fill = "lightblue", 
+                 color = "white") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean_val, sd = sd_val), 
+                color = "red", 
+                size = 1) +
+  labs(title = "Histogram of Non-SA Inflation with Normal Distribution",
+       x = "Inflation (Non-SA)",
+       y = "Density") +
+  theme_minimal()
+
+# For each threshold value from 0.0

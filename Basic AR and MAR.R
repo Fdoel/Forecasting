@@ -103,7 +103,7 @@ test_statistic <- summary(model_test)$r.squared * length(y)
 # Step 6 simulate critical value using scaled t distribution
 alpha <- 0.05
 n_sim <- 10000
-test_stats_sim <- rep(NA, n_sim)
+test_statistic_sim <- rep(NA, n_sim)
 for(i in 1:n_sim) {
   e <- (stats::rt(length(y), df = 5)*sigma)
   e_2 <- e^2
@@ -119,9 +119,12 @@ for(i in 1:n_sim) {
 # Get the 95th percentile for the critical value
 critical_value <- quantile(test_statistic_sim, 1 - alpha)
 
-# Step 6: Output results of the chi-squared test
-cat("Chi-squared test statistic:", test_statistic, "\n")
-cat("p-value:", p_value, "\n")
+# Step 6: Compare test statistic with critical value
+if (test_statistic > critical_value) {
+  cat("Reject H0: residuals are not i.i.d.\n")
+} else {
+  cat("Fail to reject H0: residuals are i.i.d.\n")
+}
 
 # Step 7: Perfome Ljung-Box test
 Box.test(resids_ar12, lag = 12, type = "Ljung-Box")
