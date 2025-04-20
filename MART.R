@@ -1,11 +1,13 @@
-#' @title The regressor matrix function
+#' @title The threshold regressor matrix function 
 #' @description This function allows you to create a regressor matrix.
 #' @param y   Data vector of time series observations.
 #' @param x   Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
 #' @param p   Number of autoregressive terms to be included.
+#' @param c   Threshold value.
+#' @param d   Lagged value for thresholding.
 #' @keywords estimation
 #' @return    \item{Z}{Regressor matrix}
-#' @author Sean Telg
+#' @author Sean Telg, Team 4 Seminar forecasting
 #' @export
 #' @examples
 #' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
@@ -98,8 +100,8 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
   return(matrix = ZT)
 }
 
-#' @title The ARX estimation by OLS function
-#' @description This function allows you to estimate ARX models by ordinary least squares (OLS).
+#' @title The SETAR-X estimation by OLS function
+#' @description This function allows you to estimate SETAR-X models by ordinary least squares (OLS).
 #' @param y Data vector of time series observations.
 #' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
 #' @param p Number of autoregressive terms to be included.
@@ -114,11 +116,7 @@ regressor.matrix_T <- function(y, x, p, c, d=1) {
 #' @return \item{fitted.values}{Fitted values.}
 #' @return \item{df}{Degrees of freedom.}
 #' @return \item{vcov}{Variance-covariance matrix of residuals.}
-#' @author Sean Telg
-#' @export
-#' @examples
-#' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
-#' arx.ls(data$y,data$x,2)
+#' @author Sean Telg, Team 4 Seminar forecasting
 
 arx.ls_T <- function(y,x,p,c,d=1){
   
@@ -170,8 +168,18 @@ arx.ls_T <- function(y,x,p,c,d=1){
   
   return(list(coefficients = B, coef.auto = B_auto, coef.exo = B_x, mse = Cov, residuals = U, loglikelihood = Loglik, fitted.values = FV, df = df,vcov=vcov))
 }
-
-# Dit verwacht params in een bepaalde vorm die nu niet zo uit ARX_T komt
+#' @title The value of the t-log-likelihood for MART function
+#' @description This function allows you to determine the value of the t-log-likelihood for the MART model.
+#' @param params List of parameters.
+#' @param y Data vector of time series observations.
+#' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' @param p_C Number of lags.
+#' @param p_NC Number of leads.
+#' @param c Threshold value.
+#' @param d Lagged value for thresholding.
+#' @keywords optimization
+#' @return \item{neg.loglikelihood}{Minus the loglikelihood.}
+#' @author Sean Telg, Team 4 Seminar forecasting
 ll.MART.Z <- function(params,y,x,p_C,p_NC,c,d=1){
   p_CT <- p_C*2
   p_NCT <- p_NC*2
@@ -295,7 +303,26 @@ ll.MART.Z <- function(params,y,x,p_C,p_NC,c,d=1){
   return(neg.loglikelihood = loglik_eval)
 }
 
-# DEZE FUNCTIE MOET NOG AANGEPAST WORDEN
+#' @title The estimation of the MART model by t-MLE function
+#' @description This function allows you to estimate the MART model by t-MLE.
+#' @param y Data vector of time series observations.
+#' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' @param p_C Number of lags.
+#' @param p_NC Number of leads.
+#' @param c Threshold value.
+#' @param d Lagged value for thresholding.
+#' @param params0 Starting values for the parameters to be estimated (both model and distributional parameters).
+#' @keywords estimation
+#' @keywords causal-noncausal
+#' @return \item{coef.c}{Estimated causal coefficients.}
+#' @return \item{coef.nc}{Estimated noncausal coefficients.}
+#' @return \item{coef.exo}{Estimated exogenous coefficients.}
+#' @return \item{coef.int}{Estimated intercept.}
+#' @return \item{scale}{Estimated scale parameter.}
+#' @return \item{df}{Estimated degrees of freedom.}
+#' @return \item{residuals}{Residuals.}
+#' @return \item{se.dist}{Standard errors of all coefficients}
+#' @author Sean Telg, Team 4 Seminar forecasting
 MART <- function(y, x, p_C, p_NC, c, d=1) {
   p_CT <- 2*p_C
   p_NCT <- 2*p_NC
@@ -497,13 +524,12 @@ logistic.smooth <- function(y, gamma, c) {
 #' @param y   Data vector of time series observations.
 #' @param x   Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
 #' @param p   Number of autoregressive terms to be included.
+#' @param c   Threshold value.
+#' @param gamma   Slope of the logistic function.
+#' @param d   Lagged value for thresholding.
 #' @keywords estimation
 #' @return    \item{Z}{Regressor matrix}
-#' @author Sean Telg
-#' @export
-#' @examples
-#' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
-#' regressor.matrix(data$y, data$x, 2)
+#' @author Sean Telg, Team 4 Seminar forecasting
 regressor.matrix_ST <- function(y, x, p, c, gamma,d=1) {
   # Handle NULL x case
   if (missing(x) || is.null(x)) {
@@ -582,11 +608,13 @@ regressor.matrix_ST <- function(y, x, p, c, gamma,d=1) {
   return(matrix = ZT)
 }
 
-#' @title The Smooth transition ARX estimation by OLS function
+#' @title The Smooth transition ARX (SART-X )estimation by OLS function
 #' @description This function allows you to estimate ARX models by ordinary least squares (OLS).
 #' @param y Data vector of time series observations.
 #' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
 #' @param p Number of autoregressive terms to be included.
+#' @param c Threshold value.
+#' @param gamma Slope of the logistic function.
 #' @keywords estimation
 #' @keywords pseudo-causal
 #' @return \item{coefficients}{Vector of estimated coefficients.}
@@ -598,12 +626,7 @@ regressor.matrix_ST <- function(y, x, p, c, gamma,d=1) {
 #' @return \item{fitted.values}{Fitted values.}
 #' @return \item{df}{Degrees of freedom.}
 #' @return \item{vcov}{Variance-covariance matrix of residuals.}
-#' @author Sean Telg
-#' @export
-#' @examples
-#' data <- sim.marx(c('t',3,1),c('t',1,1),100,0.5,0.4,0.3)
-#' arx.ls(data$y,data$x,2)
-
+#' @author Sean Telg, Team 4 Seminar forecasting
 arx.ls_ST <- function(y,x,p,c, gamma,d=1){
   d <- d
   if (is.null(x)){
@@ -670,7 +693,19 @@ arx.ls_ST <- function(y,x,p,c, gamma,d=1){
   
   return(list(coefficients = B, coef.auto = B_auto, coef.exo = B_x, mse = Cov, residuals = U, loglikelihood = Loglik, fitted.values = FV, df = df,vcov=vcov))
 }
-
+#' @title The value of the t-log-likelihood for SMART function
+#' @description This function allows you to determine the value of the t-log-likelihood for the SMART model.
+#' @param params List of parameters.
+#' @param y Data vector of time series observations.
+#' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' @param p_C Number of lags.
+#' @param p_NC Number of leads.
+#' @param c Threshold value.
+#' @param d Lagged value for thresholding.
+#' @param gamma Slope of the logistic function.
+#' @keywords optimization
+#' @return \item{neg.loglikelihood}{Minus the loglikelihood.}
+#' @author Sean Telg, Team 4 Seminar forecasting
 ll.SMART.Z <- function(params,y,x,p_C,p_NC,c,gamma,d=1) {
   p_CT <- p_C*2
   p_NCT <- p_NC*2
@@ -794,7 +829,27 @@ ll.SMART.Z <- function(params,y,x,p_C,p_NC,c,gamma,d=1) {
   return(neg.loglikelihood = loglik_eval)
 }
 
-
+#' @title The estimation of the SMART model by t-MLE function
+#' @description This function allows you to estimate the SMART model by t-MLE.
+#' @param y Data vector of time series observations.
+#' @param x Matrix of data (every column represents one time series). Specify NULL or "not" if not wanted.
+#' @param p_C Number of lags.
+#' @param p_NC Number of leads.
+#' @param c Threshold value.
+#' @param d Lagged value for thresholding.
+#' @param gamma Slope of the logistic function.
+#' @param params0 Starting values for the parameters to be estimated (both model and distributional parameters).
+#' @keywords estimation
+#' @keywords causal-noncausal
+#' @return \item{coef.c}{Estimated causal coefficients.}
+#' @return \item{coef.nc}{Estimated noncausal coefficients.}
+#' @return \item{coef.exo}{Estimated exogenous coefficients.}
+#' @return \item{coef.int}{Estimated intercept.}
+#' @return \item{scale}{Estimated scale parameter.}
+#' @return \item{df}{Estimated degrees of freedom.}
+#' @return \item{residuals}{Residuals.}
+#' @return \item{se.dist}{Standard errors of all coefficients}
+#' @author Sean Telg, Team 4 Seminar forecasting
 SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
   p_CT <- 2*p_C
   p_NCT <- 2*p_NC
@@ -993,11 +1048,6 @@ SMART <- function(y, x, p_C, p_NC, c, gamma,d=1) {
 #' @keywords stability, stationarity
 #' @return \item{psi}{Vector containing coefficients of the moving average representation.}
 #' @author Sean Telg
-#' @export
-#' @examples
-#' pol <- c(0.3,0.4)
-#' psi <- companion.form(pol)
-
 compute.MA <- function(pol,M){
   r <- length(pol)
   str <- c(rep(0,(r-1)),1)
@@ -1022,6 +1072,8 @@ compute.MA <- function(pol,M){
 #' @param X       (optional) Matrix with data (column represent a series).
 #' @param p_C     Number of lags (causal order).
 #' @param p_NC    Number of leads (noncausal order).
+#' @param c       Threshold value.
+#' @param d       Lagged value for thresholding.
 #' @param X.for   (optional) Matrix with forecasted values for X (column represents series).
 #' @param h       Forecast horizon h.
 #' @param M       (optional) Truncation value M for MA representation. Default value: 50.
@@ -1029,10 +1081,7 @@ compute.MA <- function(pol,M){
 #' @param Seed    (optional) Seed for random number generation. Default: 9999
 #' @keywords forecasting
 #' @return \item{y.for}{Vector containing forecasted values for y.}
-#' @author Sean Telg, Floris van den Doel
-#' @export
-#' @examples
-
+#' @author Sean Telg, Team 4 Seminar forecasting
 forecast.MART <- function(y,X,p_C,p_NC,c,d,X.for,h,M,N,seed=20240402) {
   
   set.seed(seed)
@@ -1254,7 +1303,23 @@ information.criteria <- function(type = c("MARX", "MART", "SMART"), model) {
   return(list(aic = aic, bic = bic, hq = hq, loglikelihood = loglikelihood, k = k, n = n, df = df, sig = sig))
 }
 
-# Treshold verandert niet fundamenteel de simulatie van toekomstige errors, je moet alleen uitkijken dat dimensies enzo kloppen
+#' @title !!! THIS FUNCTION IS INCORRECT. DO NOT TAKE ANYTHING FROM ITS RESULTS!!! Forecasting function for the SMART model
+#' @description   This function allows you to forecast with the mixed causal-noncausal model with possibly exogenous regressors.
+#' @param y       Data vector y.
+#' @param X       (optional) Matrix with data (column represent a series).
+#' @param p_C     Number of lags (causal order).
+#' @param p_NC    Number of leads (noncausal order).
+#' @param c       Threshold value.
+#' @param d       Lagged value for thresholding.
+#' @param gamma Slope of the logistic function.
+#' @param X.for   (optional) Matrix with forecasted values for X (column represents series).
+#' @param h       Forecast horizon h.
+#' @param M       (optional) Truncation value M for MA representation. Default value: 50.
+#' @param N       (optional) Number of simulations to forecast noncausal component. Default: 10,000.
+#' @param Seed    (optional) Seed for random number generation. Default: 20240402 
+#' @keywords forecasting
+#' @return \item{y.for}{Vector containing forecasted values for y.}
+#' @author Sean Telg, Team 4 Seminar forecasting
 forecast.SMART <- function(y,X,p_C,p_NC,c,gamma,d,X.for,h,M,N,seed=20240402) {
   
   set.seed(seed)
