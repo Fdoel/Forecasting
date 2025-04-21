@@ -1,5 +1,3 @@
-# MART pseudo function
-
 # Load required libraries
 library(MASS)          # For statistical distributions and matrix functions
 source("MARX_functions.R")  # Custom functions for MAR model estimation

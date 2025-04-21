@@ -481,7 +481,7 @@ p_NC <- selection.lag.lead_results[[2]]
 # Residual diagnostics: test for independence of AR(p) residuals (Hecq et al. 2016) and test for no serial correlation (MARX package paper of HEcq et al.)
 # -----------------------------------------------------------------------------
 
-# Fit a 12-lag AR model to the inflation series
+# Fit a 2-lag AR model to the inflation series
 model_arst2 <- Arima(inflation_df_monthly$inflationNonSA, order = c(2, 0, 0))
 resids_arst2 <- model_arst2$residuals  # Extract residuals
 
@@ -506,13 +506,10 @@ model_test <- lm(y ~ X_lags)
 
 # Step 5: Test for joint significance of lag coefficients (H0: residuals are i.i.d.)
 test_statistic <- summary(model_test)$r.squared * length(y)
-p_value <- pchisq(test_statistic, df = m, lower.tail = FALSE)
 
-# Step 6: Output results of the chi-squared test
-cat("Chi-squared test statistic:", test_statistic, "\n")
-cat("p-value:", p_value, "\n")
+# Simulate 
 
-# Step 1: Perfome Ljung-Box test
+# Step 7: Perfome Ljung-Box test
 Box.test(resids_arst2, lag = 6, type = "Ljung-Box")
 
 
