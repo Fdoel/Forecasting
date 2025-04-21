@@ -1,11 +1,12 @@
-# MART pseudo code
-
 # Load required libraries
 library(MASS)          # For statistical distributions and matrix functions
 source("MARX_functions.R")  # Custom functions for MAR model estimation
 source("MART.R")            # MART model training and forecasting routines (includes information criteria calculations)
 library(forecast)      # For ARIMA modeling and forecast tools
 library(pbmcapply)     # For parallel processing with progress bar
+load("inflation_df_monthly.RData")  # Load the inflation dataset
+
+set.seed(20250421)
 
 #' @title The model selection for pseudo-ARX function
 #' @description This function allows you to calculate AIC, BIC, HQ for pseudo-ARX models.
@@ -268,12 +269,12 @@ selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 1) {
 }
 
 
-selection.lag_t(inflation_df_monthly$inflationNonSA,cbind(inflation_df_monthly$ldGS1,inflation_df_monthly$dRPI,inflation_df_monthly$dRETAIL),12,median(inflation_df_monthly$inflationNonSA),d=3)
+selection.lag_t(inflation_df_monthly$inflationNonSA,NULL,12,0.6,d=4)
 
 p_pseudo <- readline(prompt = "Choose lag order for pseudo causal model: ")
 p_pseudo <- as.numeric(p_pseudo)
 
-pseudo <- arx.ls_T(inflation_df_monthly$inflationNonSA,cbind(inflation_df_monthly$ldGS1,inflation_df_monthly$dRPI,inflation_df_monthly$dRETAIL),p_pseudo,median(inflation_df_monthly$inflationNonSA),d=3)
+pseudo <- arx.ls_T(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,0.6,d=4)
 Cov_pseudo <- pseudo[[4]]
 U_pseudo <- pseudo[[5]]
 test_cdf_pseudo <- cbind(U_pseudo, stats::pnorm(U_pseudo,0,Cov_pseudo))
@@ -341,21 +342,28 @@ if (jarque_check == 0){
 stats::qqnorm(U_pseudo, main="Normal Probability Plot of Residuals")
 stats::qqline(U_pseudo)
 
+selection.lag.lead_results <- selection.lag.lead_T(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,0.6,d=4)
+p_C <- selection.lag.lead_results[[1]]
+p_NC <- selection.lag.lead_results[[2]]
+
+
 ## -----------------------------------------------------------------------------
 # Residual diagnostics: test for independence of AR(p) residuals (Hecq et al. 2016) and test for no serial correlation (MARX package paper of HEcq et al.)
 # -----------------------------------------------------------------------------
-# Step 1: Obtain residuals
-resid <- pseudo$residuals
+
+# Fit a 12-lag AR model to the inflation series
+model_setar2 <- arx.ls_T(inflation_df_monthly$inflationNonSA, NULL, 2, median(inflation_df_monthly$inflationNonSA), d = 4)
+resids_setar2 <- model_setar2$residuals  # Extract residuals
 
 # Step 2: Square the residuals for use as regressors
-resids_sq <- resid^2
-
+resids_sq <- resids_setar2^2
+sigma <- sd(resids_setar2)  # Estimate the standard deviation of the residuals
 # Step 3: Create lag matrix manually
 m <- 2
-n <- length(resid)
+n <- length(resids_setar2)
 
 # Create the response variable y (residuals from t = m+1 to n)
-y <- resid[(m + 1):n]
+y <- resids_setar2[(m + 1):n]
 
 # Create lagged squared residuals matrix
 X_lags <- matrix(NA, nrow = n - m, ncol = m)
@@ -368,17 +376,32 @@ model_test <- lm(y ~ X_lags)
 
 # Step 5: Test for joint significance of lag coefficients (H0: residuals are i.i.d.)
 test_statistic <- summary(model_test)$r.squared * length(y)
-p_value <- pchisq(test_statistic, df = m, lower.tail = FALSE)
 
-# Step 6: Output results of the chi-squared test
-cat("Chi-squared test statistic:", test_statistic, "\n")
-cat("p-value:", p_value, "\n")
+# Step 6 simulate critical value using scaled t distribution
+alpha <- 0.05
+n_sim <- 10000
+test_statistic_sim <- rep(NA, n_sim)
+for(i in 1:n_sim) {
+  e <- (stats::rt(length(y), df = 5)*sigma)
+  e_2 <- e^2
+  X_lags <- matrix(NA, nrow = n - m, ncol = m)
+  for (j in 1:m) {
+    X_lags[, j] <- e_2[(m + 1 - j):(n - j)]
+  }
+  model_test_sim <- lm(e ~ X_lags)
+  test_statistic_sim[i] <- summary(model_test_sim)$r.squared * length(y)
+}
 
-# Step 1: Perfome Ljung-Box test
-Box.test(resid, lag = 6, type = "Ljung-Box")
+# Get the 95th percentile for the critical value
+critical_value <- quantile(test_statistic_sim, 1 - alpha)
 
-selection.lag.lead_results <- selection.lag.lead_T(inflation_df_monthly$inflationNonSA,cbind(inflation_df_monthly$ldGS1,inflation_df_monthly$dRPI,inflation_df_monthly$dRETAIL),p_pseudo,median(inflation_df_monthly$inflationNonSA),d=3)
-p_C <- selection.lag.lead_results[[1]]
-p_NC <- selection.lag.lead_results[[2]]
-
+# Step 6: Compare test statistic with critical value
+if (test_statistic > critical_value) {
+  cat("Reject H0: residuals are not i.i.d.\n")
+} else {
+  cat("Fail to reject H0: residuals are i.i.d.\n")
+}
+  
+# Step 7: Perfome Ljung-Box test
+Box.test(resids_setar2, lag = 6, type = "Ljung-Box")
 
