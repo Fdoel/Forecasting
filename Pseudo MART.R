@@ -1,4 +1,4 @@
-# MART pseudo function
+# MART pseudo code
 
 # Load required libraries
 library(MASS)          # For statistical distributions and matrix functions

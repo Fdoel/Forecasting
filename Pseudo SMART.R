@@ -1,4 +1,4 @@
-# SMART
+# Pseudo SMART code
 
 #' @title The model selection for pseudo-ARX function
 #' @description This function allows you to calculate AIC, BIC, HQ for pseudo-ARX models.

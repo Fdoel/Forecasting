@@ -83,7 +83,7 @@ print(rmsfe_df_1)
 
 # Horizon of h=6
 Forecast_AR_6 <- Forecast_AR[,6]
-Forecast_MAR_6 <- Forecast_MAR[,6]
+Forecast_MAR_X_6 <- Forecast_MAR[,6]
 
 Forecast_MAR_6 <- Forecast_MAR_X[,6]
 
@@ -134,7 +134,7 @@ print(rmsfe_df_6)
 Forecast_AR_12 <- Forecast_AR[,12]
 Forecast_MAR_12 <- Forecast_MAR[,12]
 
-Forecast_MAR_12 <- Forecast_MAR_X[,12]
+Forecast_MAR_X_12 <- Forecast_MAR_X[,12]
 
 identical(Forecast_MAR_12, Forecast_MAR_12)
 
@@ -177,3 +177,30 @@ results <- rbind(
 rmsfe_df_12 <- as.data.frame(results)
 rmsfe_df_12$RMSFE <- as.numeric(rmsfe_df_12$RMSFE)
 print(rmsfe_df_12)
+
+# Comparing best performing method with causal counterpart
+compute_dm_tests <- function(forecast1, forecast2, actual, h) {
+  p_values <- numeric(h)
+  for (i in 1:h) {
+    e1 <- actual - forecast1
+    e2 <- actual - forecast2
+    valid <- complete.cases(e1, e2)
+    e1 <- e1[valid]
+    e2 <- e2[valid]
+    
+    if (length(e1) > 10) {
+      dm <- tryCatch(
+        dm.test(e1, e2, alternative = "two.sided", h = 1, power = 2),
+        error = function(e) return(NA)
+      )
+      p_values[i] <- ifelse(is.list(dm), dm$p.value, NA)
+    } else {
+      p_values[i] <- NA
+    }
+  }
+  return(p_values)
+}
+
+DM_1 <- compute_dm_tests(forecast_MART_x_pseudo_1,forecast_ART_x_1,actual_forecast[,1],1)
+DM_6 <- compute_dm_tests(forecast_MART_x_pseudo_6,forecast_ART_x_6,actual_forecast[,6],)
+DM_12 <- compute_dm_tests(forecast_MART_x_pseudo_12,forecast_ART_x_12,actual_forecast[,12],1)
