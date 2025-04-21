@@ -1,23 +1,7 @@
-Draft research proposal, af maandag 14 april af:
-- Forecasting programmeren -> Floris
-- Simulation study programmeren -> Imme (laag pittje) --> niet meer doen, ff goed opschrijven --> methodology
-- Methodology:
-    - Forecasting -> Floris
-    - Simulation Study -> Imme
-    - estimation --> Berend (alle tests)
+## Licensing and Credits
 
-Grid search c, gamma en d ->
-Local minimum -> Floris 
+This project is based in part on the R package MARX originally developed by Sean Telg [aut, cre, cph], Alain Hecq [ctb], Lenard Lieb [ctb] and licensed under the [GNU General Public License v2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html).
 
-Begin maken aan de results:
-- qqplot
-- Lag and lead selection
-- Compare standard MAR model with an AR model (Moet nog wat testen maar zo goed als af)
-- Extra statistieken toevoegen, vrije denk ruimte -> Max
-- Compare regime switching (threshold as well as smooth transition) MAR and AR --> Imme, kijk ff bij MAR
+Modifications have been made to suit the needs of this project. All derived work remains under GPL-2 as per the license terms.
 
-Bij het MART model testen of in verschillende regimes de estimates significant van elkaar verschillen
-
-SE -> p-values -> Floris
-
-
+Please see the `LICENSE` file for full licensing details.
