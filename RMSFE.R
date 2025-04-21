@@ -170,60 +170,60 @@ df <- data.frame(
 
 df_long <- pivot_longer(df, cols = c("Actual", "MART_GS", "SETAR"),
                         names_to = "Series", values_to = "Value")
-
-# Plot
 ggplot(df_long, aes(x = Date, y = Value, color = Series)) +
   geom_line(linewidth = 1) +
-  labs(title = "12-Month Ahead Forecast vs Actual",
-       x = "Date", y = "Monthly Inflation", color = "Legend") +
-  scale_x_yearmon(format = "%Y-%m", n = 10) +
-  scale_color_manual(values = c("Actual" = "black", "MART_GS" = "blue", "SETAR" = "red")) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
+  scale_x_yearmon(format = "%Y", n = 8) +
+  scale_color_manual(values = c("Actual" = "black", 
+                                "MART_GS" = "blue", 
+                                "SETAR" = "red")) +
+  theme_minimal(base_size = 10) +
+  theme(
+    panel.grid = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 10),
+    axis.text = element_text(size = 9),
+    axis.line = element_line(color = "black"),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 9)
+  )
 
-# Combine into a data frame
-df_2 <- data.frame(
-  Date = forecast_dates,
-  Actual = actual_12,
-  MAR = mar_12,
-  AR = ar_12
-)
-df_long_2 <- pivot_longer(df_2, cols = c("Actual", "MAR", "AR"),
-                        names_to = "Series", values_to = "Value")
-
-# Plot
 ggplot(df_long_2, aes(x = Date, y = Value, color = Series)) +
   geom_line(linewidth = 1) +
-  labs(title = "12-Month Ahead Forecast vs Actual",
-       x = "Date", y = "Monthly Inflation", color = "Legend") +
-  scale_x_yearmon(format = "%Y-%m", n = 10) +
-  scale_color_manual(values = c("Actual" = "black", "MAR" = "blue", "AR" = "red")) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
+  scale_x_yearmon(format = "%Y", n = 8) +
+  scale_color_manual(values = c("Actual" = "black", 
+                                "MAR" = "blue", 
+                                "AR" = "red")) +
+  theme_minimal(base_size = 10) +
+  theme(
+    panel.grid = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 10),
+    axis.text = element_text(size = 9),
+    axis.line = element_line(color = "black"),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 9)
+  )
 
-# Combine into a data frame (note the column names match the legend labels)
-df_3 <- data.frame(
-  Date = forecast_dates,
-  Actual = actual_12,
-  MARX = marx_12,
-  `ART_X` = artx_12,
-  `MART_X` = martx_12
-)
-
-# Pivot to long format
-df_long_3 <- pivot_longer(df_3, 
-                          cols = c("Actual", "MARX", "ART_X", "MART_X"),
-                          names_to = "Series", values_to = "Value")
-
-# Plot
 ggplot(df_long_3, aes(x = Date, y = Value, color = Series)) +
   geom_line(linewidth = 1) +
-  labs(title = "12-Month Ahead Forecast vs Actual",
-       x = "Date", y = "Monthly Inflation", color = "Legend") +
-  scale_x_yearmon(format = "%Y-%m", n = 10) +
+  scale_x_yearmon(format = "%Y", n = 8) +
   scale_color_manual(values = c("Actual" = "black", 
                                 "MARX" = "blue", 
                                 "ART_X" = "red", 
                                 "MART_X" = "green")) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
+  theme_minimal(base_size = 10) +
+  theme(
+    panel.grid = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 10),
+    axis.text = element_text(size = 9),
+    axis.line = element_line(color = "black"),
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 9)
+  )
+
+
+
