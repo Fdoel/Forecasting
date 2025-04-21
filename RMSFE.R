@@ -6,6 +6,8 @@ load("Forecasting results/forecast_MAR_results.RData") # Results from MAR and AR
 load("Forecasting results/forecast_ARX_results.RData") # Results from AR and MAR
 load("Forecasting results/pct_default_MART.RData") # Percentage MART models defaulted
 load("Forecasting results/pct_default_MART_X.RData") # Percentage MART models defaulted
+load("Forecasting results/forecast_results_MAR_SA.RData") # Results for seasonally adjusted AR and MAR
+load("Forecasting results/forecast_results_SA.RData") # Results for seasonally adjusted ART and MART
 # Load default percentages for MART models
 
 
@@ -93,6 +95,8 @@ dm_test_mart_grid_art_df <- data.frame(
 )
 print(dm_test_mart_grid_art_df)
 
+# For robustness 
+dm_SA_ar_vs_art <- compute_dm_tests(forecast_SA_art, forecast_SA_AR, actual_matrix, h)
 
 # Post 2000
 index_2000 <- 238 # The index in the forecasts that corresponds to the year 2000.
