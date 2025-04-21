@@ -95,22 +95,34 @@ print(dm_test_mart_grid_art_df)
 
 
 # Post 2000
-index_2000 <- 238 # The index in the forecasts that corresponds to the year 2000.
+index_2000 <- 237 # The index in the forecasts that corresponds to the year 2000.
 n <- nrow(actual_matrix) # Number of observations in the actual matrix
 # Combine all observations after 2000 into a RMSFE dataframe
+rmse_mar_grid_pseudo_2000 <- rmse(forecast_MAR[index_2000:n,], actual_matrix[index_2000:n,])
+rmse_ar_2000 <- rmse(forecast_AR[index_2000:n,], actual_matrix[index_2000:n,])
+rmse_mart_grid_2000 <- rmse(forecast_mart_grid[index_2000:n,], actual_matrix[index_2000:n,])
+rmse_mart_pseudo_2000 <- rmse(forecast_mart_pseudo[index_2000:n,], actual_matrix[index_2000:n,])
+rmse_mart_x_grid_2000 <- rmse(forecast_mart_x_grid[index_2000:n,], actual_matrix[index_2000:n,])
+rmse_mart_x_pseudo_2000 <- rmse(forecast_mart_x_pseudo[index_2000:n,], actual_matrix[index_2000:n,])
+rmse_art_2000 <- rmse(forecast_art[index_2000:n,], actual_matrix[index_2000:n,])
+rmse_art_x_2000 <- rmse(forecast_art_x[index_2000:n,], actual_matrix[index_2000:n,])
+rsme_arx_2000 <- rmse(forecast_ARX[index_2000:n,], actual_matrix[index_2000:n,])
+
+# Combine into a tidy data frame
 rmse_df_2000 <- data.frame(
   horizon = 1:h,
-  RMSE_mar_grid_pseudo = rmse(forecast_MAR[index_2000:n], actual_matrix[index_2000:n]),
-  RMSE_ar = rmse(forecast_AR[index_2000:n], actual_matrix[index_2000:n]),
-  RMSE_mart_grid = rmse(forecast_mart_grid[index_2000:n], actual_matrix[index_2000:n]),
-  RMSE_mart_pseudo = rmse(forecast_mart_pseudo[index_2000:n], actual_matrix[index_2000:n]),
-  RMSE_mart_x_grid = rmse(forecast_mart_x_grid[index_2000:n], actual_matrix[index_2000:n]),
-  RMSE_mart_x_pseudo = rmse(forecast_mart_x_pseudo[index_2000:n], actual_matrix[index_2000:n]),
-  RMSE_art = rmse(forecast_art[index_2000:n], actual_matrix[index_2000:n]),
-  RMSE_art_x = rmse(forecast_art_x[index_2000:n], actual_matrix[index_2000:n]),
-  RMSE_arx = rmse(forecast_ARX[index_2000:n], actual_matrix[index_2000:n])
+  RMSE_mar_grid_pseudo_2000 = rmse_mar_grid_pseudo_2000,
+  RMSE_ar_2000 = rmse_ar_2000,
+  RMSE_mart_grid_2000 = rmse_mart_grid_2000,
+  RMSE_mart_pseudo_2000 = rmse_mart_pseudo_2000,
+  RMSE_mart_x_grid_2000 = rmse_mart_x_grid_2000,
+  RMSE_mart_x_pseudo_2000 = rmse_mart_x_pseudo_2000,
+  RMSE_art_2000 = rmse_art_2000,
+  RMSE_art_x_2000 = rmse_art_x_2000,
+  RMSE_arx_2000 = rsme_arx_2000
 )
 
-
+# Print RMSE and DM test results for post 2000
+print(rmse_df_2000)
 
 
