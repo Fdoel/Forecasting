@@ -1,7 +1,8 @@
-load("forecast_MART_results.RData") # Results from MART pseudo and GS
-load("forecast_MARTX_results.RData") # Results from MART X pseudo and GS
-load("forecast_ART_results.RData") # Results from ART GS
-load("forecast_ARTX_results.RData") # Results from ARX GS
+load("Forecasting results/forecast_MART_results.RData") # Results from MART pseudo and GS
+load("Forecasting results/forecast_MARTX_results.RData") # Results from MART X pseudo and GS
+load("Forecasting results/forecast_ART_results.RData") # Results from ART GS
+load("Forecasting results/forecast_ARTX_results.RData") # Results from ARX GS
+
 
 # -----------------------------------------------------------------------------
 # Compute RMSE for each model across horizons
@@ -15,6 +16,8 @@ rmse_mart_grid <- rmse(forecast_mart_grid, actual_matrix)
 rmse_mart_pseudo <- rmse(forecast_mart_pseudo, actual_matrix)
 rmse_mart_x_grid <- rmse(forecast_mart_x_grid, actual_matrix)
 rmse_mart_x_pseudo <- rmse(forecast_mart_x_pseudo, actual_matrix)
+rmse_art <- rmse(forecast_art, actual_matrix)
+rmse_art_x <- rmse(forecast_art_x, actual_matrix)
 
 # -----------------------------------------------------------------------------
 # Compute Diebold-Mariano test p-values
@@ -44,7 +47,7 @@ compute_dm_tests <- function(forecast1, forecast2, actual, h) {
 
 
 # -----------------------------------------------------------------------------
-# Combine RMSEs and DM p-values into a tidy data frame
+# Combine RMSEs into a tidy data frame
 # -----------------------------------------------------------------------------
 h <- 12
 rmse_df <- data.frame(
@@ -52,10 +55,29 @@ rmse_df <- data.frame(
   RMSE_mart_grid = rmse_mart_grid,
   RMSE_mart_pseudo = rmse_mart_pseudo,
   RMSE_mart_x_grid = rmse_mart_x_grid,
-  RMSE_mart_x_pseudo = rmse_mart_x_pseudo
+  RMSE_mart_x_pseudo = rmse_mart_x_pseudo,
+  RMSE_art = rmse_art,
+  RMSE_art_x = rmse_art_x
 )
-
-
-
-# Print RMSE and DM test comparison
+# Print RMSE an
 print(rmse_df)
+
+# Compute select DM test results
+
+# MART pseudo vs MART grid
+dm_test_mart_pseudo_grid <- compute_dm_tests(forecast_mart_pseudo, forecast_mart_grid, actual_matrix, h)
+# Print with horizon
+dm_test_mart_pseudo_grid_df <- data.frame(
+  horizon = 1:h,
+  DM_p_value = dm_test_mart_pseudo_grid
+)
+print(dm_test_mart_pseudo_grid_df)
+
+# MART grid vs ART
+dm_test_mart_grid_art <- compute_dm_tests(forecast_mart_grid, forecast_art, actual_matrix, h)
+# Print with horizon
+dm_test_mart_grid_art_df <- data.frame(
+  horizon = 1:h,
+  DM_p_value = dm_test_mart_grid_art
+)
+print(dm_test_mart_grid_art_df)
