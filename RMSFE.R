@@ -4,6 +4,9 @@ load("Forecasting results/forecast_ART_results.RData") # Results from ART GS
 load("Forecasting results/forecast_ARTX_results.RData") # Results from ARX GS
 load("Forecasting results/forecast_MAR_results.RData") # Results from MAR and AR
 load("Forecasting results/forecast_ARX_results.RData") # Results from AR and MAR
+load("Forecasting results/pct_default_MART.RData") # Percentage MART models defaulted
+load("Forecasting results/pct_default_MART_X.RData") # Percentage MART models defaulted
+# Load default percentages for MART models
 
 
 # -----------------------------------------------------------------------------
@@ -22,7 +25,7 @@ rmse_mart_x_grid <- rmse(forecast_mart_x_grid, actual_matrix)
 rmse_mart_x_pseudo <- rmse(forecast_mart_x_pseudo, actual_matrix)
 rmse_art <- rmse(forecast_art, actual_matrix)
 rmse_art_x <- rmse(forecast_art_x, actual_matrix)
-rsme_arx <- 
+rsme_arx <- rmse(forecast_ARX, actual_matrix)
 
 # -----------------------------------------------------------------------------
 # Compute Diebold-Mariano test p-values
@@ -64,7 +67,8 @@ rmse_df <- data.frame(
   RMSE_mart_x_grid = rmse_mart_x_grid,
   RMSE_mart_x_pseudo = rmse_mart_x_pseudo,
   RMSE_art = rmse_art,
-  RMSE_art_x = rmse_art_x
+  RMSE_art_x = rmse_art_x,
+  RMSE_arx = rsme_arx
 )
 # Print RMSE an
 print(rmse_df)
@@ -88,3 +92,5 @@ dm_test_mart_grid_art_df <- data.frame(
   DM_p_value = dm_test_mart_grid_art
 )
 print(dm_test_mart_grid_art_df)
+
+

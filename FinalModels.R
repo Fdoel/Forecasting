@@ -2,8 +2,6 @@
 load("inflation_df_monthly.RData")
 source("MART.R")
 source("MARX_functions.R")
-load()
-
 
 # Define c for pseudo models
 c_med <- median(inflation_df_monthly$inflationNonSA)
@@ -30,6 +28,7 @@ MAR_x <- marx.t(inflation_df_monthly$inflationNonSA, exo, 1,12) # MAR-X using gr
 MART_pseudo <- MART(inflation_df_monthly$inflationNonSA, NULL, 1,1, c_med, d=3)
 MART_grid <- MART(inflation_df_monthly$inflationNonSA, NULL, 1,1, c=0.6, d=4)
 MART_x_grid <- MART(inflation_df_monthly$inflationNonSA, exo, 1,3, c=0.3, d=1)
+MART_x_pseudo <- MART(inflation_df_monthly$inflationNonSA, exo, 1,4, c=c_med, d=1)
 
 # SMART models
 SMART_grid <- SMART(inflation_df_monthly$inflationNonSA, NULL, 1,1, c=0.6, gamma = 3, d=3)

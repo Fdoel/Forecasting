@@ -7,6 +7,8 @@ source("MART.R")            # MART model training and forecasting routines (incl
 library(forecast)      # For ARIMA modeling and forecast tools
 library(pbmcapply)     # For parallel processing with progress bar
 
+set.seed(20250421)
+
 #' @title The model selection for pseudo-ARX function
 #' @description This function allows you to calculate AIC, BIC, HQ for pseudo-ARX models.
 #' @param y Data vector of time series observations.

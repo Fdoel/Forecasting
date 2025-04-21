@@ -125,7 +125,6 @@ if (test_statistic > critical_value) {
 } else {
   cat("Fail to reject H0: residuals are i.i.d.\n")
 }
-
 # Step 7: Perfome Ljung-Box test
 Box.test(resids_ar12, lag = 12, type = "Ljung-Box")
 
