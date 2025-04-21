@@ -1,3 +1,4 @@
+load("forecasting_MAR_results.RData") # Results from MAR and MAR
 load("forecast_MART_results.RData") # Results from MART pseudo and GS
 load("forecast_MARTX_results.RData") # Results from MART X pseudo and GS
 load("forecast_ART_results.RData") # Results from ART GS
