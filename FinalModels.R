@@ -9,8 +9,8 @@ c_med <- median(inflation_df_monthly$inflationNonSA)
 exo <- cbind(inflation_df_monthly$ldGS1, inflation_df_monthly$dRPI, inflation_df_monthly$dRETAIL)
 
 # AR models
-AR <- arx.ls(inflation_df_monthly$inflationNonSA,NULL,12)
-AR_x <- arx.ls(inflation_df_monthly$inflationNonSA, exo, 12)
+AR <- marx.t(inflation_df_monthly$inflationNonSA,NULL,12,0)
+AR_x <- marx.t(inflation_df_monthly$inflationNonSA, exo, 12,0)
 
 # SETAR models
 SETAR <- MART(inflation_df_monthly$inflationNonSA, NULL, 2, 0, 0.6,1) # SETAR using grid search
