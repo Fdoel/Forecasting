@@ -50,7 +50,7 @@ n_months <- 787 -12
 dates <- seq(ymd(paste0(start_year, "-06-01")), by = "month", length.out = n_months)
 
 # Create actuals time series
-actuals <- actual_matrix[,1]  # assuming first column contains actuals
+actuals <- actual_matrix[,12]  # assuming first column contains actuals
 
 # Time series for forecast start
 forecast_start <- 250
@@ -62,7 +62,7 @@ df <- data.frame(
   Actual = actuals,
   #AR = forecast_AR,
   #MAR = forecast_MAR,
-  #ART = forecast_ART,
+  ART = forecast_ART,
   MART_GS = forecast_MART_GS
   #`ART-X` = forecast_ART_X,
   #`MART-X` = forecast_MART_X_GS
