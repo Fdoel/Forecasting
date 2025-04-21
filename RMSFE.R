@@ -1,8 +1,9 @@
-load("Forecasting results/forecasting_MAR_results.RData") # Results from MAR and MAR
 load("Forecasting results/forecast_MART_results.RData") # Results from MART pseudo and GS
 load("Forecasting results/forecast_MARTX_results.RData") # Results from MART X pseudo and GS
 load("Forecasting results/forecast_ART_results.RData") # Results from ART GS
 load("Forecasting results/forecast_ARTX_results.RData") # Results from ARX GS
+load("Forecasting results/forecast_MAR_results.RData") # Results from MAR and AR
+
 
 # -----------------------------------------------------------------------------
 # Compute RMSE for each model across horizons
@@ -12,6 +13,8 @@ rmse <- function(forecast, actual) {
   sqrt(colMeans((forecast - actual)^2, na.rm = TRUE))
 }
 
+rmse_mar_grid_pseudo <- rmse(forecast_MAR, actual_matrix)
+rmse_ar <- rmse(forecast_AR, actual_matrix)
 rmse_mart_grid <- rmse(forecast_mart_grid, actual_matrix)
 rmse_mart_pseudo <- rmse(forecast_mart_pseudo, actual_matrix)
 rmse_mart_x_grid <- rmse(forecast_mart_x_grid, actual_matrix)
@@ -52,6 +55,8 @@ compute_dm_tests <- function(forecast1, forecast2, actual, h) {
 h <- 12
 rmse_df <- data.frame(
   horizon = 1:h,
+  RMSE_mar_grid_pseudo = rmse_mar_grid_pseudo,
+  RMSE_ar = rmse_ar,
   RMSE_mart_grid = rmse_mart_grid,
   RMSE_mart_pseudo = rmse_mart_pseudo,
   RMSE_mart_x_grid = rmse_mart_x_grid,
