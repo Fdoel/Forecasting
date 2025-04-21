@@ -10,6 +10,9 @@ load("Forecasting results/forecast_results_MAR_SA.RData") # Results for seasonal
 load("Forecasting results/forecast_results_SA.RData") # Results for seasonally adjusted ART and MART
 # Load default percentages for MART models
 
+library(ggplot2)
+library(tidyr)
+library(zoo)
 
 # -----------------------------------------------------------------------------
 # Compute RMSE for each model across horizons
@@ -95,6 +98,10 @@ dm_test_mart_grid_art_df <- data.frame(
 )
 print(dm_test_mart_grid_art_df)
 
+dm_marx_vs_artx <- compute_dm_tests(forecast_ARX,forecast_art_x,actual_matrix, h)
+dm_marx_vs_martx <- compute_dm_tests(forecast_ARX,forecast_mart_x_grid,actual_matrix, h)
+dm_martx_vs_artx <- compute_dm_tests(forecast_mart_x_grid,forecast_art_x,actual_matrix, h)
+
 # For robustness seasonally adjusted
 dm_SA_ar_vs_art <- compute_dm_tests(forecast_SA_art, forecast_SA_AR, actual_matrix, h)
 
@@ -134,4 +141,89 @@ dm_SA_ar_vs_mar_2000 <- compute_dm_tests(forecast_MAR[index_2000:n,], forecast_A
 dm_SA_ar_vs_marx_2000 <- compute_dm_tests(forecast_ARX[index_2000:n,], forecast_AR[index_2000:n,], actual_matrix[index_2000:n,], h)
 dm_SA_mart_vs_art_2000 <- compute_dm_tests(forecast_mart_grid[index_2000:n,], forecast_art[index_2000:n,], actual_matrix[index_2000:n,], h)
 
+# Extract 12-month ahead forecasts and actuals
+mart_12 <- forecast_mart_grid[, 12]
+art_12 <- forecast_art[, 12]
+actual_12 <- actual_matrix[, 12]
+mar_12 <-forecast_MAR[,12]
+ar_12 <-forecast_AR[,12]
+marx_12 <- forecast_ARX[,12]
+artx_12 <- forecast_art_x[,12]
+martx_12 <- forecast_mart_x_grid[,12]
 
+# Set time index
+start_year <- 1959
+n_months <- 787 - 12
+dates <- seq(ymd(paste0(start_year, "-06-01")), by = "month", length.out = n_months)
+
+# Forecast starts from index 250
+forecast_start <- 250
+forecast_dates <- as.yearmon(dates[forecast_start:n_months])
+
+# Combine into a data frame
+df <- data.frame(
+  Date = forecast_dates,
+  Actual = actual_12,
+  MART_GS = mart_12,
+  SETAR = art_12
+)
+
+df_long <- pivot_longer(df, cols = c("Actual", "MART_GS", "SETAR"),
+                        names_to = "Series", values_to = "Value")
+
+# Plot
+ggplot(df_long, aes(x = Date, y = Value, color = Series)) +
+  geom_line(linewidth = 1) +
+  labs(title = "12-Month Ahead Forecast vs Actual",
+       x = "Date", y = "Monthly Inflation", color = "Legend") +
+  scale_x_yearmon(format = "%Y-%m", n = 10) +
+  scale_color_manual(values = c("Actual" = "black", "MART_GS" = "blue", "SETAR" = "red")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+# Combine into a data frame
+df_2 <- data.frame(
+  Date = forecast_dates,
+  Actual = actual_12,
+  MAR = mar_12,
+  AR = ar_12
+)
+df_long_2 <- pivot_longer(df_2, cols = c("Actual", "MAR", "AR"),
+                        names_to = "Series", values_to = "Value")
+
+# Plot
+ggplot(df_long_2, aes(x = Date, y = Value, color = Series)) +
+  geom_line(linewidth = 1) +
+  labs(title = "12-Month Ahead Forecast vs Actual",
+       x = "Date", y = "Monthly Inflation", color = "Legend") +
+  scale_x_yearmon(format = "%Y-%m", n = 10) +
+  scale_color_manual(values = c("Actual" = "black", "MAR" = "blue", "AR" = "red")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+# Combine into a data frame (note the column names match the legend labels)
+df_3 <- data.frame(
+  Date = forecast_dates,
+  Actual = actual_12,
+  MARX = marx_12,
+  `ART_X` = artx_12,
+  `MART_X` = martx_12
+)
+
+# Pivot to long format
+df_long_3 <- pivot_longer(df_3, 
+                          cols = c("Actual", "MARX", "ART_X", "MART_X"),
+                          names_to = "Series", values_to = "Value")
+
+# Plot
+ggplot(df_long_3, aes(x = Date, y = Value, color = Series)) +
+  geom_line(linewidth = 1) +
+  labs(title = "12-Month Ahead Forecast vs Actual",
+       x = "Date", y = "Monthly Inflation", color = "Legend") +
+  scale_x_yearmon(format = "%Y-%m", n = 10) +
+  scale_color_manual(values = c("Actual" = "black", 
+                                "MARX" = "blue", 
+                                "ART_X" = "red", 
+                                "MART_X" = "green")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
