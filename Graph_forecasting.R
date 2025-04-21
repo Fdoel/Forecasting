@@ -20,8 +20,8 @@ RMSE_AR <- rmse_causal
 RMSE_MAR <- rmse_mixed
 
 load("AR-X and MAR-X forecasting.RData")
-Forecast_MAR_X <- forecast_mixed
-RMSE_MAR_X <- rmse_mixed
+Forecast_MAR_X <- forecast_causal
+RMSE_MAR_X <- rmse_causal
 
 identical(Forecast_MAR, Forecast_MAR_X)
 

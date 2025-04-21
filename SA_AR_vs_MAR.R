@@ -69,6 +69,8 @@ colnames(forecast_SA_MAR) <- paste0("h", 1:h)
 colnames(forecast_SA_AR) <- paste0("h", 1:h)
 colnames(actual_matrix) <- paste0("h", 1:h)
 
+save(forecast_SA_MAR, forecast_SA_AR, actual_matrix, file = "forecast_results_MAR_SA.RData")
+
 # -----------------------------------------------------------------------------
 # Compute RMSE for each model across horizons
 # -----------------------------------------------------------------------------
