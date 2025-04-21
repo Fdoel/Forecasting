@@ -3,6 +3,7 @@ load("Forecasting results/forecast_MARTX_results.RData") # Results from MART X p
 load("Forecasting results/forecast_ART_results.RData") # Results from ART GS
 load("Forecasting results/forecast_ARTX_results.RData") # Results from ARX GS
 load("Forecasting results/forecast_MAR_results.RData") # Results from MAR and AR
+load("Forecasting results/forecast_ARX_results.RData") # Results from AR and MAR
 
 
 # -----------------------------------------------------------------------------
@@ -21,6 +22,7 @@ rmse_mart_x_grid <- rmse(forecast_mart_x_grid, actual_matrix)
 rmse_mart_x_pseudo <- rmse(forecast_mart_x_pseudo, actual_matrix)
 rmse_art <- rmse(forecast_art, actual_matrix)
 rmse_art_x <- rmse(forecast_art_x, actual_matrix)
+rsme_arx <- 
 
 # -----------------------------------------------------------------------------
 # Compute Diebold-Mariano test p-values

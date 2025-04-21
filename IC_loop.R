@@ -8,7 +8,8 @@ source("MART.R")
 load("inflation_df_monthly.RData")
 
 p_C_max <- 6
-p_NC_max <- 0
+p_NC_max <- 6
+external_reg <- cbind(inflation_df_monthly$ldGS1, inflation_df_monthly$dRPI, inflation_df_monthly$dRETAIL)
 
 if (.Platform$OS.type == "windows") {
   n_cores <- 1
@@ -26,25 +27,21 @@ run_model_info <- function(params) {
   i <- params$i
   j <- params$j
   
-  model <- MARX(inflation_df_monthly$inflationNonSA, NULL, p_C = i, p_NC = j)
+  model <- marx.t(inflation_df_monthly$inflationSA, NULL, p_C = i, p_NC = j)
   info <- information.criteria(type = "MARX", model)
   
-  return(data.frame(i = i, j = j,
-                    loglikelihood = info$loglikelihood,
-                    aic = info$aic,
-                    bic = info$bic,
-                    hq = info$hq,
-                    n = info$n))
+  return(data.frame(i = i, j = j, IC = info))
 }
 
 info_results <- pbmclapply(
   1:nrow(param_grid),
   function(idx) run_model_info(param_grid[idx, ]),
-  mc.cores = n_cores
+  mc.cores = 1
 )
 
 # Combine results into a data frame
 info_df <- do.call(rbind, info_results)
+save(info_df, file="SA_MAR")
 
 # Now convert to matrices
 LL <- matrix(NA, nrow = p_C_max + 1, ncol = p_NC_max + 1)
