@@ -1,7 +1,4 @@
-source("MART.R")
-load("inflation_df_monthly.RData")
-library(pbmcapply)
-library(forecast)
+
 # -----------------------------------------------------------------------------
 # Multi-horizon out-of-sample forecast evaluation
 # -----------------------------------------------------------------------------
@@ -12,9 +9,9 @@ N <- 15000        # Posterior draws
 M <- 50          # MA truncation
 
 # Model specifications
-p_C_SA_mart <- 1;  p_NC_SA_mart <- 3    # Mixed MAR(1,1)
+p_C_SA_mart <- 5;  p_NC_SA_mart <- 1    # Mixed MAR(1,1)
 p_C_SA_art <- 4; p_NC_SA_art<- 0   # Purely causal SETAR(2,0)
-c_SA_mart <- 0.3
+c_SA_mart <- 0.1
 c_SA_art <- 0.6
 d_SA_mart <- 1
 d_SA_art <- 1
@@ -39,45 +36,41 @@ results_list <- pbmclapply(
       # Call forecast.MART with correct parameters
       forecast_mart <- forecast.MART(
         y = y_window,
-        X = x_window,
-        p_C = p_C_mart,
-        p_NC = p_NC_mart,
-        c = c_mart,
-        d = d_mart,
-        X.for = cbind(GS1_for, dRPI_for, dRETAIL_for),
+        p_C = p_C_SA_mart,
+        p_NC = p_NC_SA_mart,
+        c = c_SA_mart,
+        d = d_SA_mart,
         h = h,
         M = M,
         N = N
       )
       
       # Make sure we get only the forecast component
-      mart_forecast <- forecast_mart$forecast
-      mart_defaulted <- forecast_mart$defaulted
+      SA_mart_forecast <- forecast_mart$forecast
+      SA_mart_defaulted <- forecast_mart$defaulted
       
       forecast_art <- forecast.MART(
         y = y_window,
-        X = x_window,
-        p_C = p_C_art,
-        p_NC = p_NC_art,
-        c = c_setar,
-        d = d_setar,
-        X.for = cbind(GS1_for, dRPI_for, dRETAIL_for),
+        p_C = p_C_SA_art,
+        p_NC = p_NC_SA_art,
+        c = c_SA_art,
+        d = d_SA_art,
         h = h,
         M = M,
         N = N
       )
       
       # Make sure we get only the forecast component
-      art_forecast <- forecast_art$forecast
-      art_defaulted <- forecast_art$defaulted
+      SA_art_forecast <- forecast_art$forecast
+      SA_art_defaulted <- forecast_art$defaulted
       
       actual <- data_series[(t + 1):(t + h)]
       
       return(list(
-        mart = mart_forecast,         # Use mart_forecast directly here
-        mart_defaulted = mart_defaulted, # Use mart_defaulted directly here
-        art = art_forecast,           # Use art_forecast directly here
-        art_defaulted = art_defaulted,   # Use art_defaulted directly here
+        SA_mart = SA_mart_forecast,         # Use mart_forecast directly here
+        SA_mart_defaulted = SA_mart_defaulted, # Use mart_defaulted directly here
+        SA_art = SA_art_forecast,           # Use art_forecast directly here
+        SA_art_defaulted = SA_art_defaulted,   # Use art_defaulted directly here
         actual = actual
       ))
     }, error = function(e) {
@@ -92,21 +85,21 @@ results_list <- pbmclapply(
 # -----------------------------------------------------------------------------
 
 # Extract default flags
-mart_x_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$mart_defaulted else NA)
-art_x_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$art_defaulted else NA)
+SA_mart_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$SA_mart_defaulted else NA)
+SA_art_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$SA_art_defaulted else NA)
 
 # Compute default percentages
-pct_default_mart_x <- mean(mart_x_default_flags, na.rm = TRUE) * 100
-pct_default_art_x <- mean(art_x_default_flags, na.rm = TRUE) * 100
+pct_default_SA_mart <- mean(SA_mart_default_flags, na.rm = TRUE) * 100
+pct_default_SA_art <- mean(SA_art_default_flags, na.rm = TRUE) * 100
 
 # Safely extract components and skip NULLs
-forecast_mart_x <- do.call(rbind, lapply(results_list, function(x) {
-  if (!is.null(x) && !is.null(x$mart)) return(x$mart)
+forecast_SA_mart <- do.call(rbind, lapply(results_list, function(x) {
+  if (!is.null(x) && !is.null(x$SA_mart)) return(x$SA_mart)
   return(matrix(NA, nrow = 1, ncol = h))  # Fallback for failed cases
 }))
 
-forecast_art_x <- do.call(rbind, lapply(results_list, function(x) {
-  if (!is.null(x) && !is.null(x$art)) return(x$art)
+forecast_SA_art <- do.call(rbind, lapply(results_list, function(x) {
+  if (!is.null(x) && !is.null(x$SA_art)) return(x$SA_art)
   return(matrix(NA, nrow = 1, ncol = h))
 }))
 
@@ -115,11 +108,11 @@ actual_matrix <- do.call(rbind, lapply(results_list, function(x) {
   return(matrix(NA, nrow = 1, ncol = h))
 }))
 
-colnames(forecast_mart_x) <- paste0("h", 1:h)
-colnames(forecast_art_x) <- paste0("h", 1:h)
+colnames(forecast_SA_mart) <- paste0("h", 1:h)
+colnames(forecast_SA_art) <- paste0("h", 1:h)
 colnames(actual_matrix) <- paste0("h", 1:h)
 
-save(forecast_mart_x, forecast_art_x, actual_matrix, file = "forecast_x_results.RData")
+save(forecast_SA_mart, forecast_SA_art, actual_matrix, file = "forecast_results_SA.RData")
 
 # -----------------------------------------------------------------------------
 # Compute RMSE for each model across horizons
@@ -129,8 +122,8 @@ rmse <- function(forecast, actual) {
   sqrt(colMeans((forecast - actual)^2, na.rm = TRUE))
 }
 
-rmse_mart <- rmse(forecast_mart, actual_matrix)
-rmse_art <- rmse(forecast_art, actual_matrix)
+rmse_SA_mart <- rmse(forecast_SA_mart, actual_matrix)
+rmse_SA_art <- rmse(forecast_SA_art, actual_matrix)
 
 
 # -----------------------------------------------------------------------------
@@ -159,7 +152,7 @@ compute_dm_tests <- function(forecast1, forecast2, actual, h) {
   return(p_values)
 }
 
-dm_mart_vs_causal <- compute_dm_tests(forecast_mart, forecast_art, actual_matrix, h)
+dm_SA_mart_vs_art <- compute_dm_tests(forecast_SA_mart, forecast_SA_art, actual_matrix, h)
 
 
 # -----------------------------------------------------------------------------
@@ -168,9 +161,9 @@ dm_mart_vs_causal <- compute_dm_tests(forecast_mart, forecast_art, actual_matrix
 
 rmse_df <- data.frame(
   horizon = 1:h,
-  RMSE_mart = rmse_mart,
-  RMSE_art = rmse_art,
-  DM_mart_vs_art = dm_mart_vs_causal
+  RMSE_SA_mart = rmse_SA_mart,
+  RMSE_SA_art = rmse_SA_art,
+  DM_SA_mart_vs_art = dm_SA_mart_vs_art
 )
 
 

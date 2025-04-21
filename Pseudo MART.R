@@ -268,12 +268,12 @@ selection.lag.lead_T <- function(y, x, p_pseudo, c, d = 1) {
 }
 
 
-selection.lag_t(inflation_df_monthly$inflationNonSA,NULL,12,0.6,d=4)
+selection.lag_t(inflation_df_monthly$inflationNonSA,cbind(inflation_df_monthly$ldGS1,inflation_df_monthly$dRPI,inflation_df_monthly$dRETAIL),12,median(inflation_df_monthly$inflationNonSA),d=3)
 
 p_pseudo <- readline(prompt = "Choose lag order for pseudo causal model: ")
 p_pseudo <- as.numeric(p_pseudo)
 
-pseudo <- arx.ls_T(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,0.6,d=4)
+pseudo <- arx.ls_T(inflation_df_monthly$inflationNonSA,cbind(inflation_df_monthly$ldGS1,inflation_df_monthly$dRPI,inflation_df_monthly$dRETAIL),p_pseudo,median(inflation_df_monthly$inflationNonSA),d=3)
 Cov_pseudo <- pseudo[[4]]
 U_pseudo <- pseudo[[5]]
 test_cdf_pseudo <- cbind(U_pseudo, stats::pnorm(U_pseudo,0,Cov_pseudo))
@@ -341,28 +341,21 @@ if (jarque_check == 0){
 stats::qqnorm(U_pseudo, main="Normal Probability Plot of Residuals")
 stats::qqline(U_pseudo)
 
-selection.lag.lead_results <- selection.lag.lead_T(inflation_df_monthly$inflationNonSA,NULL,p_pseudo,0.6,d=4)
-p_C <- selection.lag.lead_results[[1]]
-p_NC <- selection.lag.lead_results[[2]]
-
-
 ## -----------------------------------------------------------------------------
 # Residual diagnostics: test for independence of AR(p) residuals (Hecq et al. 2016) and test for no serial correlation (MARX package paper of HEcq et al.)
 # -----------------------------------------------------------------------------
-
-# Fit a 12-lag AR model to the inflation series
-model_ar2 <- Arima(inflation_df_monthly$inflationNonSA, order = c(p_C+p_NC, 0, 0))
-resids_ar2 <- model_ar2$residuals  # Extract residuals
+# Step 1: Obtain residuals
+resid <- pseudo$residuals
 
 # Step 2: Square the residuals for use as regressors
-resids_sq <- resids_ar2^2
+resids_sq <- resid^2
 
 # Step 3: Create lag matrix manually
 m <- 2
-n <- length(resids_ar2)
+n <- length(resid)
 
 # Create the response variable y (residuals from t = m+1 to n)
-y <- resids_ar2[(m + 1):n]
+y <- resid[(m + 1):n]
 
 # Create lagged squared residuals matrix
 X_lags <- matrix(NA, nrow = n - m, ncol = m)
@@ -382,5 +375,10 @@ cat("Chi-squared test statistic:", test_statistic, "\n")
 cat("p-value:", p_value, "\n")
 
 # Step 1: Perfome Ljung-Box test
-Box.test(resids_ar2, lag = 6, type = "Ljung-Box")
+Box.test(resid, lag = 6, type = "Ljung-Box")
+
+selection.lag.lead_results <- selection.lag.lead_T(inflation_df_monthly$inflationNonSA,cbind(inflation_df_monthly$ldGS1,inflation_df_monthly$dRPI,inflation_df_monthly$dRETAIL),p_pseudo,median(inflation_df_monthly$inflationNonSA),d=3)
+p_C <- selection.lag.lead_results[[1]]
+p_NC <- selection.lag.lead_results[[2]]
+
 

@@ -6,8 +6,8 @@ load("inflation_df_monthly.RData")
 thresholds <- seq(0.1, 0.6, by = 0.1) 
 ds <- seq(1, 6)
 gammas <- seq(1,10)
-p_C_max <- 4
-p_NC_max <- 4
+p_C_max <- 6
+p_NC_max <- 6
 
 # Set number of cores based on OS
 if (.Platform$OS.type == "windows") {
@@ -21,7 +21,7 @@ if (.Platform$OS.type == "windows") {
 param_grid <- expand.grid(
   threshold = thresholds,
   d = ds,
-  g = gammas,
+  #g = gammas,
   i = 0:p_C_max, 
   j = 0:p_NC_max
 )
@@ -30,14 +30,14 @@ param_grid <- expand.grid(
 run_model <- function(params) {
   t <- params$threshold
   d <- params$d
-  gamma <- params$g
+  #gamma <- params$g
   i <- params$i
   j <- params$j
   
   # Run MART model
-  SMART_d <- SMART(inflation_df_monthly$inflationNonSA, NULL, i, j, t, gamma, d)
-  bic_value <- information.criteria("SMART", SMART_d)
-  return(data.frame(threshold = t, d = d, i = i, j = j, bic = bic_value))
+  MART_d <- MART(inflation_df_monthly$inflationSA, NULL, i, j,t,d)
+  bic_value <- information.criteria("MART", MART_d)
+  return(data.frame(threshold=t,d=d,i = i, j = j, bic = bic_value))
 }
 
 # Use pbmclapply with a progress bar
@@ -48,15 +48,15 @@ bic_results <- pbmclapply(
 )
 
 # Combine all results into one data frame
-bic_smart_tdig_df <- do.call(rbind, bic_results)
+ART_SA <- do.call(rbind, bic_results)
 
 # Voeg de gamma-kolom toe aan het uiteindelijke data frame
-bic_smart_tdig_df$gamma <- param_grid$g
+#bic_smart_tdig_df$gamma <- param_grid$g
 
 
 # Save the results
-save(bic_smart_tdig_df, file = "GridSearch_Smart.RData")
+save(ART_SA, file = "ART_SA.RData")
 
-View(bic_smart_tdig_df)
+View(ART_SA)
 
 
