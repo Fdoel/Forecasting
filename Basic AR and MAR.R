@@ -16,6 +16,9 @@ source("MART.R")            # MART model training and forecasting routines (incl
 library(forecast)      # For ARIMA modeling and forecast tools
 library(pbmcapply)     # For parallel processing with progress bar
 library(stats)
+load("inflation_df_monthly.RData")  # Load the inflation dataset
+
+set.seed(20240421)
 
 # -----------------------------------------------------------------------------
 # Model order selection for MAR model using information criteria

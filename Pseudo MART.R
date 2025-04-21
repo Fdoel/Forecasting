@@ -4,6 +4,7 @@ source("MARX_functions.R")  # Custom functions for MAR model estimation
 source("MART.R")            # MART model training and forecasting routines (includes information criteria calculations)
 library(forecast)      # For ARIMA modeling and forecast tools
 library(pbmcapply)     # For parallel processing with progress bar
+load("inflation_df_monthly.RData")  # Load the inflation dataset
 
 set.seed(20250421)
 
@@ -351,18 +352,18 @@ p_NC <- selection.lag.lead_results[[2]]
 # -----------------------------------------------------------------------------
 
 # Fit a 12-lag AR model to the inflation series
-model_ar2 <- Arima(inflation_df_monthly$inflationNonSA, order = c(p_C+p_NC, 0, 0))
-resids_ar2 <- model_ar2$residuals  # Extract residuals
+model_setar2 <- arx.ls_T(inflation_df_monthly$inflationNonSA, NULL, 2, median(inflation_df_monthly$inflationNonSA), d = 4)
+resids_setar2 <- model_setar2$residuals  # Extract residuals
 
 # Step 2: Square the residuals for use as regressors
-resids_sq <- resids_ar2^2
-
+resids_sq <- resids_setar2^2
+sigma <- sd(resids_setar2)  # Estimate the standard deviation of the residuals
 # Step 3: Create lag matrix manually
 m <- 2
-n <- length(resids_ar2)
+n <- length(resids_setar2)
 
 # Create the response variable y (residuals from t = m+1 to n)
-y <- resids_ar2[(m + 1):n]
+y <- resids_setar2[(m + 1):n]
 
 # Create lagged squared residuals matrix
 X_lags <- matrix(NA, nrow = n - m, ncol = m)
@@ -375,12 +376,32 @@ model_test <- lm(y ~ X_lags)
 
 # Step 5: Test for joint significance of lag coefficients (H0: residuals are i.i.d.)
 test_statistic <- summary(model_test)$r.squared * length(y)
-p_value <- pchisq(test_statistic, df = m, lower.tail = FALSE)
 
-# Step 6: Output results of the chi-squared test
-cat("Chi-squared test statistic:", test_statistic, "\n")
-cat("p-value:", p_value, "\n")
+# Step 6 simulate critical value using scaled t distribution
+alpha <- 0.05
+n_sim <- 10000
+test_statistic_sim <- rep(NA, n_sim)
+for(i in 1:n_sim) {
+  e <- (stats::rt(length(y), df = 5)*sigma)
+  e_2 <- e^2
+  X_lags <- matrix(NA, nrow = n - m, ncol = m)
+  for (j in 1:m) {
+    X_lags[, j] <- e_2[(m + 1 - j):(n - j)]
+  }
+  model_test_sim <- lm(e ~ X_lags)
+  test_statistic_sim[i] <- summary(model_test_sim)$r.squared * length(y)
+}
 
-# Step 1: Perfome Ljung-Box test
-Box.test(resids_ar2, lag = 6, type = "Ljung-Box")
+# Get the 95th percentile for the critical value
+critical_value <- quantile(test_statistic_sim, 1 - alpha)
+
+# Step 6: Compare test statistic with critical value
+if (test_statistic > critical_value) {
+  cat("Reject H0: residuals are not i.i.d.\n")
+} else {
+  cat("Fail to reject H0: residuals are i.i.d.\n")
+}
+  
+# Step 7: Perfome Ljung-Box test
+Box.test(resids_setar2, lag = 6, type = "Ljung-Box")
 
