@@ -77,7 +77,7 @@ library(pbmcapply)     # For parallel processing with progress bar
 library(stats)
 
 #basic MAR
-marx(inflation_df_quarterly$inflationNonSA, NULL, p_max = 6, sig_level = 0.1)
+#marx(inflation_df_quarterly$inflationNonSA, NULL, p_max = 6, sig_level = 0.1)
 
 # Define maximum lag orders for causal (p_C) and noncausal (p_NC) components
 p_C_max <- 6
@@ -115,9 +115,10 @@ M <- 50          # MA truncation
 
 # Model specifications
 p_C_mixed <- 2;  p_NC_mixed <- 2    # Mixed MAR(2,2)
-mar_model_quarterly <- marx.t(inflation_df_quarterly$infltionNonSA, NULL, p_C = p_C_mixed, p_NC = p_NC_mixed)
+data <- as.matrix(inflation_df_quarterly$inflationNonSA)
+mar_model_quarterly <- marx.t(data, NULL, p_C = p_C_mixed, p_NC = p_NC_mixed)
 p_C_causal <- 4; p_NC_causal <- 0   # Purely causal AR(4)
-mar_model_quarterly <- marx.t(inflation_df_quarterly$infltionNonSA, NULL, p_C = p_C_causal, p_NC = p_NC_causal)
+ar_model_quarterly <- marx.t(data, NULL, p_C = p_C_causal, p_NC = p_NC_causal)
 
 # Define forecast evaluation window
 data_series <- inflation_df_quarterly$inflationNonSA
@@ -238,10 +239,10 @@ library(pbmcapply)
 source("MART.R")
 
 # Set model parameters
-thresholds <- seq(0.1, 0.6, by = 0.1) 
+thresholds <- seq(0.4, 1.2, by = 0.1) 
 ds <- seq(1, 6)
-p_C_max <- 3
-p_NC_max <- 3
+p_C_max <- 4
+p_NC_max <- 4
 
 # Set number of cores based on OS
 if (.Platform$OS.type == "windows") {
@@ -269,7 +270,7 @@ run_model <- function(params) {
   j <- params$j
   
   # Run MART model
-  MART_d <- MART(inflation_df_quarterly$infltionNonSA, NULL, i, j, t, d)
+  MART_d <- MART(data, NULL, i, j, t, d)
   bic_value <- information.criteria("MART", MART_d)
   return(data.frame(threshold=t, d=d, i=i, j=j, bic=bic_value))
 }
@@ -278,7 +279,7 @@ run_model <- function(params) {
 bic_results <- pbmclapply(
   1:nrow(param_grid),
   function(idx) run_model(param_grid[idx, ]),
-  mc.cores = n_cores
+  mc.cores = n_cores 
 )
 
 # Combine all results into one data frame
@@ -302,10 +303,10 @@ library(pbmcapply)
 source("MART.R")
 
 # Set model parameters
-thresholds <- seq(0.1, 0.6, by = 0.1) 
+thresholds <- seq(0.4, 1.2, by = 0.1) 
 ds <- seq(1, 6)
-p_C_max <- 6
-p_NC_max <- 6
+p_C_max <- 4
+p_NC_max <- 4
 
 # Set number of cores based on OS
 if (.Platform$OS.type == "windows") {
@@ -333,7 +334,7 @@ run_model <- function(params) {
   j <- params$j
   
   # Run MART model
-  MART_d <- MART(inflation_df_quarterly$infltionNonSA, NULL, i, j, t, d)
+  MART_d <- MART(data, NULL, i, j, t, d)
   bic_value <- information.criteria("MART", MART_d)
   return(data.frame(threshold=t, d=d, i=i, j=j, bic = bic_value))
 }
@@ -356,7 +357,5 @@ MART_Q <- do.call(rbind, bic_results)
 save(MART_Q, file = "BIC_MART_Q.RData")
 
 View(MART_Q)
-
->>>>>>> 5a76a9cd608c28400ac61d758652048777157736
 
 

@@ -16,6 +16,9 @@ source("MART.R")            # MART model training and forecasting routines (incl
 library(forecast)      # For ARIMA modeling and forecast tools
 library(pbmcapply)     # For parallel processing with progress bar
 library(stats)
+load("inflation_df_monthly.RData")  # Load the inflation dataset
+
+set.seed(20240421)
 
 # -----------------------------------------------------------------------------
 # Model order selection for MAR model using information criteria
@@ -125,7 +128,6 @@ if (test_statistic > critical_value) {
 } else {
   cat("Fail to reject H0: residuals are i.i.d.\n")
 }
-
 # Step 7: Perfome Ljung-Box test
 Box.test(resids_ar12, lag = 12, type = "Ljung-Box")
 

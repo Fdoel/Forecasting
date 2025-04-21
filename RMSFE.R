@@ -4,6 +4,9 @@ load("Forecasting results/forecast_ART_results.RData") # Results from ART GS
 load("Forecasting results/forecast_ARTX_results.RData") # Results from ARX GS
 load("Forecasting results/forecast_MAR_results.RData") # Results from MAR and AR
 load("Forecasting results/forecast_ARX_results.RData") # Results from AR and MAR
+load("Forecasting results/pct_default_MART.RData") # Percentage MART models defaulted
+load("Forecasting results/pct_default_MART_X.RData") # Percentage MART models defaulted
+# Load default percentages for MART models
 
 
 # -----------------------------------------------------------------------------
@@ -22,7 +25,7 @@ rmse_mart_x_grid <- rmse(forecast_mart_x_grid, actual_matrix)
 rmse_mart_x_pseudo <- rmse(forecast_mart_x_pseudo, actual_matrix)
 rmse_art <- rmse(forecast_art, actual_matrix)
 rmse_art_x <- rmse(forecast_art_x, actual_matrix)
-rsme_arx <- 
+rsme_arx <- rmse(forecast_ARX, actual_matrix)
 
 # -----------------------------------------------------------------------------
 # Compute Diebold-Mariano test p-values
@@ -64,7 +67,8 @@ rmse_df <- data.frame(
   RMSE_mart_x_grid = rmse_mart_x_grid,
   RMSE_mart_x_pseudo = rmse_mart_x_pseudo,
   RMSE_art = rmse_art,
-  RMSE_art_x = rmse_art_x
+  RMSE_art_x = rmse_art_x,
+  RMSE_arx = rsme_arx
 )
 # Print RMSE an
 print(rmse_df)
@@ -88,3 +92,37 @@ dm_test_mart_grid_art_df <- data.frame(
   DM_p_value = dm_test_mart_grid_art
 )
 print(dm_test_mart_grid_art_df)
+
+
+# Post 2000
+index_2000 <- 238 # The index in the forecasts that corresponds to the year 2000.
+n <- nrow(actual_matrix) # Number of observations in the actual matrix
+# Combine all observations after 2000 into a RMSFE dataframe
+rmse_mar_grid_pseudo_2000 <- rmse(forecast_MAR[index_2000:n,], actual_matrix[index_2000:n,])
+rmse_ar_2000 <- rmse(forecast_AR[index_2000:n,], actual_matrix[index_2000:n,])
+rmse_mart_grid_2000 <- rmse(forecast_mart_grid[index_2000:n,], actual_matrix[index_2000:n,])
+rmse_mart_pseudo_2000 <- rmse(forecast_mart_pseudo[index_2000:n,], actual_matrix[index_2000:n,])
+rmse_mart_x_grid_2000 <- rmse(forecast_mart_x_grid[index_2000:n,], actual_matrix[index_2000:n,])
+rmse_mart_x_pseudo_2000 <- rmse(forecast_mart_x_pseudo[index_2000:n,], actual_matrix[index_2000:n,])
+rmse_art_2000 <- rmse(forecast_art[index_2000:n,], actual_matrix[index_2000:n,])
+rmse_art_x_2000 <- rmse(forecast_art_x[index_2000:n,], actual_matrix[index_2000:n,])
+rsme_arx_2000 <- rmse(forecast_ARX[index_2000:n,], actual_matrix[index_2000:n,])
+
+# Combine into a tidy data frame
+rmse_df_2000 <- data.frame(
+  horizon = 1:h,
+  RMSE_mar_grid_pseudo_2000 = rmse_mar_grid_pseudo_2000,
+  RMSE_ar_2000 = rmse_ar_2000,
+  RMSE_mart_grid_2000 = rmse_mart_grid_2000,
+  RMSE_mart_pseudo_2000 = rmse_mart_pseudo_2000,
+  RMSE_mart_x_grid_2000 = rmse_mart_x_grid_2000,
+  RMSE_mart_x_pseudo_2000 = rmse_mart_x_pseudo_2000,
+  RMSE_art_2000 = rmse_art_2000,
+  RMSE_art_x_2000 = rmse_art_x_2000,
+  RMSE_arx_2000 = rsme_arx_2000
+)
+
+# Print RMSE and DM test results for post 2000
+print(rmse_df_2000)
+
+
