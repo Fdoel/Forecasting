@@ -1,8 +1,8 @@
-load("Forecasting resuls/forecasting_MAR_results.RData") # Results from MAR and MAR
-load("Forecasting resuls/forecast_MART_results.RData") # Results from MART pseudo and GS
-load("Forecasting resuls/forecast_MARTX_results.RData") # Results from MART X pseudo and GS
-load("Forecasting resuls/forecast_ART_results.RData") # Results from ART GS
-load("Forecasting resuls/forecast_ARTX_results.RData") # Results from ARX GS
+load("Forecasting results/forecasting_MAR_results.RData") # Results from MAR and MAR
+load("Forecasting results/forecast_MART_results.RData") # Results from MART pseudo and GS
+load("Forecasting results/forecast_MARTX_results.RData") # Results from MART X pseudo and GS
+load("Forecasting results/forecast_ART_results.RData") # Results from ART GS
+load("Forecasting results/forecast_ARTX_results.RData") # Results from ARX GS
 
 # -----------------------------------------------------------------------------
 # Compute RMSE for each model across horizons
