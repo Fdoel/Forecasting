@@ -1,34 +1,19 @@
 # =============================================================================
 # Script: US Inflation Data Preparation and Analysis (Quarterly Version)
-# Description: 
-#   This script prepares US inflation data by merging seasonally adjusted CPI 
-#   data from FRED with non-seasonally adjusted labor data. It calculates 
-#   multiple inflation measures, converts to quarterly frequency with 
-#   end-of-quarter dates, and saves the processed dataset for further use.
-#
-# Input:
-#   - "CPI US labour dataset.xlsx": Monthly CPI (non-seasonally adjusted)
-#   - "FRED.csv": Seasonally adjusted macroeconomic variables including CPI
-#
-# Output:
-#   - inflation_df_quarterly.RData: Cleaned and merged quarterly dataset
+# Description: Only uses CPInonSA to compute quarterly inflation.
+# Uses only end-of-quarter months and exogenous variables from FREDQ.csv.
 # =============================================================================
 
 # Load required libraries
 library(tidyverse)
-library(e1071)
-library(ggplot2)
 library(readxl)
-library(rstudioapi)
-library(dplyr)
-library(tseries)
 library(lubridate)
 
-# Load the non-seasonally adjusted CPI data from Excel
+# Load non-seasonally adjusted CPI data from Excel
 CPI_US_labour_dataset <- read_excel("CPI US labour dataset.xlsx", 
                                     range = "A12:M124")
 
-# Reshape from wide to long format and create a proper date column
+# Reshape from wide to long format and create date column
 CPI_US_labour_long <- CPI_US_labour_dataset %>%
   pivot_longer(
     cols = -1,
@@ -41,85 +26,35 @@ CPI_US_labour_long <- CPI_US_labour_dataset %>%
     Month_num = match(Month, month.abb),
     Date = as.Date(paste(Year, Month_num, "01", sep = "-"))
   ) %>%
-  arrange(Date)
+  arrange(Date) %>%
+  filter(month(Date) %in% c(3, 6, 9, 12))  # Keep only end-of-quarter months
 
-# Load the FRED data (seasonally adjusted CPI and other indicators)
-data <- read.csv("FRED.csv")
-data <- data[-c(1, 2),]
+# Load FREDQ quarterly data (seasonally adjusted exogenous vars)
+fredq <- read.csv("FREDQ.csv")
+fredq <- fredq %>%
+  mutate(sasdate = as.Date(sasdate, format = "%m/%d/%Y")) %>%
+  filter(sasdate >= as.Date("1959-03-01"), sasdate < as.Date("2025-01-01"))
 
-inflation_df <- data %>%
-  select(c("sasdate", "CPIAUCSL", "UNRATE", "IPFINAL", "CUMFNS", "RPI", 
-           "RETAILx", "VIXCLSx", "GS1", "USGOVT", "INDPRO")) %>%
-  mutate(sasdate = as.Date(sasdate, "%m/%d/%Y")) %>%
-  mutate(
-    ldGS1 = log(GS1) - log(lag(GS1)),
-    dCUMFNS = c(NA, diff(CUMFNS)),
-    dIPFINAL = c(NA, diff(IPFINAL)),
-    dUNRATE = c(NA, diff(UNRATE)),
-    dINDPRO = log(INDPRO) - log(lag(INDPRO)),
-    dUSGOVT = log(USGOVT) - log(lag(USGOVT)),
-    dRETAIL = log(RETAILx) - log(lag(RETAILx)),
-    dRPI = log(RPI) - log(lag(RPI))
-  ) %>%
-  filter(sasdate >= as.Date("1959-06-01"))
-
-# Join with non-seasonally adjusted CPI and inflation data
-inflation_df <- inflation_df %>%
+# Merge with non-seasonally adjusted CPI
+inflation_df_quarterly <- fredq %>%
   left_join(
     CPI_US_labour_long %>%
-      filter(Date >= as.Date("1959-06-01")) %>%
       select(Date, CPInonSA),
     by = c("sasdate" = "Date")
   ) %>%
-  filter(sasdate < as.Date("2025-01-01"))
-
-# Add quarter label
-inflation_df <- inflation_df %>%
-  mutate(Quarter = quarter(sasdate),
-         Year = year(sasdate),
-         Quarter_end = ceiling_date(sasdate, unit = "quarter") - days(1))
-
-# Calculate quarterly inflation based on CPI log difference (start vs end of quarter)
-# *** MODIFIED ***
-inflation_df_quarterly <- inflation_df %>%
-  group_by(Year, Quarter) %>%
   arrange(sasdate) %>%
-  summarise(
-    Quarter = max(Quarter_end),
-    CPIAUCSL_start = first(CPIAUCSL),
-    CPIAUCSL_end = last(CPIAUCSL),
-    CPInonSA_start = first(CPInonSA),
-    CPInonSA_end = last(CPInonSA),
-    
-    # Quarterly inflation: log diff of CPI end vs. start
-    inflationSA = 100 * log(CPIAUCSL_end / CPIAUCSL_start),
-    inflationNonSA = 100 * log(CPInonSA_end / CPInonSA_start),
-    
-    # End-of-quarter and averaged values
-    UNRATE = mean(UNRATE, na.rm = TRUE),
-    IPFINAL = mean(IPFINAL, na.rm = TRUE),
-    CUMFNS = mean(CUMFNS, na.rm = TRUE),
-    RPI = mean(RPI, na.rm = TRUE),
-    RETAILx = mean(RETAILx, na.rm = TRUE),
-    VIXCLSx = mean(VIXCLSx, na.rm = TRUE),
-    GS1 = mean(GS1, na.rm = TRUE),
-    USGOVT = mean(USGOVT, na.rm = TRUE),
-    INDPRO = mean(INDPRO, na.rm = TRUE),
-    
-    # Quarterly changes
-    ldGS1 = sum(ldGS1, na.rm = TRUE),
-    dCUMFNS = sum(dCUMFNS, na.rm = TRUE),
-    dIPFINAL = sum(dIPFINAL, na.rm = TRUE),
-    dUNRATE = sum(dUNRATE, na.rm = TRUE),
-    dINDPRO = sum(dINDPRO, na.rm = TRUE),
-    dUSGOVT = sum(dUSGOVT, na.rm = TRUE),
-    dRETAIL = sum(dRETAIL, na.rm = TRUE),
-    dRPI = sum(dRPI, na.rm = TRUE)
+  mutate(
+    Quarter = quarter(sasdate),
+    Year = year(sasdate),
+    CPInonSA = as.numeric(CPInonSA)
   ) %>%
-  ungroup() %>%
-  arrange(Quarter)
+  # Calculate inflation: log difference of CPInonSA
+  mutate(
+    inflationNonSA = 100 * (log(CPInonSA) - log(lag(CPInonSA)))
+  ) %>%
+  drop_na(inflationNonSA)
 
-# Optional: Save the dataset
+# Preview or save
 # save(inflation_df_quarterly, file = "inflation_df_quarterly.RData")
 
 # =============================================================================
@@ -167,3 +102,86 @@ for (i in 0:p_C_max) {
     N[(i+1),(j+1)] <- information$n
   }
 }
+
+
+# -----------------------------------------------------------------------------
+# Multi-horizon out-of-sample forecast evaluation
+# -----------------------------------------------------------------------------
+
+# Forecasting parameters
+h <- 4         # Forecast horizon
+N <- 15000        # Posterior draws
+M <- 50          # MA truncation
+
+# Model specifications
+p_C_mixed <- 2;  p_NC_mixed <- 2    # Mixed MAR(2,2)
+mar_model_quarterly <- marx.t(inflation_df_quarterly$infltionNonSA, NULL, p_C = p_C_mixed, p_NC = p_NC_mixed)
+p_C_causal <- 4; p_NC_causal <- 0   # Purely causal AR(4)
+mar_model_quarterly <- marx.t(inflation_df_quarterly$infltionNonSA, NULL, p_C = p_C_causal, p_NC = p_NC_causal)
+
+# Define forecast evaluation window
+data_series <- inflation_df_quarterly$inflationNonSA
+start_index <- 100
+end_index <- length(data_series) - h
+forecast_indices <- start_index:end_index
+
+# -----------------------------------------------------------------------------
+# Forecasting loop using all 3 model configurations
+# -----------------------------------------------------------------------------
+
+results_list <- pbmclapply(
+  X = forecast_indices,
+  FUN = function(t) {
+    y_window <- data_series[1:t]  # Expanding window up to time t
+    
+    forecast_mixed <- forecast.marx(
+      y = y_window,
+      p_C = p_C_mixed,
+      p_NC = p_NC_mixed,
+      h = h,
+      M = M,
+      N = N
+    )
+    
+    forecast_causal <- forecast.marx(
+      y = y_window,
+      p_C = p_C_causal,
+      p_NC = p_NC_causal,
+      h = h,
+      M = M,
+      N = N
+    )
+    
+    actual <- data_series[(t + 1):(t + h)]  # Future observed values
+    
+    return(list(
+      mixed = forecast_mixed,
+      causal = forecast_causal,
+      actual = actual
+    ))
+  },
+  mc.cores = parallel::detectCores() - 1  # Use all but one core
+)
+
+# -----------------------------------------------------------------------------
+# Organize forecast results into matrices
+# -----------------------------------------------------------------------------
+
+forecast_mixed <- do.call(rbind, lapply(results_list, `[[`, "mixed"))
+forecast_causal <- do.call(rbind, lapply(results_list, `[[`, "causal"))
+actual_matrix <- do.call(rbind, lapply(results_list, `[[`, "actual"))
+
+colnames(forecast_mixed) <- paste0("h", 1:h)
+colnames(forecast_causal) <- paste0("h", 1:h)
+colnames(actual_matrix) <- paste0("h", 1:h)
+
+# -----------------------------------------------------------------------------
+# Compute RMSE for each model across horizons
+# -----------------------------------------------------------------------------
+
+rmse <- function(forecast, actual) {
+  sqrt(colMeans((forecast - actual)^2, na.rm = TRUE))
+}
+
+rmse_mixed <- rmse(forecast_mixed, actual_matrix)
+rmse_causal <- rmse(forecast_causal, actual_matrix)

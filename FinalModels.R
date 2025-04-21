@@ -2,6 +2,7 @@
 load("inflation_df_monthly.RData")
 source("MART.R")
 source("MARX_functions.R")
+load()
 
 
 # Define c for pseudo models
