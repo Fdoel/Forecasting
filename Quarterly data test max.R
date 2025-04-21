@@ -359,3 +359,178 @@ save(MART_Q, file = "BIC_MART_Q.RData")
 View(MART_Q)
 
 
+source("MART.R")
+load("inflation_df_monthly.RData")
+library(pbmcapply)
+library(forecast)
+# -----------------------------------------------------------------------------
+# Multi-horizon out-of-sample forecast evaluation
+# -----------------------------------------------------------------------------
+
+# Forecasting parameters
+h <- 4         # Forecast horizon
+N <- 15000        # Posterior draws
+M <- 50          # MA truncation
+
+# Model specifications
+p_C_mart <- 2;  p_NC_mart <- 2    # Mixed MAR(2,2)
+p_C_art <- 4; p_NC_art<- 0   # Purely causal SETAR(4,0)
+c_mart <- 1.2
+c_setar <- 0.9
+d_mart <- 1
+d_setar <- 1
+
+# Define forecast evaluation window
+data_series <- data
+start_index <- 100
+end_index <- length(data_series) - h
+forecast_indices <- start_index:end_index
+
+# -----------------------------------------------------------------------------
+# Forecasting loop using the 2 model configurations
+# -----------------------------------------------------------------------------
+
+results_list <- pbmclapply(
+  X = forecast_indices,
+  FUN = function(t) {
+    tryCatch({
+      y_window <- data_series[1:t]
+      
+      # Call forecast.MART with correct parameters
+      forecast_mart <- forecast.MART(
+        y = y_window,
+        p_C = p_C_mart,
+        p_NC = p_NC_mart,
+        c = c_mart,
+        d = d_mart,
+        h = h,
+        M = M,
+        N = N
+      )
+      
+      # Make sure we get only the forecast component
+      mart_forecast <- forecast_mart$forecast
+      mart_defaulted <- forecast_mart$defaulted
+      
+      forecast_art <- forecast.MART(
+        y = y_window,
+        p_C = p_C_art,
+        p_NC = p_NC_art,
+        c = c_setar,
+        d = d_setar,
+        h = h,
+        M = M,
+        N = N
+      )
+      
+      # Make sure we get only the forecast component
+      art_forecast <- forecast_art$forecast
+      art_defaulted <- forecast_art$defaulted
+      
+      actual <- data_series[(t + 1):(t + h)]
+      
+      return(list(
+        mart = mart_forecast,         # Use mart_forecast directly here
+        mart_defaulted = mart_defaulted, # Use mart_defaulted directly here
+        art = art_forecast,           # Use art_forecast directly here
+        art_defaulted = art_defaulted,   # Use art_defaulted directly here
+        actual = actual
+      ))
+    }, error = function(e) {
+      message(sprintf("Error at t = %d: %s", t, e$message))
+      return(NULL)
+    })
+  },
+  mc.cores = parallel::detectCores() - 1
+)
+# -----------------------------------------------------------------------------
+# Organize forecast results into matrices
+# -----------------------------------------------------------------------------
+
+# Extract default flags
+mart_quarterly_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$mart_defaulted else NA)
+art_quarterly_default_flags <- sapply(results_list, function(x) if (!is.null(x)) x$art_defaulted else NA)
+
+# Compute default percentages
+pct_default_mart_quarterly <- mean(mart_quarterly_default_flags, na.rm = TRUE) * 100
+pct_default_art_quarterly <- mean(art_quarterly_default_flags, na.rm = TRUE) * 100
+
+# Safely extract components and skip NULLs
+forecast_mart_quarterly <- do.call(rbind, lapply(results_list, function(x) {
+  if (!is.null(x) && !is.null(x$mart)) return(x$mart)
+  return(matrix(NA, nrow = 1, ncol = h))  # Fallback for failed cases
+}))
+
+forecast_art_quarterly <- do.call(rbind, lapply(results_list, function(x) {
+  if (!is.null(x) && !is.null(x$art)) return(x$art)
+  return(matrix(NA, nrow = 1, ncol = h))
+}))
+
+actual_matrix <- do.call(rbind, lapply(results_list, function(x) {
+  if (!is.null(x) && !is.null(x$actual)) return(matrix(x$actual, nrow = 1))
+  return(matrix(NA, nrow = 1, ncol = h))
+}))
+
+colnames(forecast_mart_quarterly) <- paste0("h", 1:h)
+colnames(forecast_art_quarterly) <- paste0("h", 1:h)
+colnames(actual_matrix) <- paste0("h", 1:h)
+
+save(forecast_mart_quarterly, forecast_art_quarterly, actual_matrix, file = "forecast_quarterly_results.RData")
+
+# -----------------------------------------------------------------------------
+# Compute RMSE for each model across horizons
+# -----------------------------------------------------------------------------
+
+rmse <- function(forecast, actual) {
+  sqrt(colMeans((forecast - actual)^2, na.rm = TRUE))
+}
+
+rmse_mart <- rmse(forecast_mart_quarterly, actual_matrix)
+rmse_art <- rmse(forecast_art_quarterly, actual_matrix)
+
+
+# -----------------------------------------------------------------------------
+# Compute Diebold-Mariano test p-values
+# -----------------------------------------------------------------------------
+
+compute_dm_tests <- function(forecast1, forecast2, actual, h) {
+  p_values <- numeric(h)
+  for (i in 1:h) {
+    e1 <- actual[, i] - forecast1[, i]
+    e2 <- actual[, i] - forecast2[, i]
+    valid <- complete.cases(e1, e2)
+    e1 <- e1[valid]
+    e2 <- e2[valid]
+    
+    if (length(e1) > 10) {
+      dm <- tryCatch(
+        dm.test(e1, e2, alternative = "two.sided", h = 1, power = 2),
+        error = function(e) return(NA)
+      )
+      p_values[i] <- ifelse(is.list(dm), dm$p.value, NA)
+    } else {
+      p_values[i] <- NA
+    }
+  }
+  return(p_values)
+}
+
+dm_mart_vs_causal <- compute_dm_tests(forecast_mart_quarterly, forecast_art_quarterly, actual_matrix, h)
+
+
+# -----------------------------------------------------------------------------
+# Combine RMSEs and DM p-values into a tidy data frame
+# -----------------------------------------------------------------------------
+
+rmse_df <- data.frame(
+  horizon = 1:h,
+  RMSE_mart = rmse_mart,
+  RMSE_art = rmse_art,
+  DM_mart_vs_art = dm_mart_vs_causal
+)
+
+
+
+# Print RMSE and DM test comparison
+print(rmse_df)
+
