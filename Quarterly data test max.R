@@ -185,3 +185,48 @@ rmse <- function(forecast, actual) {
 
 rmse_mixed <- rmse(forecast_mixed, actual_matrix)
 rmse_causal <- rmse(forecast_causal, actual_matrix)
+
+
+# -----------------------------------------------------------------------------
+# Compute Diebold-Mariano test p-values
+# -----------------------------------------------------------------------------
+
+compute_dm_tests <- function(forecast1, forecast2, actual, h) {
+  p_values <- numeric(h)
+  for (i in 1:h) {
+    e1 <- actual[, i] - forecast1[, i]
+    e2 <- actual[, i] - forecast2[, i]
+    valid <- complete.cases(e1, e2)
+    e1 <- e1[valid]
+    e2 <- e2[valid]
+    
+    if (length(e1) > 10) {
+      dm <- tryCatch(
+        dm.test(e1, e2, alternative = "two.sided", h = 1, power = 2),
+        error = function(e) return(NA)
+      )
+      p_values[i] <- ifelse(is.list(dm), dm$p.value, NA)
+    } else {
+      p_values[i] <- NA
+    }
+  }
+  return(p_values)
+}
+
+dm_mixed_vs_causal <- compute_dm_tests(forecast_mixed, forecast_causal, actual_matrix, h)
+
+# -----------------------------------------------------------------------------
+# Combine RMSEs and DM p-values into a tidy data frame
+# -----------------------------------------------------------------------------
+
+rmse_df <- data.frame(
+  horizon = 1:h,
+  RMSE_mixed = rmse_mixed,
+  RMSE_causal = rmse_causal,
+  DM_mixed_vs_causal = dm_mixed_vs_causal
+)
+
+# Print RMSE and DM test comparison
+print(rmse_df)
+
+
