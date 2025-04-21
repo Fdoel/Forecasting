@@ -98,7 +98,7 @@ print(dm_test_mart_grid_art_df)
 # For robustness 
 dm_SA_ar_vs_art <- compute_dm_tests(forecast_SA_art, forecast_SA_AR, actual_matrix, h)
 
-# Post 2000
+### Post 2000 ---------------------------------------
 index_2000 <- 238 # The index in the forecasts that corresponds to the year 2000.
 n <- nrow(actual_matrix) # Number of observations in the actual matrix
 # Combine all observations after 2000 into a RMSFE dataframe
