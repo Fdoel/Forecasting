@@ -95,7 +95,7 @@ dm_test_mart_grid_art_df <- data.frame(
 )
 print(dm_test_mart_grid_art_df)
 
-# For robustness 
+# For robustness seasonally adjusted
 dm_SA_ar_vs_art <- compute_dm_tests(forecast_SA_art, forecast_SA_AR, actual_matrix, h)
 
 # Post 2000
@@ -128,5 +128,10 @@ rmse_df_2000 <- data.frame(
 
 # Print RMSE and DM test results for post 2000
 print(rmse_df_2000)
+
+# For robustness post 2000
+dm_SA_ar_vs_mar_2000 <- compute_dm_tests(forecast_MAR[index_2000:n,], forecast_AR[index_2000:n,], actual_matrix[index_2000:n,], h)
+dm_SA_ar_vs_marx_2000 <- compute_dm_tests(forecast_ARX[index_2000:n,], forecast_AR[index_2000:n,], actual_matrix[index_2000:n,], h)
+dm_SA_mart_vs_art_2000 <- compute_dm_tests(forecast_mart_grid[index_2000:n,], forecast_art[index_2000:n,], actual_matrix[index_2000:n,], h)
 
 
