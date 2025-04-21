@@ -642,24 +642,7 @@ arx.ls_ST <- function(y,x,p,c, gamma,d=1){
   
   df <- nrow(ZT) - NCOL(ZT)
   
-  B <- solve(t(ZT) %*% ZT) %*% (t(ZT) %*% Y)
-  
-  if (p > 0){
-    if (length(x) > 1){
-      rownames(B) <- c('int', paste('lag', 1:(2*p)), paste('exo', 1:(2*NCOL(x))))
-    }
-    else{
-      rownames(B) <- c('int', paste('lag', 1:(2*p)))
-    }
-  }
-  else{
-    if (length(x) > 1){
-      rownames(B) <- c('int', paste('exo', 1:(2*NCOL(x))))
-    }
-    else{
-      rownames(B) <- 'int'
-    }
-  }
+  B <- solve(t(ZT) %*% ZT) %*% (t(ZT) %*% Y) 
   
   FV <- ZT %*% B
   U <- Y - FV
