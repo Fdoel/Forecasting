@@ -115,7 +115,9 @@ M <- 50          # MA truncation
 
 # Model specifications
 p_C_mixed <- 2;  p_NC_mixed <- 2    # Mixed MAR(2,2)
+mar_model_quarterly <- marx.t(inflation_df_quarterly$infltionNonSA, NULL, p_C = p_C_mixed, p_NC = p_NC_mixed)
 p_C_causal <- 4; p_NC_causal <- 0   # Purely causal AR(4)
+mar_model_quarterly <- marx.t(inflation_df_quarterly$infltionNonSA, NULL, p_C = p_C_causal, p_NC = p_NC_causal)
 
 # Define forecast evaluation window
 data_series <- inflation_df_quarterly$inflationNonSA
@@ -167,10 +169,19 @@ results_list <- pbmclapply(
 
 forecast_mixed <- do.call(rbind, lapply(results_list, `[[`, "mixed"))
 forecast_causal <- do.call(rbind, lapply(results_list, `[[`, "causal"))
-forecast_mid <- do.call(rbind, lapply(results_list, `[[`, "mid"))
 actual_matrix <- do.call(rbind, lapply(results_list, `[[`, "actual"))
 
 colnames(forecast_mixed) <- paste0("h", 1:h)
 colnames(forecast_causal) <- paste0("h", 1:h)
-colnames(forecast_mid) <- paste0("h", 1:h)
 colnames(actual_matrix) <- paste0("h", 1:h)
+
+# -----------------------------------------------------------------------------
+# Compute RMSE for each model across horizons
+# -----------------------------------------------------------------------------
+
+rmse <- function(forecast, actual) {
+  sqrt(colMeans((forecast - actual)^2, na.rm = TRUE))
+}
+
+rmse_mixed <- rmse(forecast_mixed, actual_matrix)
+rmse_causal <- rmse(forecast_causal, actual_matrix)
